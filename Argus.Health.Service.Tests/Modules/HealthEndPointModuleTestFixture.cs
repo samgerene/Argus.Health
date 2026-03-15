@@ -21,7 +21,6 @@
 namespace Argus.Health.Service.Tests.Modules
 {
     using System;
-    using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Threading;
     using System.Threading.Tasks;
@@ -211,17 +210,17 @@ namespace Argus.Health.Service.Tests.Modules
                 .Setup(r => r.ReadAsync(It.Is<Guid[]>(ids => ids.Length == 1 && ids[0] == identifier)))
                 .ReturnsAsync(endpoints);
 
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.GET,
-                Route = $"/healthendpoint/{identifier}"
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}"
             };
 
-            var routeValues = new Dictionary<string, string> { { "identifier", identifier.ToShortGuid() } };
-
             var context = new ArgusContext(request, CancellationToken.None);
-            context.RouteValues = routeValues;
-            await this.module.HandleGetByIdAsync(context);
+            await router.RouteAsync(context);
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.Ok));
@@ -240,17 +239,17 @@ namespace Argus.Health.Service.Tests.Modules
                 .Setup(r => r.ReadAsync(It.IsAny<Guid[]>()))
                 .ReturnsAsync(ImmutableList<HealthEndPoint>.Empty);
 
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.GET,
-                Route = $"/healthendpoint/{identifier}"
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}"
             };
 
-            var routeValues = new Dictionary<string, string> { { "identifier", identifier.ToShortGuid() } };
-
             var context = new ArgusContext(request, CancellationToken.None);
-            context.RouteValues = routeValues;
-            await this.module.HandleGetByIdAsync(context);
+            await router.RouteAsync(context);
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.NotFound));
@@ -277,18 +276,18 @@ namespace Argus.Health.Service.Tests.Modules
                 .Setup(r => r.UpdateAsync(It.IsAny<HealthEndPoint>()))
                 .ReturnsAsync(Result.Ok());
 
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.PUT,
-                Route = $"/healthendpoint/{identifier}",
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}",
                 Body = bodyJson
             };
 
-            var routeValues = new Dictionary<string, string> { { "identifier", identifier.ToShortGuid() } };
-
             var context = new ArgusContext(request, CancellationToken.None);
-            context.RouteValues = routeValues;
-            await this.module.HandleUpdateAsync(context);
+            await router.RouteAsync(context);
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.Ok));
@@ -304,18 +303,18 @@ namespace Argus.Health.Service.Tests.Modules
         {
             var identifier = Guid.NewGuid();
 
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.PUT,
-                Route = $"/healthendpoint/{identifier}",
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}",
                 Body = ""
             };
 
-            var routeValues = new Dictionary<string, string> { { "identifier", identifier.ToShortGuid() } };
-
             var context = new ArgusContext(request, CancellationToken.None);
-            context.RouteValues = routeValues;
-            await this.module.HandleUpdateAsync(context);
+            await router.RouteAsync(context);
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.BadRequest));
@@ -332,17 +331,17 @@ namespace Argus.Health.Service.Tests.Modules
                 .Setup(r => r.DeleteAsync(It.IsAny<HealthEndPoint>()))
                 .ReturnsAsync(Result.Ok());
 
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.DELETE,
-                Route = $"/healthendpoint/{identifier}"
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}"
             };
 
-            var routeValues = new Dictionary<string, string> { { "identifier", identifier.ToShortGuid() } };
-
             var context = new ArgusContext(request, CancellationToken.None);
-            context.RouteValues = routeValues;
-            await this.module.HandleDeleteAsync(context);
+            await router.RouteAsync(context);
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.Ok));
@@ -360,17 +359,17 @@ namespace Argus.Health.Service.Tests.Modules
                 .Setup(r => r.DeleteAsync(It.IsAny<HealthEndPoint>()))
                 .ReturnsAsync(Result.Fail("Database error"));
 
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.DELETE,
-                Route = $"/healthendpoint/{identifier}"
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}"
             };
 
-            var routeValues = new Dictionary<string, string> { { "identifier", identifier.ToShortGuid() } };
-
             var context = new ArgusContext(request, CancellationToken.None);
-            context.RouteValues = routeValues;
-            await this.module.HandleDeleteAsync(context);
+            await router.RouteAsync(context);
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.InternalServerError));

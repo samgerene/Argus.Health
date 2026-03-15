@@ -53,6 +53,12 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Argus.Health.Common\Argus.Health.Common.csproj" />
-      <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
+
+        <!--  
+        <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
+        -->  
+        
+        <PackageReference Include="ArgusTransfer" Version="0.2.0" />
+        
     </ItemGroup>
 </Project>
