@@ -36,6 +36,7 @@ dotnet run --project Argus.Health.Service
 | `Argus.Health.Client.Tests` | net10.0 | Tests for `HealthEndPointClient` |
 | `Argus.Health.Service` | net10.0 | Worker Service — main executable |
 | `Argus.Health.Service.Tests` | net10.0 | Tests for domain service |
+| `Argus.Health.Pulse` | net10.0 | Avalonia desktop dashboard for monitoring Argus Health endpoints |
 
 ## Architecture
 

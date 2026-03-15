@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 320" width="680" height="320">
+  <rect width="680" height="320" fill="#1a2332"/>
+
+  <!-- Faint horizontal reference line -->
+  <line x1="60" y1="100" x2="620" y2="100" stroke="#3dd8d8" stroke-width="0.3" opacity="0.1"/>
+
+  <!-- Main ECG heartbeat -->
+  <polyline
+    points="60,100 150,100 200,100 240,100 268,100 288,85 308,115 328,55 348,140 368,80 388,100 420,100 480,100 540,100 620,100"
+    fill="none" stroke="#3dd8d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bright glow on active pulse section -->
+  <polyline
+    points="288,85 308,115 328,55 348,140 368,80"
+    fill="none" stroke="#7aeaea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+
+  <!-- Peak glow dots -->
+  <circle cx="328" cy="55" r="4" fill="#7aeaea" opacity="0.55"/>
+  <circle cx="348" cy="140" r="3" fill="#3dd8d8" opacity="0.35"/>
+
+  <!-- Subtle scan line texture -->
+  <line x1="100" y1="95" x2="200" y2="95" stroke="#3dd8d8" stroke-width="0.3" opacity="0.12"/>
+  <line x1="100" y1="105" x2="200" y2="105" stroke="#3dd8d8" stroke-width="0.3" opacity="0.12"/>
+  <line x1="480" y1="95" x2="580" y2="95" stroke="#3dd8d8" stroke-width="0.3" opacity="0.12"/>
+  <line x1="480" y1="105" x2="580" y2="105" stroke="#3dd8d8" stroke-width="0.3" opacity="0.12"/>
+
+  <!-- Text -->
+  <text x="340" y="210" text-anchor="middle" font-family="'Segoe UI', 'Arial', sans-serif" font-size="52" font-weight="700" fill="#c8eef0" letter-spacing="8">ARGUS</text>
+  <text x="340" y="253" text-anchor="middle" font-family="'Segoe UI', 'Arial', sans-serif" font-size="28" font-weight="600" fill="#3dd8d8" letter-spacing="12">HEALTH</text>
+  <text x="340" y="290" text-anchor="middle" font-family="'Segoe UI', 'Arial', sans-serif" font-size="22" font-weight="400" fill="#7aeaea" letter-spacing="16" opacity="0.8">PULSE</text>
+</svg>

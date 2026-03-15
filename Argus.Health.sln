@@ -34,6 +34,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Ac
 		.github\workflows\nuget-reference-check.yml = .github\workflows\nuget-reference-check.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus.Health.Pulse", "Argus.Health.Pulse\Argus.Health.Pulse.csproj", "{CC1F086F-4848-4026-B17C-AE61FCB401EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -104,14 +106,26 @@ Global
 		{FBDE74A4-5012-4342-92BB-B8BE7025CF94}.Release|x64.Build.0 = Release|Any CPU
 		{FBDE74A4-5012-4342-92BB-B8BE7025CF94}.Release|x86.ActiveCfg = Release|Any CPU
 		{FBDE74A4-5012-4342-92BB-B8BE7025CF94}.Release|x86.Build.0 = Release|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Debug|x64.Build.0 = Debug|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Debug|x86.Build.0 = Debug|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Release|x64.ActiveCfg = Release|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Release|x64.Build.0 = Release|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Release|x86.ActiveCfg = Release|Any CPU
+		{CC1F086F-4848-4026-B17C-AE61FCB401EC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {9910133E-0B88-4372-9E4D-EE4E4F05C00C}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{979EF50F-C06F-468C-AA0E-F68493044EEF} = {E88F0D3C-E3DA-475A-B0DA-AF0E9A489E0C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9910133E-0B88-4372-9E4D-EE4E4F05C00C}
 	EndGlobalSection
 EndGlobal

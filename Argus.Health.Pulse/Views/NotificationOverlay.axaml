@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Argus.Health.Pulse.ViewModels"
+             x:Class="Argus.Health.Pulse.Views.NotificationOverlay"
+             x:DataType="vm:MainWindowViewModel"
+             IsHitTestVisible="True">
+
+    <ItemsControl ItemsSource="{Binding Notifications}" MaxWidth="350">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NotificationItem">
+                <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                        BorderBrush="OrangeRed"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="12,8"
+                        BoxShadow="2 2 8 0 #40000000">
+                    <DockPanel>
+                        <Button Content="X" DockPanel.Dock="Right"
+                                VerticalAlignment="Top"
+                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).DismissNotificationCommand}"
+                                CommandParameter="{Binding}"
+                                Background="Transparent"
+                                Padding="4,2"
+                                FontSize="10" />
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding EndpointName}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding StatusCode, StringFormat='Status: {0}'}" FontSize="12" />
+                            <TextBlock Text="{Binding ErrorMessage}" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="OrangeRed"
+                                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+</UserControl>
