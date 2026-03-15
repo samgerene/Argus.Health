@@ -76,6 +76,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 
 - **language**: C#, no using python
 - **Explicit usings**: `ImplicitUsings` is disabled — all `using` directives must be written explicitly.
+- **usings location**: using statements go inside namespace.
 - **Nullable**: enabled in `Argus.Health.Service` and `Argus.Health.Common`; disabled in the test project.
 - **XML doc comments**: required on all public types and members.
 - **License header**: every `.cs` file starts with the Apache-2.0 copyright block.
