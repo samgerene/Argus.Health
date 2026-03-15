@@ -107,6 +107,24 @@ namespace Argus.Health.Pulse.ViewModels
                 .Subscribe(hasError => IsConnectionError = hasError);
             disposables.Add(connectionSubscription);
 
+            // countdown timer: 100 ticks over the poll interval
+            var countdownSubscription = Observable.Interval(TimeSpan.FromMilliseconds(100))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ =>
+                {
+                    if (SyncProgress > 0)
+                    {
+                        SyncProgress -= 1;
+                    }
+                });
+            disposables.Add(countdownSubscription);
+
+            // reset progress bar on every poll result
+            var resetSubscription = syncService.EndpointsObservable
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ => SyncProgress = 100);
+            disposables.Add(resetSubscription);
+
             // start with dashboard
             NavigateToDashboard();
             syncService.Start();
@@ -117,6 +135,9 @@ namespace Argus.Health.Pulse.ViewModels
 
         [Reactive]
         public bool IsConnectionError { get; set; }
+
+        [Reactive]
+        public double SyncProgress { get; set; } = 100;
 
         public ObservableCollection<NotificationItem> Notifications { get; } = new();
 

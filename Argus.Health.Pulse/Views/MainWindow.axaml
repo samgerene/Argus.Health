@@ -26,7 +26,22 @@
             </StackPanel>
 
             <!-- Content area -->
-            <ContentControl Content="{Binding CurrentView}" Margin="16" />
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Top"
+                             Minimum="0" Maximum="100"
+                             Value="{Binding SyncProgress}"
+                             Height="3"
+                             Margin="16,16,16,0"
+                             Foreground="#4CAF50"
+                             Classes.connectionError="{Binding IsConnectionError}">
+                    <ProgressBar.Styles>
+                        <Style Selector="ProgressBar.connectionError">
+                            <Setter Property="Foreground" Value="#D32F2F" />
+                        </Style>
+                    </ProgressBar.Styles>
+                </ProgressBar>
+                <ContentControl Content="{Binding CurrentView}" Margin="16" />
+            </DockPanel>
         </DockPanel>
 
         <!-- Toast notification overlay -->

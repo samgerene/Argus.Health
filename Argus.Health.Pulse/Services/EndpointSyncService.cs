@@ -35,6 +35,8 @@ namespace Argus.Health.Pulse.Services
     /// </summary>
     public class EndpointSyncService : IEndpointSyncService
     {
+        public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
+
         private readonly HealthEndPointClient client;
         private readonly BehaviorSubject<IList<HealthEndPoint>> endpointsSubject = new(Array.Empty<HealthEndPoint>());
         private readonly BehaviorSubject<bool> connectionErrorSubject = new(false);
@@ -51,7 +53,7 @@ namespace Argus.Health.Pulse.Services
 
         public void Start()
         {
-            var subscription = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(10))
+            var subscription = Observable.Timer(TimeSpan.Zero, PollInterval)
                 .SelectMany(_ => Observable.FromAsync(async ct =>
                 {
                     try
