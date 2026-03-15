@@ -18,10 +18,10 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using Avalonia.Controls;
-
 namespace Argus.Health.Pulse.Views
 {
+    using Avalonia.Controls;
+    
     public partial class DashboardView : UserControl
     {
         public DashboardView()

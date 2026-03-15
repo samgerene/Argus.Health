@@ -18,14 +18,10 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System.ComponentModel;
-
-using Avalonia.Controls;
-
-using Argus.Health.Pulse.ViewModels;
-
 namespace Argus.Health.Pulse.Views
 {
+    using Avalonia.Controls;
+    
     public partial class MainWindow : Window
     {
         public MainWindow()

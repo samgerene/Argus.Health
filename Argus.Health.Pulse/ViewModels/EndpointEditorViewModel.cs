@@ -18,19 +18,20 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Threading.Tasks;
-
-using Argus.Health.Client;
-using Argus.Health.Common.Model;
-
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-
 namespace Argus.Health.Pulse.ViewModels
 {
+    using System;
+    using System.Reactive;
+    using System.Reactive.Linq;
+    using System.Threading.Tasks;
+
+    using Argus.Health.Client;
+    using Argus.Health.Common.Model;
+
+    using ReactiveUI;
+    using ReactiveUI.Fody.Helpers;
+    
+
     /// <summary>
     /// Create/edit form for a health endpoint
     /// </summary>

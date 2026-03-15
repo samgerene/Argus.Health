@@ -18,23 +18,24 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Argus.Health.Common.Model;
-
-using Polly;
-using Polly.Timeout;
-
 namespace Argus.Health.Pulse.Services
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net.Http;
+    using System.Reactive.Linq;
+    using System.Reactive.Subjects;
+    using System.Threading;
+    using System.Threading.Tasks;
+
+    using Argus.Health.Common.Model;
+
+    using Polly;
+    using Polly.Timeout;
+
+    
     /// <summary>
     /// Manages per-endpoint HTTP monitor loops with Polly retry and timeout
     /// </summary>

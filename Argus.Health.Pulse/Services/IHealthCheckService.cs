@@ -18,13 +18,13 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-
-using Argus.Health.Common.Model;
-
 namespace Argus.Health.Pulse.Services
 {
+    using System;
+    using System.Collections.Generic;
+
+    using Argus.Health.Common.Model;
+
     /// <summary>
     /// Performs HTTP health checks against endpoints, mirroring the service's background service
     /// </summary>

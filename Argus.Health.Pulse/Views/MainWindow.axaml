@@ -16,6 +16,13 @@
                 <TextBlock Text="Argus Health Pulse" FontWeight="Bold" FontSize="14" Margin="12,8,12,16" />
                 <Button Content="Dashboard" Command="{Binding GoToDashboardCommand}" HorizontalAlignment="Stretch" Margin="8,0" />
                 <Button Content="Endpoints" Command="{Binding GoToEndpointsCommand}" HorizontalAlignment="Stretch" Margin="8,0" />
+
+                <!-- Connection status indicator -->
+                <Border Background="#D32F2F" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
+                        IsVisible="{Binding IsConnectionError}">
+                    <TextBlock Text="Service unavailable" Foreground="White" FontSize="12"
+                               HorizontalAlignment="Center" TextAlignment="Center" />
+                </Border>
             </StackPanel>
 
             <!-- Content area -->

@@ -18,20 +18,21 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.ObjectModel;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Threading.Tasks;
-
-using Argus.Health.Client;
-using Argus.Health.Common.Model;
-
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-
 namespace Argus.Health.Pulse.ViewModels
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Reactive;
+    using System.Reactive.Linq;
+    using System.Threading.Tasks;
+
+    using Argus.Health.Client;
+    using Argus.Health.Common.Model;
+
+    using ReactiveUI;
+    using ReactiveUI.Fody.Helpers;
+
+    
     /// <summary>
     /// Endpoint CRUD list view model
     /// </summary>

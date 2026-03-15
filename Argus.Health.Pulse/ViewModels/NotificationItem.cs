@@ -18,10 +18,10 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-
 namespace Argus.Health.Pulse.ViewModels
 {
+    using System;
+    
     /// <summary>
     /// Represents a toast notification item
     /// </summary>

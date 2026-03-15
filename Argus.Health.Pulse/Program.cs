@@ -18,27 +18,28 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-
-using Avalonia;
-using Avalonia.ReactiveUI;
-
-namespace Argus.Health.Pulse;
-
-class Program
+namespace Argus.Health.Pulse
 {
-    [STAThread]
-    public static void Main(string[] args)
-    {
-        BuildAvaloniaApp()
-            .StartWithClassicDesktopLifetime(args);
-    }
+    using System;
 
-    public static AppBuilder BuildAvaloniaApp()
+    using Avalonia;
+    using Avalonia.ReactiveUI;
+    
+    public static class Program
     {
-        return AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .LogToTrace()
-            .UseReactiveUI();
+        [STAThread]
+        public static void Main(string[] args)
+        {
+            BuildAvaloniaApp()
+                .StartWithClassicDesktopLifetime(args);
+        }
+
+        public static AppBuilder BuildAvaloniaApp()
+        {
+            return AppBuilder.Configure<App>()
+                .UsePlatformDetect()
+                .LogToTrace()
+                .UseReactiveUI();
+        }
     }
 }

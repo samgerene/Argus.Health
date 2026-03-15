@@ -18,22 +18,22 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
-
-using ArgusTransfer.Client;
-
-using Argus.Health.Client;
-using Argus.Health.Pulse.Services;
-using Argus.Health.Pulse.ViewModels;
-using Argus.Health.Pulse.Views;
-
 namespace Argus.Health.Pulse
 {
+    using System;
+
+    using Avalonia;
+    using Avalonia.Controls;
+    using Avalonia.Controls.ApplicationLifetimes;
+    using Avalonia.Markup.Xaml;
+
+    using ArgusTransfer.Client;
+
+    using Argus.Health.Client;
+    using Argus.Health.Pulse.Services;
+    using Argus.Health.Pulse.ViewModels;
+    using Argus.Health.Pulse.Views;
+    
     public partial class App : Application
     {
         private MainWindowViewModel? mainViewModel;

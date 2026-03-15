@@ -18,17 +18,17 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-
-using Argus.Health.Client;
-using Argus.Health.Common.Model;
-
 namespace Argus.Health.Pulse.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
+    using System.Reactive.Subjects;
+
+    using Argus.Health.Client;
+    using Argus.Health.Common.Model;
+    
     /// <summary>
     /// Polls <see cref="HealthEndPointClient.GetAllAsync()"/> every 10 seconds
     /// and publishes the current endpoint list

@@ -18,14 +18,14 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Reactive.Linq;
-
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-
 namespace Argus.Health.Pulse.ViewModels
 {
+    using System;
+    using System.Reactive.Linq;
+
+    using ReactiveUI;
+    using ReactiveUI.Fody.Helpers;
+    
     /// <summary>
     /// Represents a single endpoint row on the dashboard
     /// </summary>

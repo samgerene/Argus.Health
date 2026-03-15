@@ -18,15 +18,15 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-
-using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-
-using Argus.Health.Pulse.ViewModels;
-
 namespace Argus.Health.Pulse
 {
+    using System;
+
+    using Avalonia.Controls;
+    using Avalonia.Controls.Templates;
+
+    using Argus.Health.Pulse.ViewModels;
+    
     public class ViewLocator : IDataTemplate
     {
         public Control? Build(object? data)

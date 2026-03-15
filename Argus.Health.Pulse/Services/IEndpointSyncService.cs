@@ -18,13 +18,13 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-
-using Argus.Health.Common.Model;
-
 namespace Argus.Health.Pulse.Services
 {
+    using System;
+    using System.Collections.Generic;
+
+    using Argus.Health.Common.Model;
+    
     /// <summary>
     /// Polls the Argus Health service for the current list of endpoints
     /// </summary>

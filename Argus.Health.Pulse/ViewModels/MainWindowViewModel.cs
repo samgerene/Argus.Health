@@ -18,22 +18,22 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Reactive;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using System.Windows.Input;
-
-using Argus.Health.Client;
-using Argus.Health.Pulse.Services;
-
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-
 namespace Argus.Health.Pulse.ViewModels
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Linq;
+    using System.Reactive;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
+    using System.Windows.Input;
+
+    using Argus.Health.Client;
+    using Argus.Health.Pulse.Services;
+
+    using ReactiveUI;
+    using ReactiveUI.Fody.Helpers;
+    
     /// <summary>
     /// Shell view model with navigation, notification queue, and tray commands
     /// </summary>
@@ -101,6 +101,12 @@ namespace Argus.Health.Pulse.ViewModels
 
             disposables.Add(failureSubscription);
 
+            // subscribe to connection errors for status indicator
+            var connectionSubscription = syncService.ConnectionErrorObservable
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(hasError => IsConnectionError = hasError);
+            disposables.Add(connectionSubscription);
+
             // start with dashboard
             NavigateToDashboard();
             syncService.Start();
@@ -108,6 +114,9 @@ namespace Argus.Health.Pulse.ViewModels
 
         [Reactive]
         public ViewModelBase? CurrentView { get; set; }
+
+        [Reactive]
+        public bool IsConnectionError { get; set; }
 
         public ObservableCollection<NotificationItem> Notifications { get; } = new();
 

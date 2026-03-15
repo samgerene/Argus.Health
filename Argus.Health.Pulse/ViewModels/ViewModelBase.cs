@@ -18,10 +18,10 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-using ReactiveUI;
-
 namespace Argus.Health.Pulse.ViewModels
 {
+    using ReactiveUI;
+    
     public class ViewModelBase : ReactiveObject
     {
     }
