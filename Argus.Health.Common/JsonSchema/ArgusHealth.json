@@ -1,0 +1,116 @@
+﻿{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.stariongroup.eu/schemas/argus/HealthServiceMessage.schema.json",
+    "title": "HealthServiceMessage",
+    "type": "object",
+    "required": [
+        "type",
+        "payload"
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "HealthEndPoint",
+                "HealthEndPointResult"
+            ]
+        },
+        "payload": {
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/HealthEndPoint"
+                },
+                {
+                    "$ref": "#/$defs/HealthEndPointResult"
+                }
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "$defs": {
+        "HealthEndPoint": {
+            "type": "object",
+            "required": [
+                "Identifier",
+                "Name",
+                "Url",
+                "Frequency",
+                "Timeout",
+                "RetryCount"
+            ],
+            "properties": {
+                "Identifier": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Unique identifier for the HealthEndPoint."
+                },
+                "Name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Human-readable name of the HealthEndPoint."
+                },
+                "Url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL to check for this endpoint."
+                },
+                "Frequency": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Polling interval in seconds."
+                },
+                "Timeout": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Timeout in seconds for each request."
+                },
+                "RetryCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of retries in case of failure."
+                }
+            },
+            "additionalProperties": false
+        },
+        "HealthEndPointResult": {
+            "type": "object",
+            "required": [
+                "Identifier",
+                "Timestamp",
+                "Url",
+                "StatusCode",
+                "Success"
+            ],
+            "properties": {
+                "Identifier": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Unique identifier for the HealthEndPointResult."
+                },
+                "Timestamp": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description" : "The timestamp when the HealthEndPoint was queried"
+                },
+                "Url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "The URL that was queried"
+                },
+                "StatusCode": {
+                    "type": "integer",
+                    "description": "The HTTP status code"
+                },
+                "Success": {
+                    "type": "boolean",
+                    "description": "Assertion whether the check was succesful or not"
+                },
+                "ErrorMessage": {
+                    "type": "string",
+                    "description": "The error message, if any"
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

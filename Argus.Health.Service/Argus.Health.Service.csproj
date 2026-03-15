@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Version>0.1.0</Version>
+        <LangVersion>14.0</LangVersion>
+        <Copyright>Copyright © Sam Gerené</Copyright>
+        <AssemblyTitle>Argus.Health.Service</AssemblyTitle>
+        <Title>Argus Health</Title>
+        <Description>A background service that queries health endpoints.</Description>
+        <RequireLicenseAcceptance>true</RequireLicenseAcceptance>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <IncludeSource>true</IncludeSource>
+        <IncludeSymbols>true</IncludeSymbols>
+        <RepositoryUrl>https://github.com/samgerene/Argus.Health.git</RepositoryUrl>
+        <RepositoryType>Git</RepositoryType>
+        <NeutralLanguage>en-US</NeutralLanguage>
+        <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+        <Authors>Sam Gerené</Authors>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>argus-health.png</PackageIcon>
+        <PackageTags>Health status</PackageTags>
+        <PackageReleaseNotes>
+            [Initial] Version
+        </PackageReleaseNotes>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <UserSecretsId>dotnet-Argus.Service-5413f8d8-9f49-4836-9348-d095be6fe6ee</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\" />
+        <None Include="..\argus-health-ico.png" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="FluentResults" Version="3.16.0" />
+
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.3" />
+
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+
+        <PackageReference Include="Serilog" Version="4.3.0" />
+
+        <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
+        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Argus.Health.Common\Argus.Health.Common.csproj" />
+      <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
+    </ItemGroup>
+</Project>
