@@ -28,7 +28,7 @@ namespace Argus.Health.Pulse.ViewModels
     using System.Reactive.Linq;
     using System.Windows.Input;
 
-    using Argus.Health.Client;
+    using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
     using ReactiveUI;

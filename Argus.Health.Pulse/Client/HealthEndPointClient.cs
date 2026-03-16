@@ -18,7 +18,7 @@
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
-namespace Argus.Health.Client
+namespace Argus.Health.Pulse.Client
 {
     using System;
     using System.Collections.Generic;

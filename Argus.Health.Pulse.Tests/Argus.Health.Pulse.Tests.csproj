@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <Authors>Sam Gerené</Authors>
-        <Description>Nunit test suite for the Argus.Health.Client library</Description>
+        <Description>Nunit test suite for the Argus.Health.Pulse application</Description>
         <Copyright>Copyright © Sam Gerené</Copyright>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/samgerene/Argus.Health.git</RepositoryUrl>
@@ -35,11 +35,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Argus.Health.Client\Argus.Health.Client.csproj" />
+        <ProjectReference Include="..\Argus.Health.Pulse\Argus.Health.Pulse.csproj" />
     </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="NUnit.Framework" />
-  </ItemGroup>
 
 </Project>

@@ -29,7 +29,7 @@ namespace Argus.Health.Pulse
 
     using ArgusTransfer.Client;
 
-    using Argus.Health.Client;
+    using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
     using Argus.Health.Pulse.ViewModels;
     using Argus.Health.Pulse.Views;

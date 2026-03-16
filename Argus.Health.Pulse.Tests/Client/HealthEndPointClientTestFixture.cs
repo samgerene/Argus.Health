@@ -18,7 +18,7 @@
 //   </copyright>
 //   ------------------------------------------------------------------------------------------------
 
-namespace Argus.Health.Client.Tests
+namespace Argus.Health.Pulse.Client.Tests
 {
     using System;
     using System.IO;
@@ -34,6 +34,8 @@ namespace Argus.Health.Client.Tests
     using ArgusTransfer.Extensions;
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Serialization;
+    
+    using NUnit.Framework;
     
     /// <summary>
     /// Suite of tests for the <see cref="HealthEndPointClient"/> class

@@ -26,7 +26,7 @@ namespace Argus.Health.Pulse.Services
     using System.Reactive.Linq;
     using System.Reactive.Subjects;
 
-    using Argus.Health.Client;
+    using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
     
     /// <summary>
