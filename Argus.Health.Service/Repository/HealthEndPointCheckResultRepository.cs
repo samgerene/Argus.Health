@@ -62,7 +62,7 @@ namespace Argus.Health.Service.Repository
             this.logger = logger;
 
             var databaseFolderPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ArgusHealth");
 
             var dbPath = Path.Combine(databaseFolderPath, HealthEndPointRepository.DatabaseFileName);

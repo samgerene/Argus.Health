@@ -34,7 +34,6 @@ namespace Argus.Health.Pulse.Services
 
     using Polly;
     using Polly.Timeout;
-
     
     /// <summary>
     /// Manages per-endpoint HTTP monitor loops with Polly retry and timeout
