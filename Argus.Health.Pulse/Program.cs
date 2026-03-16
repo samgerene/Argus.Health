@@ -23,7 +23,7 @@ namespace Argus.Health.Pulse
     using System;
 
     using Avalonia;
-    using Avalonia.ReactiveUI;
+    using ReactiveUI.Avalonia;
     
     public static class Program
     {
@@ -39,7 +39,7 @@ namespace Argus.Health.Pulse
             return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .LogToTrace()
-                .UseReactiveUI();
+                .UseReactiveUI(_ => { });
         }
     }
 }

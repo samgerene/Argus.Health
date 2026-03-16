@@ -31,6 +31,8 @@ namespace Argus.Health.Pulse.ViewModels
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
+    using ReactiveUI.Avalonia;
+
     using ReactiveUI;
     using ReactiveUI.Fody.Helpers;
     
@@ -69,7 +71,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             // subscribe to failures for toast notifications
             var failureSubscription = healthCheckService.FailureObservable
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(result =>
                 {
                     var notification = new NotificationItem
@@ -95,7 +97,7 @@ namespace Argus.Health.Pulse.ViewModels
 
                     // auto-remove after 5 seconds
                     Observable.Timer(TimeSpan.FromSeconds(5))
-                        .ObserveOn(RxApp.MainThreadScheduler)
+                        .ObserveOn(AvaloniaScheduler.Instance)
                         .Subscribe(_ => Notifications.Remove(notification));
                 });
 
@@ -103,13 +105,13 @@ namespace Argus.Health.Pulse.ViewModels
 
             // subscribe to connection errors for status indicator
             var connectionSubscription = syncService.ConnectionErrorObservable
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(hasError => IsConnectionError = hasError);
             disposables.Add(connectionSubscription);
 
             // countdown timer: 100 ticks over the poll interval
             var countdownSubscription = Observable.Interval(TimeSpan.FromMilliseconds(100))
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(_ =>
                 {
                     if (SyncProgress > 0)
@@ -121,7 +123,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             // reset progress bar on every poll result
             var resetSubscription = syncService.EndpointsObservable
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(_ => SyncProgress = 100);
             disposables.Add(resetSubscription);
 

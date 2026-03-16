@@ -29,6 +29,8 @@ namespace Argus.Health.Pulse.ViewModels
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
 
+    using ReactiveUI.Avalonia;
+
     using ReactiveUI;
     using ReactiveUI.Fody.Helpers;
 
@@ -52,11 +54,11 @@ namespace Argus.Health.Pulse.ViewModels
             DeleteCommand = ReactiveCommand.CreateFromTask<HealthEndPoint>(OnDeleteAsync);
 
             RefreshCommand.ThrownExceptions
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex => ErrorMessage = ex.Message);
 
             DeleteCommand.ThrownExceptions
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex => ErrorMessage = ex.Message);
 
             // auto-refresh on construction

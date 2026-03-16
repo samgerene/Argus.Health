@@ -88,7 +88,7 @@ namespace Argus.Health.Service.Tests.Repository
             };
 
             var eventRaised = false;
-            HealthEndPoint? addedEndpoint = null;
+            HealthEndPoint addedEndpoint = null;
 
             this.healthEndPointRepository.EndpointAdded+= (sender, e) =>
             {
@@ -116,7 +116,7 @@ namespace Argus.Health.Service.Tests.Repository
             var healthEndPoint = new HealthEndPoint { Identifier = Guid.Parse("cfb2e590-eed6-4223-b2ba-271ed0cb06da") };
 
             var eventRaised = false;
-            HealthEndPoint? removedEndpoint = null;
+            HealthEndPoint removedEndpoint = null;
 
             this.healthEndPointRepository.EndpointRemoved += (sender, e) =>
             {

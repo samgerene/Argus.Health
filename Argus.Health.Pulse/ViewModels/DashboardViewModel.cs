@@ -28,6 +28,8 @@ namespace Argus.Health.Pulse.ViewModels
 
     using Argus.Health.Pulse.Services;
 
+    using ReactiveUI.Avalonia;
+
     using ReactiveUI;
 
     /// <summary>
@@ -40,7 +42,7 @@ namespace Argus.Health.Pulse.ViewModels
         public DashboardViewModel(IEndpointSyncService syncService, IHealthCheckService healthCheckService)
         {
             var endpointSubscription = syncService.EndpointsObservable
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(endpoints =>
                 {
                     var existingIds = Endpoints.Select(e => e.Identifier).ToHashSet();
@@ -64,7 +66,7 @@ namespace Argus.Health.Pulse.ViewModels
                 });
 
             var resultsSubscription = healthCheckService.ResultsObservable
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(result =>
                 {
                     var row = Endpoints.FirstOrDefault(e => e.Identifier == result.HealthEndPoint);
