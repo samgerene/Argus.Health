@@ -72,6 +72,7 @@ namespace Argus.Health.Common.Serialization
             writer.WriteNumber("frequency", healthEndPoint.Frequency);
             writer.WriteNumber("timeout", healthEndPoint.Timeout);
             writer.WriteNumber("retryCount", healthEndPoint.RetryCount);
+            writer.WriteBoolean("isActive", healthEndPoint.IsActive);
 
             writer.WriteEndObject();
         }

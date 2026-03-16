@@ -116,7 +116,11 @@ namespace Argus.Health.Service.BackgroundServices
             {
                 logger.LogInformation("Endpoint updated: {Name}", healthEndPoint.Name);
                 StopHealthEndPointMonitor(healthEndPoint);
-                StartHealthEndPointMonitor(healthEndPoint);
+
+                if (healthEndPoint.IsActive)
+                {
+                    StartHealthEndPointMonitor(healthEndPoint);
+                }
             };
 
             healthEndPointRepository.EndpointRemoved += async (sender, healthEndPoint) =>
@@ -139,6 +143,12 @@ namespace Argus.Health.Service.BackgroundServices
         /// </param>
         private void StartHealthEndPointMonitor(HealthEndPoint healthEndPoint)
         {
+            if (!healthEndPoint.IsActive)
+            {
+                logger.LogInformation("Skipping inactive endpoint {Name}", healthEndPoint.Name);
+                return;
+            }
+
             if (monitors.ContainsKey(healthEndPoint.Identifier))
             {
                 return;

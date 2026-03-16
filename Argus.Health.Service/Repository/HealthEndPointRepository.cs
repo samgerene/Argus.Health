@@ -151,13 +151,14 @@ namespace Argus.Health.Service.Repository
                         .ToArray();
 
                     command.CommandText = $"""
-                                               SELECT 
-                                                   Identifier, 
+                                               SELECT
+                                                   Identifier,
                                                    Name,
                                                    Urls,
                                                    Frequency,
                                                    Timeout,
-                                                   RetryCount 
+                                                   RetryCount,
+                                                   IsActive
                                                FROM HealthEndpoints
                                                WHERE Identifier IN ({string.Join(", ", paramNames)});
                                            """;
@@ -170,13 +171,14 @@ namespace Argus.Health.Service.Repository
                 else
                 {
                     command.CommandText = """
-                                              SELECT 
-                                                  Identifier, 
+                                              SELECT
+                                                  Identifier,
                                                   Name,
                                                   Urls,
                                                   Frequency,
                                                   Timeout,
-                                                  RetryCount 
+                                                  RetryCount,
+                                                  IsActive
                                               FROM HealthEndpoints;
                                           """;
                 }
@@ -191,7 +193,8 @@ namespace Argus.Health.Service.Repository
                         Url = reader.GetString(2),
                         Frequency = reader.GetInt32(3),
                         Timeout = reader.GetInt32(4),
-                        RetryCount = reader.GetInt32(5)
+                        RetryCount = reader.GetInt32(5),
+                        IsActive = reader.GetBoolean(6)
                     };
 
                     list.Add(healthEndPoint);
@@ -246,8 +249,8 @@ namespace Argus.Health.Service.Repository
 
                 var command = connection.CreateCommand();
                 command.CommandText = """
-                                      INSERT INTO HealthEndpoints (Identifier, Name, Urls, Frequency, Timeout, RetryCount)
-                                      VALUES ($identifier, $name, $urls, $frequency, $timeout, $retryCount);
+                                      INSERT INTO HealthEndpoints (Identifier, Name, Urls, Frequency, Timeout, RetryCount, IsActive)
+                                      VALUES ($identifier, $name, $urls, $frequency, $timeout, $retryCount, $isActive);
                                       """;
 
                 command.Parameters.AddWithValue("$identifier", healthEndPoint.Identifier.ToString());
@@ -256,6 +259,7 @@ namespace Argus.Health.Service.Repository
                 command.Parameters.AddWithValue("$frequency", healthEndPoint.Frequency);
                 command.Parameters.AddWithValue("$timeout", healthEndPoint.Timeout);
                 command.Parameters.AddWithValue("$retryCount", healthEndPoint.RetryCount);
+                command.Parameters.AddWithValue("$isActive", healthEndPoint.IsActive ? 1 : 0);
 
                 var affected = await command.ExecuteNonQueryAsync();
 
@@ -312,7 +316,7 @@ namespace Argus.Health.Service.Repository
                 var command = connection.CreateCommand();
                 command.CommandText = """
                     UPDATE HealthEndpoints
-                    SET Name = $name, Urls = $urls, Frequency = $frequency, Timeout = $timeout, RetryCount = $retryCount
+                    SET Name = $name, Urls = $urls, Frequency = $frequency, Timeout = $timeout, RetryCount = $retryCount, IsActive = $isActive
                     WHERE Identifier = $identifier;
                 """;
 
@@ -322,6 +326,7 @@ namespace Argus.Health.Service.Repository
                 command.Parameters.AddWithValue("$frequency", healthEndPoint.Frequency);
                 command.Parameters.AddWithValue("$timeout", healthEndPoint.Timeout);
                 command.Parameters.AddWithValue("$retryCount", healthEndPoint.RetryCount);
+                command.Parameters.AddWithValue("$isActive", healthEndPoint.IsActive ? 1 : 0);
 
                 var affected = await command.ExecuteNonQueryAsync();
 
@@ -437,11 +442,12 @@ namespace Argus.Health.Service.Repository
                 createCommand.CommandText = @"
                     CREATE TABLE IF NOT EXISTS HealthEndpoints (
                         Identifier TEXT PRIMARY KEY,
-                        Name TEXT NOT NULL UNIQUE, 
+                        Name TEXT NOT NULL UNIQUE,
                         Urls TEXT NOT NULL,
                         Frequency INTEGER NOT NULL,
                         Timeout INTEGER NOT NULL,
-                        RetryCount INTEGER NOT NULL
+                        RetryCount INTEGER NOT NULL,
+                        IsActive INTEGER NOT NULL DEFAULT 1
                     );
                 ";
                 createCommand.ExecuteNonQuery();

@@ -36,7 +36,8 @@
                 "Url",
                 "Frequency",
                 "Timeout",
-                "RetryCount"
+                "RetryCount",
+                "IsActive"
             ],
             "properties": {
                 "Identifier": {

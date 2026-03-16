@@ -67,5 +67,10 @@ namespace Argus.Health.Common.Model
         /// The default value is 3
         /// </remarks>
         public int RetryCount { get; set; } = 3;
+
+        /// <summary>
+        /// Gets or sets a value whether this endpoint needs to be checked or not.
+        /// </summary>
+        public bool IsActive { get; set; } = true;
     }
 }

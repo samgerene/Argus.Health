@@ -44,7 +44,8 @@ namespace Argus.Health.Service.Tests.Serialization
                 Url = "https://example.com/healthz",
                 Frequency = 15,
                 Timeout = 3,
-                RetryCount = 2
+                RetryCount = 2,
+                IsActive = false
             };
 
             var json = HealthEndPointWriter.Write(original);
@@ -56,6 +57,7 @@ namespace Argus.Health.Service.Tests.Serialization
             Assert.That(deserialized.Frequency, Is.EqualTo(original.Frequency));
             Assert.That(deserialized.Timeout, Is.EqualTo(original.Timeout));
             Assert.That(deserialized.RetryCount, Is.EqualTo(original.RetryCount));
+            Assert.That(deserialized.IsActive, Is.EqualTo(original.IsActive));
         }
 
         [Test]
@@ -79,6 +81,7 @@ namespace Argus.Health.Service.Tests.Serialization
             Assert.That(json, Does.Contain("\"frequency\""));
             Assert.That(json, Does.Contain("\"timeout\""));
             Assert.That(json, Does.Contain("\"retryCount\""));
+            Assert.That(json, Does.Contain("\"isActive\""));
             Assert.That(json, Does.Contain("my-endpoint"));
         }
 
@@ -92,7 +95,8 @@ namespace Argus.Health.Service.Tests.Serialization
                     "Url": "https://example.com/health",
                     "Frequency": 60,
                     "Timeout": 10,
-                    "RetryCount": 5
+                    "RetryCount": 5,
+                    "IsActive": false
                 }
                 """;
 
@@ -104,6 +108,7 @@ namespace Argus.Health.Service.Tests.Serialization
             Assert.That(result.Frequency, Is.EqualTo(60));
             Assert.That(result.Timeout, Is.EqualTo(10));
             Assert.That(result.RetryCount, Is.EqualTo(5));
+            Assert.That(result.IsActive, Is.EqualTo(false));
         }
 
         [Test]
@@ -116,7 +121,8 @@ namespace Argus.Health.Service.Tests.Serialization
                     "url": "https://example.com/status",
                     "frequency": 45,
                     "timeout": 7,
-                    "retryCount": 4
+                    "retryCount": 4,
+                    "isActive": false
                 }
                 """;
 
@@ -128,6 +134,7 @@ namespace Argus.Health.Service.Tests.Serialization
             Assert.That(result.Frequency, Is.EqualTo(45));
             Assert.That(result.Timeout, Is.EqualTo(7));
             Assert.That(result.RetryCount, Is.EqualTo(4));
+            Assert.That(result.IsActive, Is.EqualTo(false));
         }
 
         [Test]
@@ -143,6 +150,7 @@ namespace Argus.Health.Service.Tests.Serialization
             Assert.That(result.Frequency, Is.EqualTo(30));
             Assert.That(result.Timeout, Is.EqualTo(5));
             Assert.That(result.RetryCount, Is.EqualTo(3));
+            Assert.That(result.IsActive, Is.EqualTo(true));
         }
 
         [Test]
@@ -218,7 +226,8 @@ namespace Argus.Health.Service.Tests.Serialization
                     Url = "https://example.com/1",
                     Frequency = 10,
                     Timeout = 2,
-                    RetryCount = 1
+                    RetryCount = 1,
+                    IsActive = false
                 },
                 new HealthEndPoint
                 {
@@ -227,7 +236,8 @@ namespace Argus.Health.Service.Tests.Serialization
                     Url = "https://example.com/2",
                     Frequency = 60,
                     Timeout = 15,
-                    RetryCount = 5
+                    RetryCount = 5,
+                    IsActive = true
                 }
             };
 
@@ -244,6 +254,7 @@ namespace Argus.Health.Service.Tests.Serialization
                 Assert.That(deserialized[i].Frequency, Is.EqualTo(originals[i].Frequency));
                 Assert.That(deserialized[i].Timeout, Is.EqualTo(originals[i].Timeout));
                 Assert.That(deserialized[i].RetryCount, Is.EqualTo(originals[i].RetryCount));
+                Assert.That(deserialized[i].IsActive, Is.EqualTo(originals[i].IsActive));
             }
         }
     }

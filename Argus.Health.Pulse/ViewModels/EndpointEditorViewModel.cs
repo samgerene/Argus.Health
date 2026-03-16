@@ -56,6 +56,7 @@ namespace Argus.Health.Pulse.ViewModels
                 Frequency = existing.Frequency;
                 Timeout = existing.Timeout;
                 RetryCount = existing.RetryCount;
+                IsActive = existing.IsActive;
                 IsEditing = true;
             }
             else
@@ -63,6 +64,7 @@ namespace Argus.Health.Pulse.ViewModels
                 Frequency = 30;
                 Timeout = 5;
                 RetryCount = 3;
+                IsActive = true;
             }
 
             var canSave = this.WhenAnyValue(
@@ -97,6 +99,12 @@ namespace Argus.Health.Pulse.ViewModels
         [Reactive]
         public int RetryCount { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this endpoint is active
+        /// </summary>
+        [Reactive]
+        public bool IsActive { get; set; } = true;
+
         [Reactive]
         public string? ErrorMessage { get; set; }
 
@@ -119,7 +127,8 @@ namespace Argus.Health.Pulse.ViewModels
                 Url = Url,
                 Frequency = Frequency,
                 Timeout = Timeout,
-                RetryCount = RetryCount
+                RetryCount = RetryCount,
+                IsActive = IsActive
             };
 
             if (IsEditing)

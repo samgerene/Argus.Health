@@ -20,7 +20,6 @@
 
 namespace Argus.Health.Common.Serialization
 {
-    using System;
     using System.Collections.Generic;
     using System.Text.Json;
 
@@ -105,6 +104,10 @@ namespace Argus.Health.Common.Serialization
                         case "retryCount":
                         case "RetryCount":
                             healthEndPoint.RetryCount = reader.GetInt32();
+                            break;
+                        case "isActive":
+                        case "IsActive":
+                            healthEndPoint.IsActive = reader.GetBoolean();
                             break;
                     }
                 }

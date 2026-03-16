@@ -84,7 +84,8 @@ namespace Argus.Health.Service.Tests.Repository
                 Url = "https://cdp4services-public.cdp4.org/healthz",
                 Frequency = 19,
                 RetryCount = 2,
-                Timeout = 4
+                Timeout = 4,
+                IsActive = false
             };
 
             var eventRaised = false;
@@ -108,6 +109,9 @@ namespace Argus.Health.Service.Tests.Repository
             var healthEndPoints = await this.healthEndPointRepository.ReadAsync();
 
             Assert.That(healthEndPoints.Any(x => x.Identifier == healthEndPoint.Identifier), Is.True);
+
+            var persisted = healthEndPoints.Single(x => x.Identifier == healthEndPoint.Identifier);
+            Assert.That(persisted.IsActive, Is.EqualTo(false));
         }
 
         [Test]
@@ -244,6 +248,7 @@ namespace Argus.Health.Service.Tests.Repository
             hep.Url = "http://some-other-url";
             hep.RetryCount = 66;
             hep.Timeout = 666;
+            hep.IsActive = false;
 
             await this.healthEndPointRepository.UpdateAsync(hep);
 
@@ -256,6 +261,7 @@ namespace Argus.Health.Service.Tests.Repository
             Assert.That(updatedEndpoint?.RetryCount, Is.EqualTo(hep.RetryCount));
             Assert.That(updatedEndpoint?.Timeout, Is.EqualTo(hep.Timeout));
             Assert.That(updatedEndpoint?.Url, Is.EqualTo(hep.Url));
+            Assert.That(updatedEndpoint?.IsActive, Is.EqualTo(false));
         }
     }
 }
