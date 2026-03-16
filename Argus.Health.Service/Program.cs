@@ -85,6 +85,7 @@ namespace Argus.Health.Service
             builder.Services.AddArgusPipeHost();
             
             builder.Services.AddSingleton<IHealthEndPointRepository, HealthEndPointRepository>();
+            builder.Services.AddSingleton<IHealthEndPointCheckResultRepository, HealthEndPointCheckResultRepository>();
             builder.Services.AddHostedService<HealthEndPointBackgroundService>();
             
             builder.Services.Configure<HostOptions>(options =>
@@ -93,9 +94,12 @@ namespace Argus.Health.Service
             });
 
             var app = builder.Build();
-            
+
             try
             {
+                var repository = app.Services.GetRequiredService<IHealthEndPointRepository>();
+                repository.InitializeDatabase();
+
                 Log.Information("Starting Argus Health Service...");
                 app.Run();
                 Log.Information("Argus Health Service stopped.");

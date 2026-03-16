@@ -52,6 +52,8 @@ namespace Argus.Health.Service.Tests.BackgroundServices
 
         private Mock<HttpMessageHandler> mockHttpMessageHandler;
 
+        private Mock<IHealthEndPointCheckResultRepository> mockCheckResultRepository;
+
         [SetUp]
         public void SetUp()
         {
@@ -59,6 +61,7 @@ namespace Argus.Health.Service.Tests.BackgroundServices
             this.mockHttpClientFactory = new Mock<IHttpClientFactory>();
             this.mockRepository = new Mock<IHealthEndPointRepository>();
             this.mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+            this.mockCheckResultRepository = new Mock<IHealthEndPointCheckResultRepository>();
 
             this.mockHttpMessageHandler
                 .Protected()
@@ -77,7 +80,8 @@ namespace Argus.Health.Service.Tests.BackgroundServices
             this.service = new HealthEndPointBackgroundService(
                 this.mockLogger.Object,
                 this.mockHttpClientFactory.Object,
-                this.mockRepository.Object);
+                this.mockRepository.Object,
+                this.mockCheckResultRepository.Object);
         }
 
         [Test]

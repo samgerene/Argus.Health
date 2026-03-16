@@ -58,6 +58,11 @@ namespace Argus.Health.Service.BackgroundServices
         private readonly IHealthEndPointRepository healthEndPointRepository;
 
         /// <summary>
+        /// The (injected) <see cref="IHealthEndPointCheckResultRepository"/>
+        /// </summary>
+        private readonly IHealthEndPointCheckResultRepository healthEndPointCheckResultRepository;
+
+        /// <summary>
         /// Task store: endpoint identifier → (monitor task, cancellation)
         /// </summary>
         private readonly ConcurrentDictionary<Guid, (Task task, CancellationTokenSource cts)> monitors = new();
@@ -74,13 +79,18 @@ namespace Argus.Health.Service.BackgroundServices
         /// <param name="healthEndPointRepository">
         /// The (injected) <see cref="IHealthEndPointRepository"/>
         /// </param>
-        public HealthEndPointBackgroundService(ILogger<HealthEndPointBackgroundService> logger, 
+        /// <param name="healthEndPointCheckResultRepository">
+        /// The (injected) <see cref="IHealthEndPointCheckResultRepository"/>
+        /// </param>
+        public HealthEndPointBackgroundService(ILogger<HealthEndPointBackgroundService> logger,
             IHttpClientFactory httpClientFactory,
-            IHealthEndPointRepository healthEndPointRepository)
+            IHealthEndPointRepository healthEndPointRepository,
+            IHealthEndPointCheckResultRepository healthEndPointCheckResultRepository)
         {
             this.logger = logger;
             this.httpClientFactory = httpClientFactory;
             this.healthEndPointRepository = healthEndPointRepository;
+            this.healthEndPointCheckResultRepository = healthEndPointCheckResultRepository;
         }
 
         /// <summary>
@@ -203,10 +213,18 @@ namespace Argus.Health.Service.BackgroundServices
 
             while (!ct.IsCancellationRequested)
             {
+                var checkResult = new HealthEndPointCheckResult
+                {
+                    Timestamp = DateTime.UtcNow,
+                    HealthEndPoint = healthEndPoint.Identifier
+                };
+
                 try
                 {
                     var response = await wrappedPolicies.ExecuteAsync(() =>
                         client.GetAsync(healthEndPoint.Url, ct));
+
+                    checkResult.StatusCode = (int)response.StatusCode;
 
                     var status = response.IsSuccessStatusCode
                         ? "✅ Healthy"
@@ -216,16 +234,27 @@ namespace Argus.Health.Service.BackgroundServices
                 }
                 catch (BrokenCircuitException)
                 {
+                    checkResult.StatusCode = 0;
+                    checkResult.ErrorMessage = "Circuit breaker is OPEN — request skipped";
+
                     logger.LogWarning("[{Name}] Circuit is OPEN — skipping {Url}", healthEndPoint.Name, healthEndPoint.Url);
                 }
                 catch (TimeoutRejectedException)
                 {
+                    checkResult.StatusCode = 0;
+                    checkResult.ErrorMessage = $"Request timed out after {healthEndPoint.Timeout}s";
+
                     logger.LogWarning("[{Name}] {Url} timed out after {Timeout}s", healthEndPoint.Name, healthEndPoint.Url, healthEndPoint.Timeout);
                 }
                 catch (Exception ex)
                 {
+                    checkResult.StatusCode = 0;
+                    checkResult.ErrorMessage = ex.Message;
+
                     logger.LogWarning(ex, "[{Name}] {Url} failed after retries", healthEndPoint.Name, healthEndPoint.Url);
                 }
+
+                await this.healthEndPointCheckResultRepository.CreateAsync(checkResult);
 
                 await Task.Delay(TimeSpan.FromSeconds(healthEndPoint.Frequency), ct);
             }

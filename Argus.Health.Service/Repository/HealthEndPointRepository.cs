@@ -424,6 +424,10 @@ namespace Argus.Health.Service.Repository
 
                 if (force)
                 {
+                    using var dropCheckResultsCommand = connection.CreateCommand();
+                    dropCheckResultsCommand.CommandText = "DROP TABLE IF EXISTS HealthEndPointCheckResults;";
+                    dropCheckResultsCommand.ExecuteNonQuery();
+
                     using var dropCommand = connection.CreateCommand();
                     dropCommand.CommandText = "DROP TABLE IF EXISTS HealthEndpoints;";
                     dropCommand.ExecuteNonQuery();
@@ -440,7 +444,20 @@ namespace Argus.Health.Service.Repository
                         RetryCount INTEGER NOT NULL
                     );
                 ";
-                var result = createCommand.ExecuteNonQuery();
+                createCommand.ExecuteNonQuery();
+
+                using var createCheckResultsCommand = connection.CreateCommand();
+                createCheckResultsCommand.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS HealthEndPointCheckResults (
+                        Identifier TEXT PRIMARY KEY,
+                        Timestamp TEXT NOT NULL,
+                        StatusCode INTEGER NOT NULL,
+                        ErrorMessage TEXT,
+                        HealthEndPoint TEXT NOT NULL,
+                        FOREIGN KEY (HealthEndPoint) REFERENCES HealthEndpoints(Identifier)
+                    );
+                ";
+                createCheckResultsCommand.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
