@@ -105,14 +105,14 @@ namespace Argus.Health.Service.BackgroundServices
         /// </returns>
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            logger.LogInformation("Argus Health Worker started.");
+            this.logger.LogInformation("Argus Health Worker started.");
 
-            healthEndPointRepository.EndpointAdded += async (sender, healthEndPoint) =>
+            this.healthEndPointRepository.EndpointAdded += async (sender, healthEndPoint) =>
             {
                 StartHealthEndPointMonitor(healthEndPoint);
             };
 
-            healthEndPointRepository.EndpointUpdated += async (sender, healthEndPoint) =>
+            this.healthEndPointRepository.EndpointUpdated += async (sender, healthEndPoint) =>
             {
                 logger.LogInformation("Endpoint updated: {Name}", healthEndPoint.Name);
                 StopHealthEndPointMonitor(healthEndPoint);
@@ -123,7 +123,7 @@ namespace Argus.Health.Service.BackgroundServices
                 }
             };
 
-            healthEndPointRepository.EndpointRemoved += async (sender, healthEndPoint) =>
+            this.healthEndPointRepository.EndpointRemoved += async (sender, healthEndPoint) =>
             {
                 logger.LogInformation("Endpoint removed: {Name}", healthEndPoint.Name);
                 StopHealthEndPointMonitor(healthEndPoint);
@@ -131,7 +131,16 @@ namespace Argus.Health.Service.BackgroundServices
 
             foreach (var healthEndPoint in await healthEndPointRepository.ReadAsync())
             {
-                StartHealthEndPointMonitor(healthEndPoint);
+                this.StartHealthEndPointMonitor(healthEndPoint);
+            }
+
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                this.logger.LogInformation("Argus Health Worker stopping.");
             }
         }
 
@@ -145,18 +154,18 @@ namespace Argus.Health.Service.BackgroundServices
         {
             if (!healthEndPoint.IsActive)
             {
-                logger.LogInformation("Skipping inactive endpoint {Name}", healthEndPoint.Name);
+                this.logger.LogInformation("Skipping inactive endpoint {Name}", healthEndPoint.Name);
                 return;
             }
 
-            if (monitors.ContainsKey(healthEndPoint.Identifier))
+            if (this.monitors.ContainsKey(healthEndPoint.Identifier))
             {
                 return;
             }
 
             var cts = new CancellationTokenSource();
-            var task = MonitorEndpointAsync(healthEndPoint, cts.Token);
-            monitors[healthEndPoint.Identifier] = (task, cts);
+            var task = this.MonitorEndpointAsync(healthEndPoint, cts.Token);
+            this.monitors[healthEndPoint.Identifier] = (task, cts);
         }
 
         /// <summary>
@@ -167,7 +176,7 @@ namespace Argus.Health.Service.BackgroundServices
         /// </param>
         private void StopHealthEndPointMonitor(HealthEndPoint healthEndPoint)
         {
-            if (monitors.TryRemove(healthEndPoint.Identifier, out var monitor))
+            if (this.monitors.TryRemove(healthEndPoint.Identifier, out var monitor))
             {
                 monitor.cts.Cancel();
                 logger.LogInformation("Stopped monitor for endpoint {Id}", healthEndPoint.Identifier);
@@ -198,7 +207,7 @@ namespace Argus.Health.Service.BackgroundServices
                     sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(200 * attempt),
                     onRetry: (outcome, delay, attempt, context) =>
                     {
-                        logger.LogWarning("[{Name}:{Url}:{ExceptionMessage}] Retry {Attempt} after {Delay}ms", outcome.Exception.Message, healthEndPoint.Name, healthEndPoint.Url, attempt, delay.TotalMilliseconds);
+                        this.logger.LogWarning("[{Name}:{Url}:{ExceptionMessage}] Retry {Attempt} after {Delay}ms", outcome.Exception.Message, healthEndPoint.Name, healthEndPoint.Url, attempt, delay.TotalMilliseconds);
                     });
 
             var timeoutPolicy = Policy.TimeoutAsync<HttpResponseMessage>(
@@ -212,11 +221,11 @@ namespace Argus.Health.Service.BackgroundServices
                     durationOfBreak: TimeSpan.FromSeconds(30),
                     onBreak: (outcome, breakDelay, context) =>
                                 {
-                                   logger.LogWarning("[{Name}:{ExceptionMessage}] Circuit breaker OPEN for {Delay}s", outcome.Exception.Message, healthEndPoint.Name, breakDelay.TotalSeconds);
+                                    this.logger.LogWarning("[{Name}:{ExceptionMessage}] Circuit breaker OPEN for {Delay}s", outcome.Exception.Message, healthEndPoint.Name, breakDelay.TotalSeconds);
                                },
                                onReset: (context) =>
                                {
-                                   logger.LogInformation("[{Name}] Circuit breaker CLOSED", healthEndPoint.Name);
+                                   this.logger.LogInformation("[{Name}] Circuit breaker CLOSED", healthEndPoint.Name);
                                });
             
             var wrappedPolicies = Policy.WrapAsync(retryPolicy, timeoutPolicy, breakerPolicy);
@@ -240,28 +249,28 @@ namespace Argus.Health.Service.BackgroundServices
                         ? "✅ Healthy"
                         : $"⚠️ Unhealthy ({(int)response.StatusCode})";
 
-                    logger.LogInformation("[{Name}] {Url} -> {Status}", healthEndPoint.Name, healthEndPoint.Url, status);
+                    this.logger.LogInformation("[{Name}] {Url} -> {Status}", healthEndPoint.Name, healthEndPoint.Url, status);
                 }
                 catch (BrokenCircuitException)
                 {
                     checkResult.StatusCode = 0;
                     checkResult.ErrorMessage = "Circuit breaker is OPEN — request skipped";
 
-                    logger.LogWarning("[{Name}] Circuit is OPEN — skipping {Url}", healthEndPoint.Name, healthEndPoint.Url);
+                    this.logger.LogWarning("[{Name}] Circuit is OPEN — skipping {Url}", healthEndPoint.Name, healthEndPoint.Url);
                 }
                 catch (TimeoutRejectedException)
                 {
                     checkResult.StatusCode = 0;
                     checkResult.ErrorMessage = $"Request timed out after {healthEndPoint.Timeout}s";
 
-                    logger.LogWarning("[{Name}] {Url} timed out after {Timeout}s", healthEndPoint.Name, healthEndPoint.Url, healthEndPoint.Timeout);
+                    this.logger.LogWarning("[{Name}] {Url} timed out after {Timeout}s", healthEndPoint.Name, healthEndPoint.Url, healthEndPoint.Timeout);
                 }
                 catch (Exception ex)
                 {
                     checkResult.StatusCode = 0;
                     checkResult.ErrorMessage = ex.Message;
 
-                    logger.LogWarning(ex, "[{Name}] {Url} failed after retries", healthEndPoint.Name, healthEndPoint.Url);
+                    this.logger.LogWarning(ex, "[{Name}] {Url} failed after retries", healthEndPoint.Name, healthEndPoint.Url);
                 }
 
                 await this.healthEndPointCheckResultRepository.CreateAsync(checkResult);

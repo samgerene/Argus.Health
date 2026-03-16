@@ -1,20 +1,20 @@
-﻿// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 //  <copyright file="Program.cs">
-// 
+//
 //    Copyright (c) 2025-2026 Sam Gerené
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, softwareUseCases
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
+//
 //  </copyright>
 //  ------------------------------------------------------------------------------------------------
 
@@ -22,17 +22,18 @@ namespace Argus.Health.Service
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Threading.Tasks;
 
     using Argus.Health.Service.BackgroundServices;
     using Argus.Health.Service.Repository;
 
     using ArgusTransfer.Extensions;
     using ArgusTransfer.Routing;
-    
+
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    
+
     using Serilog;
 
     /// <summary>
@@ -47,7 +48,7 @@ namespace Argus.Health.Service
         /// <param name="args">
         /// command line arguments
         /// </param>
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             Console.Title = "Argus Health";
 
@@ -78,16 +79,18 @@ namespace Argus.Health.Service
                 Environment.Exit(1);
             }
 
-            // Register named HttpClient with resilience policies
             builder.Services.AddHttpClient("ArgusHealth");
 
             builder.Services.AddArgusModules();
-            builder.Services.AddArgusPipeHost();
-            
+            builder.Services.AddArgusPipeHost(options =>
+            {
+                options.PipeName = "ArgusHealth";
+            });
+
             builder.Services.AddSingleton<IHealthEndPointRepository, HealthEndPointRepository>();
             builder.Services.AddSingleton<IHealthEndPointCheckResultRepository, HealthEndPointCheckResultRepository>();
             builder.Services.AddHostedService<HealthEndPointBackgroundService>();
-            
+
             builder.Services.Configure<HostOptions>(options =>
             {
                 options.ServicesStartConcurrently = true;
@@ -101,7 +104,7 @@ namespace Argus.Health.Service
                 repository.InitializeDatabase();
 
                 Log.Information("Starting Argus Health Service...");
-                app.Run();
+                await app.RunAsync();
                 Log.Information("Argus Health Service stopped.");
             }
             catch (Exception ex)
