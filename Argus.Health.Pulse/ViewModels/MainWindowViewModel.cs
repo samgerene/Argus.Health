@@ -119,9 +119,9 @@ namespace Argus.Health.Pulse.ViewModels
             this.GoToDashboardCommand = ReactiveCommand.Create(this.NavigateToDashboard);
             this.GoToEndpointsCommand = ReactiveCommand.Create(this.NavigateToEndpoints);
             this.DismissNotificationCommand = ReactiveCommand.Create<NotificationItem>(this.DismissNotification);
+            this.ExitCommand = ReactiveCommand.Create(() => { this.ExitRequested?.Invoke(this, EventArgs.Empty); });
             this.ToggleWindowCommand = ReactiveCommand.Create(() => { this.ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
             this.ShowWindowCommand = ReactiveCommand.Create(() => { this.ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
-            this.ExitCommand = ReactiveCommand.Create(() => { this.ExitRequested?.Invoke(this, EventArgs.Empty); });
 
             this.ToggleSyncCommand = ReactiveCommand.Create(() =>
             {
@@ -325,19 +325,24 @@ namespace Argus.Health.Pulse.ViewModels
         public ReactiveCommand<NotificationItem, Unit> DismissNotificationCommand { get; }
 
         /// <summary>
-        /// Gets the command to toggle the main window visibility
+        /// Gets the command to exit the application
+        /// </summary>
+        public ICommand ExitCommand { get; }
+
+        /// <summary>
+        /// Gets the command to toggle the main window visibility from the tray icon
         /// </summary>
         public ICommand ToggleWindowCommand { get; }
 
         /// <summary>
-        /// Gets the command to show the main window
+        /// Gets the command to show the main window from the tray context menu
         /// </summary>
         public ICommand ShowWindowCommand { get; }
 
         /// <summary>
-        /// Gets the command to exit the application
+        /// Raised when the application should exit
         /// </summary>
-        public ICommand ExitCommand { get; }
+        public event EventHandler? ExitRequested;
 
         /// <summary>
         /// Raised when the main window visibility should be toggled
@@ -348,11 +353,6 @@ namespace Argus.Health.Pulse.ViewModels
         /// Raised when the main window should be shown
         /// </summary>
         public event EventHandler? ShowWindowRequested;
-
-        /// <summary>
-        /// Raised when the application should exit
-        /// </summary>
-        public event EventHandler? ExitRequested;
 
         /// <summary>
         /// Navigates to the dashboard view, creating it on first use

@@ -91,7 +91,23 @@ namespace Argus.Health.Pulse
                     DataContext = mainViewModel
                 };
 
-                // tray icon events
+                mainViewModel.ExitRequested += (_, _) =>
+                {
+                    Log.Information("Exit requested, shutting down");
+                    mainViewModel.Dispose();
+                    syncService.Dispose();
+                    healthCheckService.Dispose();
+                    desktop.Shutdown();
+                };
+
+                desktop.ShutdownRequested += (_, _) =>
+                {
+                    Log.Information("Desktop shutdown requested");
+                    mainViewModel.Dispose();
+                    syncService.Dispose();
+                    healthCheckService.Dispose();
+                };
+
                 mainViewModel.ToggleWindowRequested += (_, _) =>
                 {
                     if (mainWindow.IsVisible)
@@ -111,23 +127,6 @@ namespace Argus.Health.Pulse
                     mainWindow.Activate();
                 };
 
-                mainViewModel.ExitRequested += (_, _) =>
-                {
-                    Log.Information("Exit requested, shutting down");
-                    mainViewModel.Dispose();
-                    syncService.Dispose();
-                    healthCheckService.Dispose();
-                    desktop.Shutdown();
-                };
-
-                desktop.ShutdownRequested += (_, _) =>
-                {
-                    Log.Information("Desktop shutdown requested");
-                    mainViewModel.Dispose();
-                    syncService.Dispose();
-                    healthCheckService.Dispose();
-                };
-
                 // set window and tray icon from .ico copied to output directory
                 var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "argus-health-pulse-icon.ico");
                 var windowIcon = new WindowIcon(iconPath);
@@ -135,9 +134,12 @@ namespace Argus.Health.Pulse
 
                 var trayIcons = TrayIcon.GetIcons(this);
 
-                if (trayIcons != null && trayIcons.Count > 0)
+                if (trayIcons != null)
                 {
-                    trayIcons[0].Icon = windowIcon;
+                    foreach (var trayIcon in trayIcons)
+                    {
+                        trayIcon.Icon = windowIcon;
+                    }
                 }
 
                 desktop.MainWindow = mainWindow;
