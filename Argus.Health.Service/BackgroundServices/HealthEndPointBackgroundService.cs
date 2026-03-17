@@ -197,6 +197,8 @@ namespace Argus.Health.Service.BackgroundServices
         /// </returns>
         private async Task MonitorEndpointAsync(HealthEndPoint healthEndPoint, CancellationToken ct)
         {
+            this.logger.LogDebug("Starting to check {Name}:{Url}", healthEndPoint.Name, healthEndPoint.Url);
+            
             var client = httpClientFactory.CreateClient("ArgusHealth");
 
             var retryPolicy = Policy<HttpResponseMessage>
@@ -277,7 +279,6 @@ namespace Argus.Health.Service.BackgroundServices
 
                 await Task.Delay(TimeSpan.FromSeconds(healthEndPoint.Frequency), ct);
             }
-
 
             logger.LogInformation("Stopped Health Check monitor for [{Name}]", healthEndPoint.Name);
         }

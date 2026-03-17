@@ -124,6 +124,8 @@ namespace Argus.Health.Service.Repository
             Directory.CreateDirectory(this.databaseFolderPath);
 
             this.InitializeDatabaseFile(force);
+
+            this.logger.LogInformation("Database initialized successfully at {DatabaseFolder}", this.databaseFolderPath);
         }
 
         /// <summary>
@@ -135,6 +137,8 @@ namespace Argus.Health.Service.Repository
         /// </returns>
         public async Task<ImmutableList<HealthEndPoint>> ReadAsync(Guid[]? identifiers = null)
         {
+            this.logger.LogDebug("Reading HealthEndPoints with {FilterCount} identifier filter(s)", identifiers?.Length ?? 0);
+
             var list = new List<HealthEndPoint>();
 
             await using var connection = new SqliteConnection(this.connectionString);
@@ -200,6 +204,8 @@ namespace Argus.Health.Service.Repository
                     list.Add(healthEndPoint);
                 }
 
+                this.logger.LogDebug("Successfully read {Count} HealthEndPoint(s) from the database", list.Count);
+
                 return list.ToImmutableList();
 
             }
@@ -236,6 +242,8 @@ namespace Argus.Health.Service.Repository
                 throw new ArgumentNullException(nameof(healthEndPoint));
             }
 
+            this.logger.LogDebug("Creating HealthEndPoint with name {Name}", healthEndPoint.Name);
+
             if (healthEndPoint.Identifier == Guid.Empty)
             {
                 healthEndPoint.Identifier = Guid.NewGuid();
@@ -265,6 +273,7 @@ namespace Argus.Health.Service.Repository
 
                 if (affected == 1)
                 {
+                    this.logger.LogInformation("HealthEndPoint {Name} created with identifier {Identifier}", healthEndPoint.Name, healthEndPoint.Identifier);
                     this.EndpointAdded?.Invoke(this, healthEndPoint);
                 }
                 else
@@ -307,6 +316,8 @@ namespace Argus.Health.Service.Repository
                 throw new ArgumentNullException(nameof(healthEndPoint));
             }
 
+            this.logger.LogDebug("Updating HealthEndPoint with identifier {Identifier}", healthEndPoint.Identifier);
+
             await using var connection = new SqliteConnection(this.connectionString);
 
             try
@@ -332,6 +343,7 @@ namespace Argus.Health.Service.Repository
 
                 if (affected == 1)
                 {
+                    this.logger.LogInformation("HealthEndPoint with identifier {Identifier} updated successfully", healthEndPoint.Identifier);
                     EndpointUpdated?.Invoke(this, healthEndPoint);
                 }
                 else
@@ -374,6 +386,8 @@ namespace Argus.Health.Service.Repository
                 throw new ArgumentNullException(nameof(healthEndPoint));
             }
 
+            this.logger.LogDebug("Deleting HealthEndPoint with identifier {Identifier}", healthEndPoint.Identifier);
+
             await using var connection = new SqliteConnection(this.connectionString);
 
             try
@@ -390,6 +404,7 @@ namespace Argus.Health.Service.Repository
 
                 if (affected == 1)
                 {
+                    this.logger.LogInformation("HealthEndPoint with identifier {Identifier} deleted successfully", healthEndPoint.Identifier);
                     EndpointRemoved?.Invoke(this, healthEndPoint);
                 }
                 else
@@ -421,6 +436,8 @@ namespace Argus.Health.Service.Repository
         /// </summary>
         private void InitializeDatabaseFile(bool force)
         {
+            this.logger.LogDebug("Initializing database tables, force: {Force}", force);
+
             using var connection = new SqliteConnection(this.connectionString);
 
             try

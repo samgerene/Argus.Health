@@ -102,6 +102,8 @@ namespace Argus.Health.Service.Repository
                 throw new ArgumentNullException(nameof(checkResult));
             }
 
+            this.logger.LogDebug("Creating HealthEndPointCheckResult for HealthEndPoint {HealthEndPointIdentifier}", checkResult.HealthEndPoint);
+
             if (checkResult.Identifier == Guid.Empty)
             {
                 checkResult.Identifier = Guid.NewGuid();
@@ -126,6 +128,8 @@ namespace Argus.Health.Service.Repository
                 command.Parameters.AddWithValue("$healthEndPoint", checkResult.HealthEndPoint.ToString());
 
                 await command.ExecuteNonQueryAsync();
+
+                this.logger.LogDebug("HealthEndPointCheckResult {Identifier} created successfully", checkResult.Identifier);
 
                 return Result.Ok();
             }
@@ -157,6 +161,8 @@ namespace Argus.Health.Service.Repository
         /// </returns>
         public async Task<ImmutableList<HealthEndPointCheckResult>> ReadAsync(Guid? healthEndPointIdentifier = null)
         {
+            this.logger.LogDebug("Reading HealthEndPointCheckResults with filter {HealthEndPointIdentifier}", healthEndPointIdentifier?.ToString() ?? "none");
+
             var list = new List<HealthEndPointCheckResult>();
 
             await using var connection = new SqliteConnection(this.connectionString);
@@ -209,6 +215,8 @@ namespace Argus.Health.Service.Repository
 
                     list.Add(checkResult);
                 }
+
+                this.logger.LogDebug("Successfully read {Count} HealthEndPointCheckResult(s) from the database", list.Count);
 
                 return list.ToImmutableList();
             }

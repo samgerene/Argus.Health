@@ -21,6 +21,7 @@
 namespace Argus.Health.Service.Modules
 {
     using System.Data;
+    using System.Diagnostics;
     using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -73,11 +74,15 @@ namespace Argus.Health.Service.Modules
         /// </param>
         public void AddRoutes(IArgusRouteBuilder app)
         {
+            this.logger.LogDebug("register HealthEndPoint routes");
+            
             app.MapGet("/healthendpoint", this.HandleGetAllAsync);
             app.MapGet("/healthendpoint/{identifier:ShortGuid}", this.HandleGetByIdAsync);
             app.MapPost("/healthendpoint", this.HandleCreateAsync);
             app.MapPut("/healthendpoint/{identifier:ShortGuid}", this.HandleUpdateAsync);
             app.MapDelete("/healthendpoint/{identifier:ShortGuid}", this.HandleDeleteAsync);
+
+            this.logger.LogDebug("HealthEndPoint routes registered");
         }
 
         /// <summary>
@@ -88,6 +93,10 @@ namespace Argus.Health.Service.Modules
         /// </param>
         internal async Task HandleCreateAsync(ArgusContext context)
         {
+            var sw = Stopwatch.StartNew();
+            
+            this.logger.LogDebug("Starting to create a new HealthEndPoint");
+            
             var request = context.Request;
 
             try
@@ -96,6 +105,8 @@ namespace Argus.Health.Service.Modules
 
                 if (string.IsNullOrWhiteSpace(bodyJson))
                 {
+                    this.logger.LogWarning("Create HealthEndPoint request received with empty body");
+
                     context.Response = new ArgusResponse
                     {
                         CorrelationToken = request.CorrelationToken,
@@ -110,6 +121,9 @@ namespace Argus.Health.Service.Modules
 
                 if (result.IsSuccess)
                 {
+                    this.logger.LogInformation("HealthEndPoint {Name} created successfully via IPC",
+                        healthEndPoint.Name);
+
                     context.Response = new ArgusResponse
                     {
                         CorrelationToken = request.CorrelationToken,
@@ -137,6 +151,10 @@ namespace Argus.Health.Service.Modules
                     StatusCode = ArgusStatusCode.BadRequest
                 };
             }
+            finally
+            {
+                this.logger.LogInformation("Create HealthEndPoint request completed in {ElapsedMilliseconds} [ms]", sw.ElapsedMilliseconds);
+            }
         }
 
         /// <summary>
@@ -147,11 +165,17 @@ namespace Argus.Health.Service.Modules
         /// </param>
         internal async Task HandleGetAllAsync(ArgusContext context)
         {
+            var sw = Stopwatch.StartNew();
+            
+            this.logger.LogDebug("Starting to read all HealthEndPoints");
+            
             var request = context.Request;
 
             try
             {
                 var endpoints = await this.healthEndPointRepository.ReadAsync();
+
+                this.logger.LogDebug("Retrieved {Count} HealthEndPoint(s) via IPC", endpoints.Count);
 
                 context.Response = new ArgusResponse
                 {
@@ -170,6 +194,10 @@ namespace Argus.Health.Service.Modules
                     StatusCode = ArgusStatusCode.InternalServerError
                 };
             }
+            finally
+            {
+                this.logger.LogInformation("Read all HealthEndPoints request completed in {ElapsedMilliseconds} [ms]", sw.ElapsedMilliseconds);
+            }
         }
 
         /// <summary>
@@ -180,6 +208,10 @@ namespace Argus.Health.Service.Modules
         /// </param>
         internal async Task HandleGetByIdAsync(ArgusContext context)
         {
+            var sw = Stopwatch.StartNew();
+            
+            this.logger.LogDebug("Starting to read a specific HealthEndPoint");
+            
             var request = context.Request;
             var routeValues = context.RouteValues;
 
@@ -190,6 +222,8 @@ namespace Argus.Health.Service.Modules
 
                 if (!endpoints.Any())
                 {
+                    this.logger.LogDebug("HealthEndPoint with identifier {Identifier} not found", identifier);
+
                     context.Response = new ArgusResponse
                     {
                         CorrelationToken = request.CorrelationToken,
@@ -197,6 +231,8 @@ namespace Argus.Health.Service.Modules
                     };
                     return;
                 }
+
+                this.logger.LogDebug("Retrieved HealthEndPoint with identifier {Identifier} via IPC", identifier);
 
                 context.Response = new ArgusResponse
                 {
@@ -215,6 +251,10 @@ namespace Argus.Health.Service.Modules
                     StatusCode = ArgusStatusCode.InternalServerError
                 };
             }
+            finally
+            {
+                this.logger.LogInformation("Read specific HealthEndPoint request completed in {ElapsedMilliseconds} [ms]", sw.ElapsedMilliseconds);
+            }
         }
 
         /// <summary>
@@ -225,6 +265,10 @@ namespace Argus.Health.Service.Modules
         /// </param>
         internal async Task HandleUpdateAsync(ArgusContext context)
         {
+            var sw = Stopwatch.StartNew();
+            
+            this.logger.LogDebug("Starting to update a specific HealthEndPoint");
+            
             var request = context.Request;
             var routeValues = context.RouteValues;
 
@@ -234,6 +278,8 @@ namespace Argus.Health.Service.Modules
 
                 if (string.IsNullOrWhiteSpace(bodyJson))
                 {
+                    this.logger.LogWarning("Update HealthEndPoint request received with empty body");
+
                     context.Response = new ArgusResponse
                     {
                         CorrelationToken = request.CorrelationToken,
@@ -250,6 +296,8 @@ namespace Argus.Health.Service.Modules
 
                 if (result.IsSuccess)
                 {
+                    this.logger.LogInformation("HealthEndPoint with identifier {Identifier} updated successfully via IPC", identifier);
+
                     context.Response = new ArgusResponse
                     {
                         CorrelationToken = request.CorrelationToken,
@@ -277,6 +325,10 @@ namespace Argus.Health.Service.Modules
                     StatusCode = ArgusStatusCode.BadRequest
                 };
             }
+            finally
+            {
+                this.logger.LogInformation("Update specific HealthEndPoint request completed in {ElapsedMilliseconds} [ms]", sw.ElapsedMilliseconds);
+            }
         }
 
         /// <summary>
@@ -287,6 +339,10 @@ namespace Argus.Health.Service.Modules
         /// </param>
         internal async Task HandleDeleteAsync(ArgusContext context)
         {
+            var sw = Stopwatch.StartNew();
+            
+            this.logger.LogDebug("Starting to delete a specific HealthEndPoint");
+            
             var request = context.Request;
             var routeValues = context.RouteValues;
 
@@ -298,6 +354,8 @@ namespace Argus.Health.Service.Modules
 
             if (result.IsSuccess)
             {
+                this.logger.LogInformation("HealthEndPoint with identifier {Identifier} deleted successfully via IPC", identifier);
+
                 context.Response = new ArgusResponse
                 {
                     CorrelationToken = request.CorrelationToken,

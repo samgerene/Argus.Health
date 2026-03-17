@@ -70,6 +70,8 @@ namespace Argus.Health.Service
                 .Enrich.FromLogContext()
                 .CreateLogger();
 
+            Log.Debug("Log folder: {LogFolder}", logFolder);
+
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
 
@@ -113,6 +115,7 @@ namespace Argus.Health.Service
             {
                 var repository = app.Services.GetRequiredService<IHealthEndPointRepository>();
                 repository.InitializeDatabase();
+                Log.Information("Database initialization complete");
 
                 Log.Information("Starting Argus Health Service...");
                 await app.RunAsync();
