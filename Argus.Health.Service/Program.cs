@@ -44,6 +44,13 @@ namespace Argus.Health.Service
     public static class Program
     {
         /// <summary>
+        /// The root application data folder for ArgusHealthService
+        /// </summary>
+        public static readonly string ApplicationDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ArgusHealthService");
+
+        /// <summary>
         /// Main entry point for the application
         /// </summary>
         /// <param name="args">
@@ -55,9 +62,7 @@ namespace Argus.Health.Service
 
             var builder = Host.CreateApplicationBuilder(args);
 
-            var logFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ArgusHealthService", "logs");
+            var logFolder = Path.Combine(ApplicationDataFolder, "logs");
 
             Directory.CreateDirectory(logFolder);
 

@@ -42,14 +42,19 @@ namespace Argus.Health.Pulse
     public static class Program
     {
         /// <summary>
+        /// The root application data folder for ArgusHealthPulse
+        /// </summary>
+        public static readonly string ApplicationDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ArgusHealthPulse");
+
+        /// <summary>
         /// Application entry point
         /// </summary>
         [STAThread]
         public static void Main(string[] args)
         {
-            var logFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ArgusHealthPulse", "logs");
+            var logFolder = Path.Combine(ApplicationDataFolder, "logs");
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()

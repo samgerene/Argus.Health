@@ -61,9 +61,7 @@ namespace Argus.Health.Service.Repository
         {
             this.logger = logger;
 
-            var databaseFolderPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ArgusHealthService");
+            var databaseFolderPath = Program.ApplicationDataFolder;
 
             var dbPath = Path.Combine(databaseFolderPath, HealthEndPointRepository.DatabaseFileName);
             this.connectionString = $"Data Source={dbPath};";
