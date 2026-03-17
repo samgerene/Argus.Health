@@ -22,6 +22,7 @@ namespace Argus.Health.Pulse.Client
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -33,6 +34,9 @@ namespace Argus.Health.Pulse.Client
     using ArgusTransfer.Client;
 
     using Microsoft.Extensions.Logging;
+
+    using Polly;
+    using Polly.Timeout;
     
     /// <summary>
     /// A typed client for <see cref="HealthEndPoint"/> CRUD operations over the Argus named-pipe IPC protocol
@@ -50,6 +54,11 @@ namespace Argus.Health.Pulse.Client
         private readonly ArgusClient argusClient;
 
         /// <summary>
+        /// The combined retry + timeout <see cref="IAsyncPolicy"/> applied to every pipe call
+        /// </summary>
+        private readonly IAsyncPolicy pipePolicy;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="HealthEndPointClient"/> class
         /// </summary>
         /// <param name="argusClient">
@@ -58,10 +67,30 @@ namespace Argus.Health.Pulse.Client
         /// <param name="logger">
         /// The <see cref="ILogger{HealthEndPointModule}"/> used for logging
         /// </param>
-        public HealthEndPointClient(ArgusClient argusClient, ILogger<HealthEndPointClient> logger) 
+        public HealthEndPointClient(ArgusClient argusClient, ILogger<HealthEndPointClient> logger)
         {
             this.argusClient = argusClient;
             this.logger = logger;
+
+            var retryPolicy = Policy
+                .Handle<IOException>()
+                .Or<TimeoutException>()
+                .Or<TimeoutRejectedException>()
+                .WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)),
+                    onRetry: (exception, delay, attempt, _) =>
+                    {
+                        this.logger.LogWarning(
+                            "Pipe call attempt {Attempt} failed ({ExceptionMessage}), retrying in {Delay}s",
+                            attempt, exception.Message, delay.TotalSeconds);
+                    });
+
+            var timeoutPolicy = Policy.TimeoutAsync(
+                TimeSpan.FromSeconds(5),
+                TimeoutStrategy.Optimistic);
+
+            this.pipePolicy = Policy.WrapAsync(retryPolicy, timeoutPolicy);
         }
 
         /// <summary>
@@ -86,7 +115,8 @@ namespace Argus.Health.Pulse.Client
 
            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.argusClient.SendAsync(request, cancellationToken);
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
@@ -122,7 +152,8 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.argusClient.SendAsync(request, cancellationToken);
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
@@ -159,7 +190,8 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.argusClient.SendAsync(request, cancellationToken);
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Created)
             {
@@ -196,7 +228,8 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.argusClient.SendAsync(request, cancellationToken);
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
@@ -229,7 +262,8 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.argusClient.SendAsync(request, cancellationToken);
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
