@@ -29,24 +29,52 @@ namespace Argus.Health.Pulse.ViewModels
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
 
+    using Microsoft.Extensions.Logging;
+
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
     using ReactiveUI.Fody.Helpers;
 
-    
     /// <summary>
     /// Endpoint CRUD list view model
     /// </summary>
     public class EndpointListViewModel : ViewModelBase
     {
+        /// <summary>
+        /// The <see cref="ILogger{EndpointListViewModel}"/> used for logging
+        /// </summary>
+        private readonly ILogger<EndpointListViewModel> logger;
+
+        /// <summary>
+        /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
+        /// </summary>
+        private readonly ILoggerFactory loggerFactory;
+
         private readonly HealthEndPointClient client;
         private readonly Action<ViewModelBase> navigate;
 
-        public EndpointListViewModel(HealthEndPointClient client, Action<ViewModelBase> navigate)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EndpointListViewModel"/> class
+        /// </summary>
+        /// <param name="client">
+        /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
+        /// </param>
+        /// <param name="navigate">
+        /// The navigation callback
+        /// </param>
+        /// <param name="logger">
+        /// The <see cref="ILogger{EndpointListViewModel}"/> used for logging
+        /// </param>
+        /// <param name="loggerFactory">
+        /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
+        /// </param>
+        public EndpointListViewModel(HealthEndPointClient client, Action<ViewModelBase> navigate, ILogger<EndpointListViewModel> logger, ILoggerFactory loggerFactory)
         {
             this.client = client;
             this.navigate = navigate;
+            this.logger = logger;
+            this.loggerFactory = loggerFactory;
 
             RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
             AddCommand = ReactiveCommand.Create(OnAdd);
@@ -55,11 +83,19 @@ namespace Argus.Health.Pulse.ViewModels
 
             RefreshCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(ex => ErrorMessage = ex.Message);
+                .Subscribe(ex =>
+                {
+                    this.logger.LogError(ex, "RefreshCommand failed");
+                    ErrorMessage = ex.Message;
+                });
 
             DeleteCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(ex => ErrorMessage = ex.Message);
+                .Subscribe(ex =>
+                {
+                    this.logger.LogError(ex, "DeleteCommand failed");
+                    ErrorMessage = ex.Message;
+                });
 
             // auto-refresh on construction
             RefreshCommand.Execute().Subscribe();
@@ -83,6 +119,7 @@ namespace Argus.Health.Pulse.ViewModels
 
         private async Task RefreshAsync()
         {
+            this.logger.LogDebug("RefreshAsync starting");
             ErrorMessage = null;
             var endpoints = await client.GetAllAsync();
             Endpoints.Clear();
@@ -91,17 +128,19 @@ namespace Argus.Health.Pulse.ViewModels
             {
                 Endpoints.Add(ep);
             }
+
+            this.logger.LogDebug("RefreshAsync completed with {EndpointCount} endpoint(s)", endpoints.Count);
         }
 
         private void OnAdd()
         {
-            var editor = new EndpointEditorViewModel(client, navigate, null);
+            var editor = new EndpointEditorViewModel(client, navigate, null, loggerFactory.CreateLogger<EndpointEditorViewModel>());
             navigate(editor);
         }
 
         private void OnEdit(HealthEndPoint endpoint)
         {
-            var editor = new EndpointEditorViewModel(client, navigate, endpoint);
+            var editor = new EndpointEditorViewModel(client, navigate, endpoint, loggerFactory.CreateLogger<EndpointEditorViewModel>());
             navigate(editor);
         }
 

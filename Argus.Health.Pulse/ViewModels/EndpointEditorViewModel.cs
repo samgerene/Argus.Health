@@ -28,25 +28,47 @@ namespace Argus.Health.Pulse.ViewModels
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
 
+    using Microsoft.Extensions.Logging;
+
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
     using ReactiveUI.Fody.Helpers;
-    
 
     /// <summary>
     /// Create/edit form for a health endpoint
     /// </summary>
     public class EndpointEditorViewModel : ViewModelBase
     {
+        /// <summary>
+        /// The <see cref="ILogger{EndpointEditorViewModel}"/> used for logging
+        /// </summary>
+        private readonly ILogger<EndpointEditorViewModel> logger;
+
         private readonly HealthEndPointClient client;
         private readonly Action<ViewModelBase> navigate;
         private readonly Guid? existingId;
 
-        public EndpointEditorViewModel(HealthEndPointClient client, Action<ViewModelBase> navigate, HealthEndPoint? existing)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EndpointEditorViewModel"/> class
+        /// </summary>
+        /// <param name="client">
+        /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
+        /// </param>
+        /// <param name="navigate">
+        /// The navigation callback
+        /// </param>
+        /// <param name="existing">
+        /// The existing <see cref="HealthEndPoint"/> to edit, or null for a new endpoint
+        /// </param>
+        /// <param name="logger">
+        /// The <see cref="ILogger{EndpointEditorViewModel}"/> used for logging
+        /// </param>
+        public EndpointEditorViewModel(HealthEndPointClient client, Action<ViewModelBase> navigate, HealthEndPoint? existing, ILogger<EndpointEditorViewModel> logger)
         {
             this.client = client;
             this.navigate = navigate;
+            this.logger = logger;
 
             if (existing != null)
             {
@@ -81,7 +103,11 @@ namespace Argus.Health.Pulse.ViewModels
 
             SaveCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(ex => ErrorMessage = ex.Message);
+                .Subscribe(ex =>
+                {
+                    this.logger.LogError(ex, "SaveCommand failed");
+                    ErrorMessage = ex.Message;
+                });
         }
 
         [Reactive]

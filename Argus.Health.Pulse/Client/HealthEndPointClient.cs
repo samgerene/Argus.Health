@@ -9,7 +9,7 @@
 //
 //        http://www.apache.org/licenses/LICENSE-2.0
 //
-//    Unless required by applicable law or agreed to in writing, softwareUseCases
+//    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
@@ -32,11 +32,18 @@ namespace Argus.Health.Pulse.Client
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Client;
 
+    using Microsoft.Extensions.Logging;
+    
     /// <summary>
     /// A typed client for <see cref="HealthEndPoint"/> CRUD operations over the Argus named-pipe IPC protocol
     /// </summary>
     public class HealthEndPointClient
     {
+        /// <summary>
+        /// The <see cref="ILogger{HealthEndPointClient}"/> used for logging
+        /// </summary>
+        private readonly ILogger<HealthEndPointClient> logger;
+
         /// <summary>
         /// The <see cref="ArgusClient"/> used to send requests
         /// </summary>
@@ -48,9 +55,13 @@ namespace Argus.Health.Pulse.Client
         /// <param name="argusClient">
         /// The <see cref="ArgusClient"/> used to send requests
         /// </param>
-        public HealthEndPointClient(ArgusClient argusClient)
+        /// <param name="logger">
+        /// The <see cref="ILogger{HealthEndPointModule}"/> used for logging
+        /// </param>
+        public HealthEndPointClient(ArgusClient argusClient, ILogger<HealthEndPointClient> logger) 
         {
             this.argusClient = argusClient;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -73,10 +84,13 @@ namespace Argus.Health.Pulse.Client
                 Route = "/healthendpoint"
             };
 
+           this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+
             var response = await this.argusClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
                 throw new InvalidOperationException($"Server returned {response.StatusCode}");
             }
 
@@ -106,10 +120,13 @@ namespace Argus.Health.Pulse.Client
                 Route = $"/healthendpoint/{identifier.ToShortGuid()}"
             };
 
+            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+
             var response = await this.argusClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
                 throw new InvalidOperationException($"Server returned {response.StatusCode}");
             }
 
@@ -140,10 +157,13 @@ namespace Argus.Health.Pulse.Client
                 Body = HealthEndPointWriter.Write(healthEndPoint)
             };
 
+            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+
             var response = await this.argusClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Created)
             {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
                 throw new InvalidOperationException($"Server returned {response.StatusCode}");
             }
 
@@ -174,10 +194,13 @@ namespace Argus.Health.Pulse.Client
                 Body = HealthEndPointWriter.Write(healthEndPoint)
             };
 
+            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+
             var response = await this.argusClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
                 throw new InvalidOperationException($"Server returned {response.StatusCode}");
             }
 
@@ -204,10 +227,13 @@ namespace Argus.Health.Pulse.Client
                 Route = $"/healthendpoint/{identifier.ToShortGuid()}"
             };
 
+            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+
             var response = await this.argusClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
                 throw new InvalidOperationException($"Server returned {response.StatusCode}");
             }
         }

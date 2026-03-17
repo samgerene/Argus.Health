@@ -21,19 +21,80 @@
 namespace Argus.Health.Pulse
 {
     using System;
+    using System.IO;
 
     using Avalonia;
     using ReactiveUI.Avalonia;
-    
+
+    using ArgusTransfer.Client;
+
+    using Argus.Health.Pulse.Client;
+    using Argus.Health.Pulse.Services;
+
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+
+    using Serilog;
+
+    /// <summary>
+    /// Application entry point
+    /// </summary>
     public static class Program
     {
+        /// <summary>
+        /// Application entry point
+        /// </summary>
         [STAThread]
         public static void Main(string[] args)
         {
-            BuildAvaloniaApp()
-                .StartWithClassicDesktopLifetime(args);
+            var logFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ArgusHealthPulse", "logs");
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File(
+                    Path.Combine(logFolder, "pulse-.log"),
+                    rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+            try
+            {
+                Log.Information("Argus Health Pulse starting");
+
+                var services = new ServiceCollection();
+                services.AddLogging(builder => builder.AddSerilog());
+                services.AddSingleton(new ArgusClient("ArgusHealth"));
+                services.AddSingleton<HealthEndPointClient>();
+                services.AddSingleton<IEndpointSyncService, EndpointSyncService>();
+                services.AddSingleton<IHealthCheckService, HealthCheckService>();
+
+                App.Services = services.BuildServiceProvider();
+
+                BuildAvaloniaApp()
+                    .StartWithClassicDesktopLifetime(args);
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Argus Health Pulse terminated unexpectedly");
+            }
+            finally
+            {
+                Log.Information("Argus Health Pulse shutting down");
+
+                if (App.Services is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+
+                Log.CloseAndFlush();
+            }
         }
 
+        /// <summary>
+        /// Builds the Avalonia application
+        /// </summary>
         public static AppBuilder BuildAvaloniaApp()
         {
             return AppBuilder.Configure<App>()

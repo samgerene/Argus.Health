@@ -27,36 +27,53 @@ namespace Argus.Health.Pulse
     using Avalonia.Controls.ApplicationLifetimes;
     using Avalonia.Markup.Xaml;
 
-    using ArgusTransfer.Client;
-
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
     using Argus.Health.Pulse.ViewModels;
     using Argus.Health.Pulse.Views;
-    
+
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+
+    using Serilog;
+
+    /// <summary>
+    /// Avalonia application class
+    /// </summary>
     public partial class App : Application
     {
         private MainWindowViewModel? mainViewModel;
         private IEndpointSyncService? syncService;
         private IHealthCheckService? healthCheckService;
 
+        /// <summary>
+        /// Gets or sets the application-wide DI service provider
+        /// </summary>
+        public static ServiceProvider? Services { get; set; }
+
+        /// <summary>
+        /// Initializes the application
+        /// </summary>
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
         }
 
+        /// <summary>
+        /// Called when the framework initialization is completed
+        /// </summary>
         public override void OnFrameworkInitializationCompleted()
         {
+            Log.Information("OnFrameworkInitializationCompleted");
+
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // manual construction — flat dependency graph, no DI container needed
-                var argusClient = new ArgusClient("ArgusHealth");
-                var healthEndPointClient = new HealthEndPointClient(argusClient);
+                var healthEndPointClient = Services!.GetRequiredService<HealthEndPointClient>();
+                syncService = Services!.GetRequiredService<IEndpointSyncService>();
+                healthCheckService = Services!.GetRequiredService<IHealthCheckService>();
+                var loggerFactory = Services!.GetRequiredService<ILoggerFactory>();
 
-                syncService = new EndpointSyncService(healthEndPointClient);
-                healthCheckService = new HealthCheckService();
-
-                mainViewModel = new MainWindowViewModel(healthEndPointClient, syncService, healthCheckService);
+                mainViewModel = new MainWindowViewModel(healthEndPointClient, syncService, healthCheckService, loggerFactory);
 
                 var mainWindow = new MainWindow
                 {
@@ -85,6 +102,7 @@ namespace Argus.Health.Pulse
 
                 mainViewModel.ExitRequested += (_, _) =>
                 {
+                    Log.Information("Exit requested, shutting down");
                     mainViewModel.Dispose();
                     syncService.Dispose();
                     healthCheckService.Dispose();
@@ -93,6 +111,7 @@ namespace Argus.Health.Pulse
 
                 desktop.ShutdownRequested += (_, _) =>
                 {
+                    Log.Information("Desktop shutdown requested");
                     mainViewModel.Dispose();
                     syncService.Dispose();
                     healthCheckService.Dispose();

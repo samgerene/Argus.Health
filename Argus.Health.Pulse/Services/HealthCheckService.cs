@@ -32,18 +32,37 @@ namespace Argus.Health.Pulse.Services
 
     using Argus.Health.Common.Model;
 
+    using Microsoft.Extensions.Logging;
+
     using Polly;
     using Polly.Timeout;
-    
+
     /// <summary>
     /// Manages per-endpoint HTTP monitor loops with Polly retry and timeout
     /// </summary>
     public class HealthCheckService : IHealthCheckService
     {
+        /// <summary>
+        /// The <see cref="ILogger{HealthCheckService}"/> used for logging
+        /// </summary>
+        private readonly ILogger<HealthCheckService> logger;
+
         private readonly HttpClient httpClient = new();
         private readonly ConcurrentDictionary<Guid, (Task task, CancellationTokenSource cts)> monitors = new();
         private readonly Subject<HealthEndPointCheckResult> resultsSubject = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HealthCheckService"/> class
+        /// </summary>
+        /// <param name="logger">
+        /// The <see cref="ILogger{HealthCheckService}"/> used for logging
+        /// </param>
+        public HealthCheckService(ILogger<HealthCheckService> logger)
+        {
+            this.logger = logger;
+        }
+
+        /// <inheritdoc />
         public IObservable<HealthEndPointCheckResult> ResultsObservable => resultsSubject.AsObservable();
 
         public IObservable<HealthEndPointCheckResult> FailureObservable =>
@@ -74,6 +93,7 @@ namespace Argus.Health.Pulse.Services
 
         private void StartMonitor(HealthEndPoint endpoint)
         {
+            this.logger.LogInformation("Starting monitor for endpoint {EndpointName} ({EndpointId})", endpoint.Name, endpoint.Identifier);
             var cts = new CancellationTokenSource();
             var task = MonitorEndpointAsync(endpoint, cts.Token);
             monitors[endpoint.Identifier] = (task, cts);
@@ -83,6 +103,7 @@ namespace Argus.Health.Pulse.Services
         {
             if (monitors.TryRemove(id, out var monitor))
             {
+                this.logger.LogInformation("Stopping monitor for endpoint {EndpointId}", id);
                 monitor.cts.Cancel();
                 monitor.cts.Dispose();
             }
@@ -122,6 +143,11 @@ namespace Argus.Health.Pulse.Services
                     if (!response.IsSuccessStatusCode)
                     {
                         result.ErrorMessage = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+                        this.logger.LogWarning("Health check failed for {EndpointName}: {ErrorMessage}", endpoint.Name, result.ErrorMessage);
+                    }
+                    else
+                    {
+                        this.logger.LogDebug("Health check OK for {EndpointName}: HTTP {StatusCode}", endpoint.Name, result.StatusCode);
                     }
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -132,16 +158,19 @@ namespace Argus.Health.Pulse.Services
                 {
                     result.StatusCode = 408;
                     result.ErrorMessage = $"Timed out after {endpoint.Timeout}s";
+                    this.logger.LogWarning("Health check timed out for {EndpointName} after {Timeout}s", endpoint.Name, endpoint.Timeout);
                 }
                 catch (HttpRequestException ex)
                 {
                     result.StatusCode = 0;
                     result.ErrorMessage = ex.Message;
+                    this.logger.LogWarning(ex, "Health check HTTP error for {EndpointName}", endpoint.Name);
                 }
                 catch (Exception ex)
                 {
                     result.StatusCode = 0;
                     result.ErrorMessage = ex.Message;
+                    this.logger.LogError(ex, "Health check unexpected error for {EndpointName}", endpoint.Name);
                 }
 
                 resultsSubject.OnNext(result);

@@ -35,8 +35,10 @@ namespace Argus.Health.Pulse.Client.Tests
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Serialization;
     
+    using Microsoft.Extensions.Logging;
+
     using NUnit.Framework;
-    
+
     /// <summary>
     /// Suite of tests for the <see cref="HealthEndPointClient"/> class
     /// </summary>
@@ -74,7 +76,7 @@ namespace Argus.Health.Pulse.Client.Tests
                 ArgusStatusCode.Ok, responseBody);
 
             using var argusClient = new ArgusClient(pipeName);
-            var client = new HealthEndPointClient(argusClient);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
             var result = await client.GetAllAsync();
 
@@ -107,7 +109,7 @@ namespace Argus.Health.Pulse.Client.Tests
                 ArgusStatusCode.Ok, responseBody);
 
             using var argusClient = new ArgusClient(pipeName);
-            var client = new HealthEndPointClient(argusClient);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
             var result = await client.GetByIdAsync(identifier);
 
@@ -139,7 +141,7 @@ namespace Argus.Health.Pulse.Client.Tests
                 ArgusStatusCode.Created, responseBody);
 
             using var argusClient = new ArgusClient(pipeName);
-            var client = new HealthEndPointClient(argusClient);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
             var result = await client.CreateAsync(ep);
 
@@ -171,7 +173,7 @@ namespace Argus.Health.Pulse.Client.Tests
                 ArgusStatusCode.Ok, responseBody);
 
             using var argusClient = new ArgusClient(pipeName);
-            var client = new HealthEndPointClient(argusClient);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
             var result = await client.UpdateAsync(ep);
 
@@ -191,7 +193,7 @@ namespace Argus.Health.Pulse.Client.Tests
                 ArgusStatusCode.Ok, null);
 
             using var argusClient = new ArgusClient(pipeName);
-            var client = new HealthEndPointClient(argusClient);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
             await client.DeleteAsync(identifier);
 
@@ -207,7 +209,7 @@ namespace Argus.Health.Pulse.Client.Tests
                 ArgusStatusCode.InternalServerError, null);
 
             using var argusClient = new ArgusClient(pipeName);
-            var client = new HealthEndPointClient(argusClient);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
             Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAllAsync());
 

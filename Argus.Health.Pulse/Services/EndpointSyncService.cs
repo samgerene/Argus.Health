@@ -28,23 +28,47 @@ namespace Argus.Health.Pulse.Services
 
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
-    
+
+    using Microsoft.Extensions.Logging;
+
     /// <summary>
     /// Polls <see cref="HealthEndPointClient.GetAllAsync()"/> every 10 seconds
     /// and publishes the current endpoint list
     /// </summary>
     public class EndpointSyncService : IEndpointSyncService
     {
+        /// <summary>
+        /// The polling interval
+        /// </summary>
         public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
+        /// <summary>
+        /// The <see cref="ILogger{EndpointSyncService}"/> used for logging
+        /// </summary>
+        private readonly ILogger<EndpointSyncService> logger;
+
+        /// <summary>
+        /// The <see cref="HealthEndPointClient"/> used to poll endpoints
+        /// </summary>
         private readonly HealthEndPointClient client;
+
         private readonly BehaviorSubject<IList<HealthEndPoint>> endpointsSubject = new(Array.Empty<HealthEndPoint>());
         private readonly BehaviorSubject<bool> connectionErrorSubject = new(false);
         private readonly CompositeDisposable disposables = new();
 
-        public EndpointSyncService(HealthEndPointClient client)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EndpointSyncService"/> class
+        /// </summary>
+        /// <param name="client">
+        /// The <see cref="HealthEndPointClient"/> used to poll endpoints
+        /// </param>
+        /// <param name="logger">
+        /// The <see cref="ILogger{EndpointSyncService}"/> used for logging
+        /// </param>
+        public EndpointSyncService(HealthEndPointClient client, ILogger<EndpointSyncService> logger)
         {
             this.client = client;
+            this.logger = logger;
         }
 
         public IObservable<IList<HealthEndPoint>> EndpointsObservable => endpointsSubject.AsObservable();
@@ -60,10 +84,12 @@ namespace Argus.Health.Pulse.Services
                     {
                         var endpoints = await client.GetAllAsync(ct);
                         connectionErrorSubject.OnNext(false);
+                        this.logger.LogDebug("Poll completed successfully, {EndpointCount} endpoint(s) returned", endpoints.Count);
                         return endpoints;
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        this.logger.LogError(ex, "Poll failed");
                         connectionErrorSubject.OnNext(true);
                         return (IList<HealthEndPoint>)Array.Empty<HealthEndPoint>();
                     }

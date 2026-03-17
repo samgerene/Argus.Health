@@ -31,11 +31,13 @@ namespace Argus.Health.Pulse.ViewModels
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
+    using Microsoft.Extensions.Logging;
+
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
     using ReactiveUI.Fody.Helpers;
-    
+
     /// <summary>
     /// Shell view model with navigation, notification queue, and tray commands
     /// </summary>
@@ -44,18 +46,36 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly HealthEndPointClient client;
         private readonly IEndpointSyncService syncService;
         private readonly IHealthCheckService healthCheckService;
+        private readonly ILoggerFactory loggerFactory;
         private readonly CompositeDisposable disposables = new();
         private DashboardViewModel? dashboardViewModel;
         private EndpointListViewModel? endpointListViewModel;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class
+        /// </summary>
+        /// <param name="client">
+        /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
+        /// </param>
+        /// <param name="syncService">
+        /// The <see cref="IEndpointSyncService"/> used to poll endpoints
+        /// </param>
+        /// <param name="healthCheckService">
+        /// The <see cref="IHealthCheckService"/> used to monitor endpoint health
+        /// </param>
+        /// <param name="loggerFactory">
+        /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
+        /// </param>
         public MainWindowViewModel(
             HealthEndPointClient client,
             IEndpointSyncService syncService,
-            IHealthCheckService healthCheckService)
+            IHealthCheckService healthCheckService,
+            ILoggerFactory loggerFactory)
         {
             this.client = client;
             this.syncService = syncService;
             this.healthCheckService = healthCheckService;
+            this.loggerFactory = loggerFactory;
 
             GoToDashboardCommand = ReactiveCommand.Create(NavigateToDashboard);
             GoToEndpointsCommand = ReactiveCommand.Create(NavigateToEndpoints);
@@ -169,7 +189,7 @@ namespace Argus.Health.Pulse.ViewModels
 
         private void NavigateToEndpoints()
         {
-            endpointListViewModel = new EndpointListViewModel(client, NavigateFromEditor);
+            endpointListViewModel = new EndpointListViewModel(client, NavigateFromEditor, loggerFactory.CreateLogger<EndpointListViewModel>(), loggerFactory);
             CurrentView = endpointListViewModel;
         }
 
