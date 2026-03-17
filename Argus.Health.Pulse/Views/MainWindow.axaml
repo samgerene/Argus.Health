@@ -2,12 +2,17 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Argus.Health.Pulse.ViewModels"
         xmlns:views="using:Argus.Health.Pulse.Views"
+        xmlns:converters="using:Argus.Health.Pulse.Converters"
         x:Class="Argus.Health.Pulse.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Argus Health Pulse"
         Width="1024" Height="680"
         MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <converters:BoolToSyncButtonTextConverter x:Key="BoolToSyncButtonTextConverter" />
+    </Window.Resources>
 
     <Panel>
         <DockPanel>
@@ -23,6 +28,11 @@
                     <TextBlock Text="Service unavailable" Foreground="White" FontSize="12"
                                HorizontalAlignment="Center" TextAlignment="Center" />
                 </Border>
+
+                <!-- Sync toggle button -->
+                <Button Content="{Binding IsSyncRunning, Converter={StaticResource BoolToSyncButtonTextConverter}}"
+                        Command="{Binding ToggleSyncCommand}"
+                        HorizontalAlignment="Stretch" Margin="8,8" />
             </StackPanel>
 
             <!-- Content area -->

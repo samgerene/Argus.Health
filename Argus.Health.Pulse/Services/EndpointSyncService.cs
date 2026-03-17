@@ -63,9 +63,19 @@ namespace Argus.Health.Pulse.Services
         private readonly BehaviorSubject<bool> connectionErrorSubject = new(false);
 
         /// <summary>
+        /// Subject that publishes the running state of the sync service
+        /// </summary>
+        private readonly BehaviorSubject<bool> isRunningSubject = new(false);
+
+        /// <summary>
         /// Disposable container for Rx subscriptions
         /// </summary>
         private readonly CompositeDisposable disposables = new();
+
+        /// <summary>
+        /// The current polling subscription, tracked separately so it can be disposed independently
+        /// </summary>
+        private IDisposable? pollSubscription;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointSyncService"/> class
@@ -86,39 +96,57 @@ namespace Argus.Health.Pulse.Services
         public IObservable<IList<HealthEndPoint>> EndpointsObservable => endpointsSubject.AsObservable();
 
         /// <summary>Gets an observable that indicates whether the service connection has an error</summary>
-        public IObservable<bool> ConnectionErrorObservable => connectionErrorSubject.AsObservable();
+        public IObservable<bool> ConnectionErrorObservable => this.connectionErrorSubject.AsObservable();
+
+        /// <summary>Gets an observable that indicates whether the sync service is currently running</summary>
+        public IObservable<bool> IsRunningObservable => this.isRunningSubject.AsObservable();
 
         /// <summary>Starts polling</summary>
         public void Start()
         {
-            var subscription = Observable.Timer(TimeSpan.Zero, PollInterval)
+            this.Stop();
+
+            this.pollSubscription = Observable.Timer(TimeSpan.Zero, PollInterval)
                 .SelectMany(_ => Observable.FromAsync(async ct =>
                 {
                     try
                     {
-                        var endpoints = await client.GetAllAsync(ct);
-                        connectionErrorSubject.OnNext(false);
+                        var endpoints = await this.client.GetAllAsync(ct);
+                        this.connectionErrorSubject.OnNext(false);
                         this.logger.LogDebug("Poll completed successfully, {EndpointCount} endpoint(s) returned", endpoints.Count);
                         return endpoints;
                     }
                     catch (Exception ex)
                     {
                         this.logger.LogError(ex, "Poll failed");
-                        connectionErrorSubject.OnNext(true);
+                        this.connectionErrorSubject.OnNext(true);
                         return (IList<HealthEndPoint>)Array.Empty<HealthEndPoint>();
                     }
                 }))
-                .Subscribe(endpoints => endpointsSubject.OnNext(endpoints));
+                .Subscribe(endpoints => this.endpointsSubject.OnNext(endpoints));
 
-            disposables.Add(subscription);
+            this.isRunningSubject.OnNext(true);
+            this.logger.LogInformation("Sync polling started");
+        }
+
+        /// <summary>Stops polling and resets connection error state</summary>
+        public void Stop()
+        {
+            this.pollSubscription?.Dispose();
+            this.pollSubscription = null;
+            this.isRunningSubject.OnNext(false);
+            this.connectionErrorSubject.OnNext(false);
+            this.logger.LogInformation("Sync polling stopped");
         }
 
         /// <summary>Disposes managed resources</summary>
         public void Dispose()
         {
-            disposables.Dispose();
-            endpointsSubject.Dispose();
-            connectionErrorSubject.Dispose();
+            this.pollSubscription?.Dispose();
+            this.disposables.Dispose();
+            this.endpointsSubject.Dispose();
+            this.connectionErrorSubject.Dispose();
+            this.isRunningSubject.Dispose();
         }
     }
 }

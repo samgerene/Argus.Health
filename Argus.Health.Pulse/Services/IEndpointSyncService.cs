@@ -41,8 +41,18 @@ namespace Argus.Health.Pulse.Services
         IObservable<bool> ConnectionErrorObservable { get; }
 
         /// <summary>
+        /// Gets an observable that indicates whether the sync service is currently running
+        /// </summary>
+        IObservable<bool> IsRunningObservable { get; }
+
+        /// <summary>
         /// Starts polling
         /// </summary>
         void Start();
+
+        /// <summary>
+        /// Stops polling and resets connection error state
+        /// </summary>
+        void Stop();
     }
 }

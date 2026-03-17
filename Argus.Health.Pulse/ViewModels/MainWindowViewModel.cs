@@ -28,6 +28,7 @@ namespace Argus.Health.Pulse.ViewModels
     using System.Reactive.Linq;
     using System.Windows.Input;
 
+    using Argus.Health.Common.Model;
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
@@ -110,12 +111,25 @@ namespace Argus.Health.Pulse.ViewModels
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<MainWindowViewModel>();
 
-            this.GoToDashboardCommand = ReactiveCommand.Create(NavigateToDashboard);
-            this.GoToEndpointsCommand = ReactiveCommand.Create(NavigateToEndpoints);
-            this.DismissNotificationCommand = ReactiveCommand.Create<NotificationItem>(DismissNotification);
-            this.ToggleWindowCommand = ReactiveCommand.Create(() => { ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
-            this.ShowWindowCommand = ReactiveCommand.Create(() => { ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
-            this.ExitCommand = ReactiveCommand.Create(() => { ExitRequested?.Invoke(this, EventArgs.Empty); });
+            this.GoToDashboardCommand = ReactiveCommand.Create(this.NavigateToDashboard);
+            this.GoToEndpointsCommand = ReactiveCommand.Create(this.NavigateToEndpoints);
+            this.DismissNotificationCommand = ReactiveCommand.Create<NotificationItem>(this.DismissNotification);
+            this.ToggleWindowCommand = ReactiveCommand.Create(() => { this.ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
+            this.ShowWindowCommand = ReactiveCommand.Create(() => { this.ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
+            this.ExitCommand = ReactiveCommand.Create(() => { this.ExitRequested?.Invoke(this, EventArgs.Empty); });
+
+            this.ToggleSyncCommand = ReactiveCommand.Create(() =>
+            {
+                if (this.IsSyncRunning)
+                {
+                    this.syncService.Stop();
+                    this.healthCheckService.UpdateEndpoints(Array.Empty<HealthEndPoint>());
+                }
+                else
+                {
+                    this.syncService.Start();
+                }
+            });
 
             // subscribe to sync service to feed health check service
             var syncSubscription = syncService.EndpointsObservable
@@ -157,10 +171,16 @@ namespace Argus.Health.Pulse.ViewModels
             disposables.Add(failureSubscription);
 
             // subscribe to connection errors for status indicator
-            var connectionSubscription = syncService.ConnectionErrorObservable
+            var connectionSubscription = this.syncService.ConnectionErrorObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(hasError => IsConnectionError = hasError);
-            disposables.Add(connectionSubscription);
+                .Subscribe(hasError => this.IsConnectionError = hasError);
+            this.disposables.Add(connectionSubscription);
+
+            // subscribe to running state
+            var runningSubscription = this.syncService.IsRunningObservable
+                .ObserveOn(AvaloniaScheduler.Instance)
+                .Subscribe(isRunning => this.IsSyncRunning = isRunning);
+            this.disposables.Add(runningSubscription);
 
             // countdown timer: 100 ticks over the poll interval
             var countdownSubscription = Observable.Interval(TimeSpan.FromMilliseconds(100))
@@ -198,6 +218,12 @@ namespace Argus.Health.Pulse.ViewModels
         public bool IsConnectionError { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the sync service is currently running
+        /// </summary>
+        [Reactive]
+        public bool IsSyncRunning { get; set; }
+
+        /// <summary>
         /// Gets or sets the sync progress countdown value (0–100)
         /// </summary>
         [Reactive]
@@ -217,6 +243,11 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets the command to navigate to the endpoints list view
         /// </summary>
         public ReactiveCommand<Unit, Unit> GoToEndpointsCommand { get; }
+
+        /// <summary>
+        /// Gets the command to toggle sync polling on or off
+        /// </summary>
+        public ReactiveCommand<Unit, Unit> ToggleSyncCommand { get; }
 
         /// <summary>
         /// Gets the command to dismiss a notification
