@@ -86,7 +86,9 @@ namespace Argus.Health.Pulse.ViewModels
             RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
             AddCommand = ReactiveCommand.Create(OnAdd);
             EditCommand = ReactiveCommand.Create<HealthEndPoint>(OnEdit);
-            DeleteCommand = ReactiveCommand.CreateFromTask<HealthEndPoint>(OnDeleteAsync);
+            DeleteCommand = ReactiveCommand.Create<HealthEndPoint>(OnRequestDelete);
+            ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(OnConfirmDeleteAsync);
+            CancelDeleteCommand = ReactiveCommand.Create(OnCancelDelete);
 
             RefreshCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
@@ -96,11 +98,11 @@ namespace Argus.Health.Pulse.ViewModels
                     ErrorMessage = ex.Message;
                 });
 
-            DeleteCommand.ThrownExceptions
+            ConfirmDeleteCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex =>
                 {
-                    this.logger.LogError(ex, "DeleteCommand failed");
+                    this.logger.LogError(ex, "ConfirmDeleteCommand failed");
                     ErrorMessage = ex.Message;
                 });
 
@@ -118,6 +120,24 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         [Reactive]
         public HealthEndPoint? SelectedEndpoint { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the endpoint collection contains any items
+        /// </summary>
+        [Reactive]
+        public bool HasEndpoints { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the delete confirmation overlay is visible
+        /// </summary>
+        [Reactive]
+        public bool IsDeleteConfirmationVisible { get; set; }
+
+        /// <summary>
+        /// Gets or sets the endpoint that is pending deletion confirmation
+        /// </summary>
+        [Reactive]
+        public HealthEndPoint? PendingDeleteEndpoint { get; set; }
 
         /// <summary>
         /// Gets or sets the error message from the last failed operation
@@ -141,9 +161,19 @@ namespace Argus.Health.Pulse.ViewModels
         public ReactiveCommand<HealthEndPoint, Unit> EditCommand { get; }
 
         /// <summary>
-        /// Gets the command to delete the selected endpoint
+        /// Gets the command to request deletion of the selected endpoint (shows confirmation)
         /// </summary>
         public ReactiveCommand<HealthEndPoint, Unit> DeleteCommand { get; }
+
+        /// <summary>
+        /// Gets the command to confirm deletion of the pending endpoint
+        /// </summary>
+        public ReactiveCommand<Unit, Unit> ConfirmDeleteCommand { get; }
+
+        /// <summary>
+        /// Gets the command to cancel the pending deletion
+        /// </summary>
+        public ReactiveCommand<Unit, Unit> CancelDeleteCommand { get; }
 
         /// <summary>
         /// Fetches the latest endpoint list from the service and updates the collection
@@ -159,6 +189,8 @@ namespace Argus.Health.Pulse.ViewModels
             {
                 Endpoints.Add(ep);
             }
+
+            this.HasEndpoints = this.Endpoints.Count > 0;
 
             this.logger.LogDebug("RefreshAsync completed with {EndpointCount} endpoint(s)", endpoints.Count);
         }
@@ -185,15 +217,44 @@ namespace Argus.Health.Pulse.ViewModels
         }
 
         /// <summary>
-        /// Deletes the specified endpoint and removes it from the collection
+        /// Shows the delete confirmation overlay for the specified endpoint
         /// </summary>
         /// <param name="endpoint">
-        /// The <see cref="HealthEndPoint"/> to delete
+        /// The <see cref="HealthEndPoint"/> to request deletion for
         /// </param>
-        private async Task OnDeleteAsync(HealthEndPoint endpoint)
+        private void OnRequestDelete(HealthEndPoint endpoint)
         {
-            await client.DeleteAsync(endpoint.Identifier);
-            Endpoints.Remove(endpoint);
+            this.PendingDeleteEndpoint = endpoint;
+            this.IsDeleteConfirmationVisible = true;
+        }
+
+        /// <summary>
+        /// Confirms deletion of the pending endpoint and removes it from the collection
+        /// </summary>
+        private async Task OnConfirmDeleteAsync()
+        {
+            if (this.PendingDeleteEndpoint is null)
+            {
+                return;
+            }
+
+            var endpoint = this.PendingDeleteEndpoint;
+
+            await this.client.DeleteAsync(endpoint.Identifier);
+            this.Endpoints.Remove(endpoint);
+            this.HasEndpoints = this.Endpoints.Count > 0;
+
+            this.PendingDeleteEndpoint = null;
+            this.IsDeleteConfirmationVisible = false;
+        }
+
+        /// <summary>
+        /// Cancels the pending deletion and hides the confirmation overlay
+        /// </summary>
+        private void OnCancelDelete()
+        {
+            this.PendingDeleteEndpoint = null;
+            this.IsDeleteConfirmationVisible = false;
         }
     }
 }
