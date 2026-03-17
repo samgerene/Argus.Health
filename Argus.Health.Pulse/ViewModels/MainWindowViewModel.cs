@@ -43,13 +43,44 @@ namespace Argus.Health.Pulse.ViewModels
     /// </summary>
     public class MainWindowViewModel : ViewModelBase, IDisposable
     {
+        /// <summary>
+        /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
+        /// </summary>
         private readonly HealthEndPointClient client;
+
+        /// <summary>
+        /// The <see cref="IEndpointSyncService"/> used to poll endpoints
+        /// </summary>
         private readonly IEndpointSyncService syncService;
+
+        /// <summary>
+        /// The <see cref="IHealthCheckService"/> used to monitor endpoint health
+        /// </summary>
         private readonly IHealthCheckService healthCheckService;
+
+        /// <summary>
+        /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
+        /// </summary>
         private readonly ILoggerFactory loggerFactory;
+
+        /// <summary>
+        /// The <see cref="ILogger{MainWindowViewModel}"/> used for logging
+        /// </summary>
         private readonly ILogger<MainWindowViewModel> logger;
+
+        /// <summary>
+        /// Disposable container for Rx subscriptions
+        /// </summary>
         private readonly CompositeDisposable disposables = new();
+
+        /// <summary>
+        /// Cached dashboard view model instance
+        /// </summary>
         private DashboardViewModel? dashboardViewModel;
+
+        /// <summary>
+        /// Current endpoint list view model instance
+        /// </summary>
         private EndpointListViewModel? endpointListViewModel;
 
         /// <summary>
@@ -222,6 +253,9 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         public event EventHandler? ExitRequested;
 
+        /// <summary>
+        /// Navigates to the dashboard view, creating it on first use
+        /// </summary>
         private void NavigateToDashboard()
         {
             logger.LogDebug("Navigating to dashboard");
@@ -229,6 +263,9 @@ namespace Argus.Health.Pulse.ViewModels
             CurrentView = dashboardViewModel;
         }
 
+        /// <summary>
+        /// Navigates to the endpoints list view
+        /// </summary>
         private void NavigateToEndpoints()
         {
             logger.LogDebug("Navigating to endpoints list");
@@ -236,6 +273,12 @@ namespace Argus.Health.Pulse.ViewModels
             CurrentView = endpointListViewModel;
         }
 
+        /// <summary>
+        /// Handles navigation from the editor, showing the editor or returning to the list
+        /// </summary>
+        /// <param name="viewModel">
+        /// The view model to navigate to, or null to return to the endpoint list
+        /// </param>
         private void NavigateFromEditor(ViewModelBase? viewModel)
         {
             if (viewModel is EndpointEditorViewModel)
@@ -251,6 +294,12 @@ namespace Argus.Health.Pulse.ViewModels
             }
         }
 
+        /// <summary>
+        /// Removes the specified notification from the collection
+        /// </summary>
+        /// <param name="item">
+        /// The <see cref="NotificationItem"/> to dismiss
+        /// </param>
         private void DismissNotification(NotificationItem item)
         {
             logger.LogDebug("Dismissing notification {NotificationId}", item.Id);

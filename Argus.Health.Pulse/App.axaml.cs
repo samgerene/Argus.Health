@@ -42,8 +42,19 @@ namespace Argus.Health.Pulse
     /// </summary>
     public partial class App : Application
     {
+        /// <summary>
+        /// The main window view model instance
+        /// </summary>
         private MainWindowViewModel? mainViewModel;
+
+        /// <summary>
+        /// The endpoint sync service instance
+        /// </summary>
         private IEndpointSyncService? syncService;
+
+        /// <summary>
+        /// The health check service instance
+        /// </summary>
         private IHealthCheckService? healthCheckService;
 
         /// <summary>

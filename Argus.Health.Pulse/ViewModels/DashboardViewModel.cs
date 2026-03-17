@@ -39,8 +39,14 @@ namespace Argus.Health.Pulse.ViewModels
     /// </summary>
     public class DashboardViewModel : ViewModelBase, IDisposable
     {
+        /// <summary>
+        /// The <see cref="ILogger{DashboardViewModel}"/> used for logging
+        /// </summary>
         private readonly ILogger<DashboardViewModel> logger;
-        
+
+        /// <summary>
+        /// Disposable container for Rx subscriptions
+        /// </summary>
         private readonly CompositeDisposable disposables = new();
 
         /// <summary>

@@ -52,8 +52,19 @@ namespace Argus.Health.Pulse.Services
         /// </summary>
         private readonly HealthEndPointClient client;
 
+        /// <summary>
+        /// Subject that publishes the latest endpoint list
+        /// </summary>
         private readonly BehaviorSubject<IList<HealthEndPoint>> endpointsSubject = new(Array.Empty<HealthEndPoint>());
+
+        /// <summary>
+        /// Subject that publishes connection error state
+        /// </summary>
         private readonly BehaviorSubject<bool> connectionErrorSubject = new(false);
+
+        /// <summary>
+        /// Disposable container for Rx subscriptions
+        /// </summary>
         private readonly CompositeDisposable disposables = new();
 
         /// <summary>

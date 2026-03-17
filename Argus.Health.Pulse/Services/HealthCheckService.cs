@@ -47,8 +47,19 @@ namespace Argus.Health.Pulse.Services
         /// </summary>
         private readonly ILogger<HealthCheckService> logger;
 
+        /// <summary>
+        /// The <see cref="HttpClient"/> used to probe endpoints
+        /// </summary>
         private readonly HttpClient httpClient = new();
+
+        /// <summary>
+        /// Running monitor tasks keyed by endpoint identifier
+        /// </summary>
         private readonly ConcurrentDictionary<Guid, (Task task, CancellationTokenSource cts)> monitors = new();
+
+        /// <summary>
+        /// Subject that publishes health check results
+        /// </summary>
         private readonly Subject<HealthEndPointCheckResult> resultsSubject = new();
 
         /// <summary>
@@ -93,6 +104,12 @@ namespace Argus.Health.Pulse.Services
             }
         }
 
+        /// <summary>
+        /// Creates a cancellation source and starts a monitor loop for the specified endpoint
+        /// </summary>
+        /// <param name="endpoint">
+        /// The <see cref="HealthEndPoint"/> to monitor
+        /// </param>
         private void StartMonitor(HealthEndPoint endpoint)
         {
             this.logger.LogInformation("Starting monitor for endpoint {EndpointName} ({EndpointId})", endpoint.Name, endpoint.Identifier);
@@ -101,6 +118,12 @@ namespace Argus.Health.Pulse.Services
             monitors[endpoint.Identifier] = (task, cts);
         }
 
+        /// <summary>
+        /// Cancels and removes the monitor for the specified endpoint identifier
+        /// </summary>
+        /// <param name="id">
+        /// The endpoint identifier
+        /// </param>
         private void StopMonitor(Guid id)
         {
             if (monitors.TryRemove(id, out var monitor))
@@ -111,6 +134,15 @@ namespace Argus.Health.Pulse.Services
             }
         }
 
+        /// <summary>
+        /// Runs the polling loop for a single endpoint with Polly retry and timeout
+        /// </summary>
+        /// <param name="endpoint">
+        /// The <see cref="HealthEndPoint"/> to poll
+        /// </param>
+        /// <param name="ct">
+        /// The <see cref="CancellationToken"/> used to stop the loop
+        /// </param>
         private async Task MonitorEndpointAsync(HealthEndPoint endpoint, CancellationToken ct)
         {
             var retryPolicy = Policy<HttpResponseMessage>

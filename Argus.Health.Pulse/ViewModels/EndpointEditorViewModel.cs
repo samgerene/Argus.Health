@@ -45,8 +45,19 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         private readonly ILogger<EndpointEditorViewModel> logger;
 
+        /// <summary>
+        /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
+        /// </summary>
         private readonly HealthEndPointClient client;
+
+        /// <summary>
+        /// Navigation callback to switch views
+        /// </summary>
         private readonly Action<ViewModelBase> navigate;
+
+        /// <summary>
+        /// The identifier of the endpoint being edited, or null for a new endpoint
+        /// </summary>
         private readonly Guid? existingId;
 
         /// <summary>
@@ -172,6 +183,9 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
+        /// <summary>
+        /// Validates and persists the endpoint, then navigates back
+        /// </summary>
         private async Task SaveAsync()
         {
             ErrorMessage = null;
@@ -199,6 +213,9 @@ namespace Argus.Health.Pulse.ViewModels
             OnCancel(); // navigate back
         }
 
+        /// <summary>
+        /// Navigates back to the endpoint list without saving
+        /// </summary>
         private void OnCancel()
         {
             navigate(null!); // signal to go back to endpoint list

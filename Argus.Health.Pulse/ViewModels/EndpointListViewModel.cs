@@ -51,7 +51,14 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         private readonly ILoggerFactory loggerFactory;
 
+        /// <summary>
+        /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
+        /// </summary>
         private readonly HealthEndPointClient client;
+
+        /// <summary>
+        /// Navigation callback to switch views
+        /// </summary>
         private readonly Action<ViewModelBase> navigate;
 
         /// <summary>
@@ -138,6 +145,9 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         public ReactiveCommand<HealthEndPoint, Unit> DeleteCommand { get; }
 
+        /// <summary>
+        /// Fetches the latest endpoint list from the service and updates the collection
+        /// </summary>
         private async Task RefreshAsync()
         {
             this.logger.LogDebug("RefreshAsync starting");
@@ -153,18 +163,33 @@ namespace Argus.Health.Pulse.ViewModels
             this.logger.LogDebug("RefreshAsync completed with {EndpointCount} endpoint(s)", endpoints.Count);
         }
 
+        /// <summary>
+        /// Creates a new editor view model and navigates to it
+        /// </summary>
         private void OnAdd()
         {
             var editor = new EndpointEditorViewModel(client, navigate, null, loggerFactory.CreateLogger<EndpointEditorViewModel>());
             navigate(editor);
         }
 
+        /// <summary>
+        /// Creates an editor view model pre-filled with the selected endpoint and navigates to it
+        /// </summary>
+        /// <param name="endpoint">
+        /// The <see cref="HealthEndPoint"/> to edit
+        /// </param>
         private void OnEdit(HealthEndPoint endpoint)
         {
             var editor = new EndpointEditorViewModel(client, navigate, endpoint, loggerFactory.CreateLogger<EndpointEditorViewModel>());
             navigate(editor);
         }
 
+        /// <summary>
+        /// Deletes the specified endpoint and removes it from the collection
+        /// </summary>
+        /// <param name="endpoint">
+        /// The <see cref="HealthEndPoint"/> to delete
+        /// </param>
         private async Task OnDeleteAsync(HealthEndPoint endpoint)
         {
             await client.DeleteAsync(endpoint.Identifier);
