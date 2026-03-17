@@ -22,6 +22,7 @@ namespace Argus.Health.Service
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.IO;
     using System.Threading.Tasks;
 
     using Argus.Health.Service.BackgroundServices;
@@ -54,8 +55,18 @@ namespace Argus.Health.Service
 
             var builder = Host.CreateApplicationBuilder(args);
 
+            var logFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ArgusHealthService", "logs");
+
+            Directory.CreateDirectory(logFolder);
+
             Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(builder.Configuration)
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File(
+                    Path.Combine(logFolder, "argus-health-service-.log"),
+                    rollingInterval: RollingInterval.Day)
                 .Enrich.FromLogContext()
                 .CreateLogger();
 
