@@ -75,6 +75,11 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly CompositeDisposable disposables = new();
 
         /// <summary>
+        /// Tracks the number of consecutive connection failures
+        /// </summary>
+        private int consecutiveFailures;
+
+        /// <summary>
         /// Cached dashboard view model instance
         /// </summary>
         private DashboardViewModel? dashboardViewModel;
@@ -127,6 +132,7 @@ namespace Argus.Health.Pulse.ViewModels
                 }
                 else
                 {
+                    this.IsConnecting = true;
                     this.syncService.Start();
                 }
             });
@@ -173,13 +179,52 @@ namespace Argus.Health.Pulse.ViewModels
             // subscribe to connection errors for status indicator
             var connectionSubscription = this.syncService.ConnectionErrorObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(hasError => this.IsConnectionError = hasError);
+                .Subscribe(hasError =>
+                {
+                    if (!hasError)
+                    {
+                        this.consecutiveFailures = 0;
+                        this.IsConnecting = false;
+                        this.IsConnectionDegraded = false;
+                        this.IsConnectionError = false;
+                        this.IsConnected = this.IsSyncRunning;
+                    }
+                    else
+                    {
+                        this.consecutiveFailures++;
+                        this.IsConnecting = false;
+                        this.IsConnected = false;
+
+                        if (this.consecutiveFailures >= 2)
+                        {
+                            this.IsConnectionDegraded = false;
+                            this.IsConnectionError = true;
+                            this.SyncProgress = 0;
+                            this.syncService.Stop();
+                            this.healthCheckService.UpdateEndpoints(Array.Empty<HealthEndPoint>());
+                        }
+                        else
+                        {
+                            this.IsConnectionDegraded = true;
+                        }
+                    }
+                });
             this.disposables.Add(connectionSubscription);
 
             // subscribe to running state
             var runningSubscription = this.syncService.IsRunningObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(isRunning => this.IsSyncRunning = isRunning);
+                .Subscribe(isRunning =>
+                {
+                    this.IsSyncRunning = isRunning;
+
+                    if (!isRunning)
+                    {
+                        this.IsConnecting = false;
+                        this.IsConnected = false;
+                        this.IsConnectionDegraded = false;
+                    }
+                });
             this.disposables.Add(runningSubscription);
 
             // countdown timer: 100 ticks over the poll interval
@@ -197,11 +242,18 @@ namespace Argus.Health.Pulse.ViewModels
             // reset progress bar on every poll result
             var resetSubscription = syncService.EndpointsObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(_ => SyncProgress = 100);
+                .Subscribe(_ =>
+                {
+                    if (!this.IsConnectionError)
+                    {
+                        this.SyncProgress = 100;
+                    }
+                });
             disposables.Add(resetSubscription);
 
             // start with dashboard
             NavigateToDashboard();
+            this.IsConnecting = true;
             syncService.Start();
         }
 
@@ -212,16 +264,34 @@ namespace Argus.Health.Pulse.ViewModels
         public ViewModelBase? CurrentView { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the service is in the initial connecting state
+        /// </summary>
+        [Reactive]
+        public bool IsConnecting { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the service connection has an error
         /// </summary>
         [Reactive]
         public bool IsConnectionError { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the connection is degraded after a single failure
+        /// </summary>
+        [Reactive]
+        public bool IsConnectionDegraded { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the sync service is currently running
         /// </summary>
         [Reactive]
         public bool IsSyncRunning { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the service is connected and sync is healthy
+        /// </summary>
+        [Reactive]
+        public bool IsConnected { get; set; }
 
         /// <summary>
         /// Gets or sets the sync progress countdown value (0–100)

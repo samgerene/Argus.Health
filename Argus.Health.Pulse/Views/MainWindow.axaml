@@ -22,7 +22,25 @@
                 <Button Content="Dashboard" Command="{Binding GoToDashboardCommand}" HorizontalAlignment="Stretch" Margin="8,0" />
                 <Button Content="Endpoints" Command="{Binding GoToEndpointsCommand}" HorizontalAlignment="Stretch" Margin="8,0" />
 
-                <!-- Connection status indicator -->
+                <!-- Connection status indicators -->
+                <Border Background="#FF9800" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
+                        IsVisible="{Binding IsConnecting}">
+                    <TextBlock Text="Connecting..." Foreground="White" FontSize="12"
+                               HorizontalAlignment="Center" TextAlignment="Center" />
+                </Border>
+
+                <Border Background="#4CAF50" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
+                        IsVisible="{Binding IsConnected}">
+                    <TextBlock Text="Service connected" Foreground="White" FontSize="12"
+                               HorizontalAlignment="Center" TextAlignment="Center" />
+                </Border>
+
+                <Border Background="#FF9800" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
+                        IsVisible="{Binding IsConnectionDegraded}">
+                    <TextBlock Text="Connection unstable" Foreground="White" FontSize="12"
+                               HorizontalAlignment="Center" TextAlignment="Center" />
+                </Border>
+
                 <Border Background="#D32F2F" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
                         IsVisible="{Binding IsConnectionError}">
                     <TextBlock Text="Service unavailable" Foreground="White" FontSize="12"
@@ -46,7 +64,7 @@
                              Classes.connectionError="{Binding IsConnectionError}">
                     <ProgressBar.Styles>
                         <Style Selector="ProgressBar.connectionError">
-                            <Setter Property="Foreground" Value="#D32F2F" />
+                            <Setter Property="Foreground" Value="#9E9E9E" />
                         </Style>
                     </ProgressBar.Styles>
                 </ProgressBar>

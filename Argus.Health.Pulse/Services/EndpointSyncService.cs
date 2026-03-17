@@ -106,6 +106,8 @@ namespace Argus.Health.Pulse.Services
         {
             this.Stop();
 
+            this.connectionErrorSubject.OnNext(false);
+
             this.pollSubscription = Observable.Timer(TimeSpan.Zero, PollInterval)
                 .SelectMany(_ => Observable.FromAsync(async ct =>
                 {
@@ -115,6 +117,11 @@ namespace Argus.Health.Pulse.Services
                         this.connectionErrorSubject.OnNext(false);
                         this.logger.LogDebug("Poll completed successfully, {EndpointCount} endpoint(s) returned", endpoints.Count);
                         return endpoints;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        this.logger.LogDebug("Poll cancelled");
+                        return (IList<HealthEndPoint>)Array.Empty<HealthEndPoint>();
                     }
                     catch (Exception ex)
                     {
@@ -129,13 +136,12 @@ namespace Argus.Health.Pulse.Services
             this.logger.LogInformation("Sync polling started");
         }
 
-        /// <summary>Stops polling and resets connection error state</summary>
+        /// <summary>Stops polling</summary>
         public void Stop()
         {
             this.pollSubscription?.Dispose();
             this.pollSubscription = null;
             this.isRunningSubject.OnNext(false);
-            this.connectionErrorSubject.OnNext(false);
             this.logger.LogInformation("Sync polling stopped");
         }
 
