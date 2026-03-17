@@ -27,14 +27,29 @@ namespace Argus.Health.Pulse.ViewModels
     /// </summary>
     public class NotificationItem
     {
+        /// <summary>
+        /// Gets or sets the unique identifier for this notification
+        /// </summary>
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        /// <summary>
+        /// Gets or sets the name of the endpoint that triggered this notification
+        /// </summary>
         public string EndpointName { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Gets or sets the HTTP status code from the failed health check
+        /// </summary>
         public int StatusCode { get; set; }
 
+        /// <summary>
+        /// Gets or sets the error message from the failed health check
+        /// </summary>
         public string? ErrorMessage { get; set; }
 
+        /// <summary>
+        /// Gets or sets the timestamp when this notification was created
+        /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 }

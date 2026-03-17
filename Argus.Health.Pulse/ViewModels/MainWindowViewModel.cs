@@ -47,6 +47,7 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly IEndpointSyncService syncService;
         private readonly IHealthCheckService healthCheckService;
         private readonly ILoggerFactory loggerFactory;
+        private readonly ILogger<MainWindowViewModel> logger;
         private readonly CompositeDisposable disposables = new();
         private DashboardViewModel? dashboardViewModel;
         private EndpointListViewModel? endpointListViewModel;
@@ -76,13 +77,14 @@ namespace Argus.Health.Pulse.ViewModels
             this.syncService = syncService;
             this.healthCheckService = healthCheckService;
             this.loggerFactory = loggerFactory;
+            this.logger = loggerFactory.CreateLogger<MainWindowViewModel>();
 
-            GoToDashboardCommand = ReactiveCommand.Create(NavigateToDashboard);
-            GoToEndpointsCommand = ReactiveCommand.Create(NavigateToEndpoints);
-            DismissNotificationCommand = ReactiveCommand.Create<NotificationItem>(DismissNotification);
-            ToggleWindowCommand = ReactiveCommand.Create(() => { ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
-            ShowWindowCommand = ReactiveCommand.Create(() => { ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
-            ExitCommand = ReactiveCommand.Create(() => { ExitRequested?.Invoke(this, EventArgs.Empty); });
+            this.GoToDashboardCommand = ReactiveCommand.Create(NavigateToDashboard);
+            this.GoToEndpointsCommand = ReactiveCommand.Create(NavigateToEndpoints);
+            this.DismissNotificationCommand = ReactiveCommand.Create<NotificationItem>(DismissNotification);
+            this.ToggleWindowCommand = ReactiveCommand.Create(() => { ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
+            this.ShowWindowCommand = ReactiveCommand.Create(() => { ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
+            this.ExitCommand = ReactiveCommand.Create(() => { ExitRequested?.Invoke(this, EventArgs.Empty); });
 
             // subscribe to sync service to feed health check service
             var syncSubscription = syncService.EndpointsObservable
@@ -152,43 +154,84 @@ namespace Argus.Health.Pulse.ViewModels
             syncService.Start();
         }
 
+        /// <summary>
+        /// Gets or sets the currently displayed child view model
+        /// </summary>
         [Reactive]
         public ViewModelBase? CurrentView { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the service connection has an error
+        /// </summary>
         [Reactive]
         public bool IsConnectionError { get; set; }
 
+        /// <summary>
+        /// Gets or sets the sync progress countdown value (0–100)
+        /// </summary>
         [Reactive]
         public double SyncProgress { get; set; } = 100;
 
+        /// <summary>
+        /// Gets the collection of active toast notifications
+        /// </summary>
         public ObservableCollection<NotificationItem> Notifications { get; } = new();
 
+        /// <summary>
+        /// Gets the command to navigate to the dashboard view
+        /// </summary>
         public ReactiveCommand<Unit, Unit> GoToDashboardCommand { get; }
 
+        /// <summary>
+        /// Gets the command to navigate to the endpoints list view
+        /// </summary>
         public ReactiveCommand<Unit, Unit> GoToEndpointsCommand { get; }
 
+        /// <summary>
+        /// Gets the command to dismiss a notification
+        /// </summary>
         public ReactiveCommand<NotificationItem, Unit> DismissNotificationCommand { get; }
 
+        /// <summary>
+        /// Gets the command to toggle the main window visibility
+        /// </summary>
         public ICommand ToggleWindowCommand { get; }
 
+        /// <summary>
+        /// Gets the command to show the main window
+        /// </summary>
         public ICommand ShowWindowCommand { get; }
 
+        /// <summary>
+        /// Gets the command to exit the application
+        /// </summary>
         public ICommand ExitCommand { get; }
 
+        /// <summary>
+        /// Raised when the main window visibility should be toggled
+        /// </summary>
         public event EventHandler? ToggleWindowRequested;
 
+        /// <summary>
+        /// Raised when the main window should be shown
+        /// </summary>
         public event EventHandler? ShowWindowRequested;
 
+        /// <summary>
+        /// Raised when the application should exit
+        /// </summary>
         public event EventHandler? ExitRequested;
 
         private void NavigateToDashboard()
         {
-            dashboardViewModel ??= new DashboardViewModel(syncService, healthCheckService);
+            logger.LogDebug("Navigating to dashboard");
+            dashboardViewModel ??= new DashboardViewModel(syncService, healthCheckService, loggerFactory.CreateLogger<DashboardViewModel>());
             CurrentView = dashboardViewModel;
         }
 
         private void NavigateToEndpoints()
         {
+            logger.LogDebug("Navigating to endpoints list");
             endpointListViewModel = new EndpointListViewModel(client, NavigateFromEditor, loggerFactory.CreateLogger<EndpointListViewModel>(), loggerFactory);
             CurrentView = endpointListViewModel;
         }
@@ -197,10 +240,12 @@ namespace Argus.Health.Pulse.ViewModels
         {
             if (viewModel is EndpointEditorViewModel)
             {
+                logger.LogDebug("Navigating to endpoint editor");
                 CurrentView = viewModel;
             }
             else
             {
+                logger.LogDebug("Navigating back to endpoint list");
                 // navigate back to endpoint list (refresh it)
                 NavigateToEndpoints();
             }
@@ -208,9 +253,13 @@ namespace Argus.Health.Pulse.ViewModels
 
         private void DismissNotification(NotificationItem item)
         {
+            logger.LogDebug("Dismissing notification {NotificationId}", item.Id);
             Notifications.Remove(item);
         }
 
+        /// <summary>
+        /// Disposes managed resources
+        /// </summary>
         public void Dispose()
         {
             disposables.Dispose();

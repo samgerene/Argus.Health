@@ -27,8 +27,20 @@ namespace Argus.Health.Pulse
 
     using Argus.Health.Pulse.ViewModels;
     
+    /// <summary>
+    /// Resolves views for view models by convention, replacing "ViewModel" with "View" in the type name
+    /// </summary>
     public class ViewLocator : IDataTemplate
     {
+        /// <summary>
+        /// Builds a view for the given view model data object
+        /// </summary>
+        /// <param name="data">
+        /// The view model to resolve a view for
+        /// </param>
+        /// <returns>
+        /// The resolved <see cref="Control"/>, or a <see cref="TextBlock"/> with a "Not Found" message
+        /// </returns>
         public Control? Build(object? data)
         {
             if (data is null)
@@ -47,6 +59,15 @@ namespace Argus.Health.Pulse
             return new TextBlock { Text = "Not Found: " + name };
         }
 
+        /// <summary>
+        /// Determines whether this data template can be applied to the given data object
+        /// </summary>
+        /// <param name="data">
+        /// The data object to check
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if the data object is a <see cref="ViewModelBase"/>; otherwise <c>false</c>
+        /// </returns>
         public bool Match(object? data)
         {
             return data is ViewModelBase;

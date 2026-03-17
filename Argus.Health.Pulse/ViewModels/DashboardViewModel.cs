@@ -28,6 +28,8 @@ namespace Argus.Health.Pulse.ViewModels
 
     using Argus.Health.Pulse.Services;
 
+    using Microsoft.Extensions.Logging;
+
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
@@ -37,10 +39,26 @@ namespace Argus.Health.Pulse.ViewModels
     /// </summary>
     public class DashboardViewModel : ViewModelBase, IDisposable
     {
+        private readonly ILogger<DashboardViewModel> logger;
+        
         private readonly CompositeDisposable disposables = new();
 
-        public DashboardViewModel(IEndpointSyncService syncService, IHealthCheckService healthCheckService)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DashboardViewModel"/> class
+        /// </summary>
+        /// <param name="syncService">
+        /// The <see cref="IEndpointSyncService"/> used to poll endpoints
+        /// </param>
+        /// <param name="healthCheckService">
+        /// The <see cref="IHealthCheckService"/> used to monitor endpoint health
+        /// </param>
+        /// <param name="logger">
+        /// The <see cref="ILogger{DashboardViewModel}"/> used for logging
+        /// </param>
+        public DashboardViewModel(IEndpointSyncService syncService, IHealthCheckService healthCheckService, ILogger<DashboardViewModel> logger)
         {
+            this.logger = logger;
+
             var endpointSubscription = syncService.EndpointsObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(endpoints =>
@@ -56,13 +74,17 @@ namespace Argus.Health.Pulse.ViewModels
                     }
 
                     // add new endpoints
+                    var added = 0;
                     foreach (var ep in endpoints)
                     {
                         if (!existingIds.Contains(ep.Identifier))
                         {
                             Endpoints.Add(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
+                            added++;
                         }
                     }
+
+                    this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, toRemove.Count, Endpoints.Count);
                 });
 
             var resultsSubscription = healthCheckService.ResultsObservable
@@ -76,6 +98,7 @@ namespace Argus.Health.Pulse.ViewModels
                         row.StatusCode = result.StatusCode;
                         row.LastChecked = result.Timestamp;
                         row.ErrorMessage = result.ErrorMessage;
+                        this.logger.LogDebug("Health check result for {EndpointName}: HTTP {StatusCode}", row.Name, result.StatusCode);
                     }
                 });
 
@@ -83,8 +106,14 @@ namespace Argus.Health.Pulse.ViewModels
             disposables.Add(resultsSubscription);
         }
 
+        /// <summary>
+        /// Gets the collection of endpoint status rows displayed on the dashboard
+        /// </summary>
         public ObservableCollection<EndpointStatusViewModel> Endpoints { get; } = new();
 
+        /// <summary>
+        /// Disposes managed resources
+        /// </summary>
         public void Dispose()
         {
             disposables.Dispose();

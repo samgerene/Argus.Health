@@ -78,9 +78,10 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 - **Explicit usings**: `ImplicitUsings` is disabled — all `using` directives must be written explicitly.
 - **usings location**: using statements go inside namespace.
 - **Nullable**: enabled in `Argus.Health.Service` and `Argus.Health.Common`; disabled in the test project.
-- **XML doc comments**: required on all types and members. do not use inheritdoc
+- **XML doc comments**: required on all types and members: public, private, protetected and internal . do not use inheritdoc
 - **License header**: every `.cs` file starts with the Apache-2.0 copyright block.
 - **FluentResults**: CRUD methods return `Task<Result>` (not exceptions) for expected failures; repository read methods throw `DataException` on failure.
+- **this**: make use of the `this` keyword on properties and methods
 
 ## Testing Conventions
 

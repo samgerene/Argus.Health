@@ -22,13 +22,25 @@ namespace Argus.Health.Pulse.Views
 {
     using Avalonia.Controls;
     
+    /// <summary>
+    /// Main application window with minimize-to-tray behavior
+    /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MainWindow"/> class
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Hides the window to the system tray instead of closing it
+        /// </summary>
+        /// <param name="e">
+        /// The <see cref="WindowClosingEventArgs"/> to cancel
+        /// </param>
         protected override void OnClosing(WindowClosingEventArgs e)
         {
             // hide to tray instead of closing
@@ -37,6 +49,9 @@ namespace Argus.Health.Pulse.Views
             base.OnClosing(e);
         }
 
+        /// <summary>
+        /// Forces the window to close, bypassing the hide-to-tray behavior
+        /// </summary>
         public void ForceClose()
         {
             Closing -= null;

@@ -71,10 +71,13 @@ namespace Argus.Health.Pulse.Services
             this.logger = logger;
         }
 
+        /// <summary>Gets an observable that emits the current list of endpoints on each poll</summary>
         public IObservable<IList<HealthEndPoint>> EndpointsObservable => endpointsSubject.AsObservable();
 
+        /// <summary>Gets an observable that indicates whether the service connection has an error</summary>
         public IObservable<bool> ConnectionErrorObservable => connectionErrorSubject.AsObservable();
 
+        /// <summary>Starts polling</summary>
         public void Start()
         {
             var subscription = Observable.Timer(TimeSpan.Zero, PollInterval)
@@ -99,6 +102,7 @@ namespace Argus.Health.Pulse.Services
             disposables.Add(subscription);
         }
 
+        /// <summary>Disposes managed resources</summary>
         public void Dispose()
         {
             disposables.Dispose();

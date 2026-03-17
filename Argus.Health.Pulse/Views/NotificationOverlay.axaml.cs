@@ -22,8 +22,14 @@ namespace Argus.Health.Pulse.Views
 {
     using Avalonia.Controls;
     
+    /// <summary>
+    /// Overlay control for displaying toast notifications
+    /// </summary>
     public partial class NotificationOverlay : UserControl
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NotificationOverlay"/> class
+        /// </summary>
         public NotificationOverlay()
         {
             InitializeComponent();

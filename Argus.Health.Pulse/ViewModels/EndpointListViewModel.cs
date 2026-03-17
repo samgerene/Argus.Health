@@ -101,20 +101,41 @@ namespace Argus.Health.Pulse.ViewModels
             RefreshCommand.Execute().Subscribe();
         }
 
+        /// <summary>
+        /// Gets the collection of health endpoints
+        /// </summary>
         public ObservableCollection<HealthEndPoint> Endpoints { get; } = new();
 
+        /// <summary>
+        /// Gets or sets the currently selected endpoint
+        /// </summary>
         [Reactive]
         public HealthEndPoint? SelectedEndpoint { get; set; }
 
+        /// <summary>
+        /// Gets or sets the error message from the last failed operation
+        /// </summary>
         [Reactive]
         public string? ErrorMessage { get; set; }
 
+        /// <summary>
+        /// Gets the command to refresh the endpoint list
+        /// </summary>
         public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
 
+        /// <summary>
+        /// Gets the command to add a new endpoint
+        /// </summary>
         public ReactiveCommand<Unit, Unit> AddCommand { get; }
 
+        /// <summary>
+        /// Gets the command to edit the selected endpoint
+        /// </summary>
         public ReactiveCommand<HealthEndPoint, Unit> EditCommand { get; }
 
+        /// <summary>
+        /// Gets the command to delete the selected endpoint
+        /// </summary>
         public ReactiveCommand<HealthEndPoint, Unit> DeleteCommand { get; }
 
         private async Task RefreshAsync()

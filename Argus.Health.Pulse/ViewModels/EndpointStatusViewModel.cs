@@ -31,6 +31,18 @@ namespace Argus.Health.Pulse.ViewModels
     /// </summary>
     public class EndpointStatusViewModel : ViewModelBase
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EndpointStatusViewModel"/> class
+        /// </summary>
+        /// <param name="identifier">
+        /// The unique identifier of the endpoint
+        /// </param>
+        /// <param name="name">
+        /// The human-readable name of the endpoint
+        /// </param>
+        /// <param name="url">
+        /// The URL of the endpoint
+        /// </param>
         public EndpointStatusViewModel(Guid identifier, string name, string url)
         {
             Identifier = identifier;
@@ -54,25 +66,51 @@ namespace Argus.Health.Pulse.ViewModels
                 .ToProperty(this, x => x.StatusDisplay);
         }
 
+        /// <summary>
+        /// Gets the unique identifier of the endpoint
+        /// </summary>
         public Guid Identifier { get; }
 
+        /// <summary>
+        /// Gets the human-readable name of the endpoint
+        /// </summary>
         public string Name { get; }
 
+        /// <summary>
+        /// Gets the URL of the endpoint
+        /// </summary>
         public string Url { get; }
 
+        /// <summary>
+        /// Gets or sets the HTTP status code from the last health check
+        /// </summary>
         [Reactive]
         public int StatusCode { get; set; }
 
+        /// <summary>
+        /// Gets or sets the timestamp of the last health check
+        /// </summary>
         [Reactive]
         public DateTime? LastChecked { get; set; }
 
+        /// <summary>
+        /// Gets or sets the error message from the last health check
+        /// </summary>
         [Reactive]
         public string? ErrorMessage { get; set; }
 
         private readonly ObservableAsPropertyHelper<bool> isHealthyHelper;
+
+        /// <summary>
+        /// Gets a value indicating whether the endpoint is healthy (status code 200–299)
+        /// </summary>
         public bool IsHealthy => isHealthyHelper.Value;
 
         private readonly ObservableAsPropertyHelper<string> statusDisplayHelper;
+
+        /// <summary>
+        /// Gets the display text for the endpoint status
+        /// </summary>
         public string StatusDisplay => statusDisplayHelper.Value;
     }
 }

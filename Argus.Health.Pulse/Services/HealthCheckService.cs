@@ -62,12 +62,14 @@ namespace Argus.Health.Pulse.Services
             this.logger = logger;
         }
 
-        /// <inheritdoc />
+        /// <summary>Gets an observable of all health check results</summary>
         public IObservable<HealthEndPointCheckResult> ResultsObservable => resultsSubject.AsObservable();
 
+        /// <summary>Gets an observable filtered to non-2xx results</summary>
         public IObservable<HealthEndPointCheckResult> FailureObservable =>
             resultsSubject.Where(r => r.StatusCode < 200 || r.StatusCode >= 300);
 
+        /// <summary>Diffs the provided endpoints against currently running monitors and starts/stops as needed</summary>
         public void UpdateEndpoints(IList<HealthEndPoint> endpoints)
         {
             var desiredIds = new HashSet<Guid>(endpoints.Select(e => e.Identifier));
@@ -186,6 +188,7 @@ namespace Argus.Health.Pulse.Services
             }
         }
 
+        /// <summary>Stops all monitors and disposes managed resources</summary>
         public void Dispose()
         {
             foreach (var id in monitors.Keys.ToList())

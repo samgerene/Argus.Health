@@ -110,18 +110,33 @@ namespace Argus.Health.Pulse.ViewModels
                 });
         }
 
+        /// <summary>
+        /// Gets or sets the endpoint name
+        /// </summary>
         [Reactive]
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Gets or sets the endpoint URL
+        /// </summary>
         [Reactive]
         public string Url { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Gets or sets the polling frequency in seconds
+        /// </summary>
         [Reactive]
         public int Frequency { get; set; }
 
+        /// <summary>
+        /// Gets or sets the HTTP timeout in seconds
+        /// </summary>
         [Reactive]
         public int Timeout { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Polly retry count
+        /// </summary>
         [Reactive]
         public int RetryCount { get; set; }
 
@@ -131,15 +146,30 @@ namespace Argus.Health.Pulse.ViewModels
         [Reactive]
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets the validation or save error message
+        /// </summary>
         [Reactive]
         public string? ErrorMessage { get; set; }
 
+        /// <summary>
+        /// Gets a value indicating whether an existing endpoint is being edited
+        /// </summary>
         public bool IsEditing { get; }
 
+        /// <summary>
+        /// Gets the form title based on whether creating or editing
+        /// </summary>
         public string Title => IsEditing ? "Edit Endpoint" : "New Endpoint";
 
+        /// <summary>
+        /// Gets the command to save the endpoint
+        /// </summary>
         public ReactiveCommand<Unit, Unit> SaveCommand { get; }
 
+        /// <summary>
+        /// Gets the command to cancel and navigate back
+        /// </summary>
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
         private async Task SaveAsync()
