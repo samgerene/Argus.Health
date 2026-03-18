@@ -26,6 +26,8 @@ namespace Argus.Health.Pulse
     using Avalonia.Controls.Templates;
 
     using Argus.Health.Pulse.ViewModels;
+
+    using Serilog;
     
     /// <summary>
     /// Resolves views for view models by convention, replacing "ViewModel" with "View" in the type name
@@ -49,11 +51,19 @@ namespace Argus.Health.Pulse
             }
 
             var name = data.GetType().FullName!.Replace("ViewModel", "View");
-            var type = Type.GetType(name);
+            var type = data.GetType().Assembly.GetType(name);
 
             if (type != null)
             {
-                return (Control)Activator.CreateInstance(type)!;
+                try
+                {
+                    return (Control)Activator.CreateInstance(type)!;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to create view {ViewName}", name);
+                    return new TextBlock { Text = $"Error creating {name}: {ex.Message}" };
+                }
             }
 
             return new TextBlock { Text = "Not Found: " + name };

@@ -107,7 +107,10 @@ namespace Argus.Health.Pulse.ViewModels
                 });
 
             // auto-refresh on construction
-            RefreshCommand.Execute().Subscribe();
+            RefreshCommand.Execute()
+                .Subscribe(
+                    _ => { },
+                    ex => this.logger.LogError(ex, "Initial refresh failed"));
         }
 
         /// <summary>

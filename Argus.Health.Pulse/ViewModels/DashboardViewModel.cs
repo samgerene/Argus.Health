@@ -67,46 +67,52 @@ namespace Argus.Health.Pulse.ViewModels
 
             var endpointSubscription = syncService.EndpointsObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(endpoints =>
-                {
-                    var existingIds = Endpoints.Select(e => e.Identifier).ToHashSet();
-                    var incomingIds = endpoints.Select(e => e.Identifier).ToHashSet();
-
-                    // remove endpoints that no longer exist
-                    var toRemove = Endpoints.Where(e => !incomingIds.Contains(e.Identifier)).ToList();
-                    foreach (var item in toRemove)
+                .Subscribe(
+                    endpoints =>
                     {
-                        Endpoints.Remove(item);
-                    }
+                        this.logger.LogDebug("EndpointsObservable received {Count} endpoint(s)", endpoints.Count);
 
-                    // add new endpoints
-                    var added = 0;
-                    foreach (var ep in endpoints)
-                    {
-                        if (!existingIds.Contains(ep.Identifier))
+                        var existingIds = Endpoints.Select(e => e.Identifier).ToHashSet();
+                        var incomingIds = endpoints.Select(e => e.Identifier).ToHashSet();
+
+                        // remove endpoints that no longer exist
+                        var toRemove = Endpoints.Where(e => !incomingIds.Contains(e.Identifier)).ToList();
+                        foreach (var item in toRemove)
                         {
-                            Endpoints.Add(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
-                            added++;
+                            Endpoints.Remove(item);
                         }
-                    }
 
-                    this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, toRemove.Count, Endpoints.Count);
-                });
+                        // add new endpoints
+                        var added = 0;
+                        foreach (var ep in endpoints)
+                        {
+                            if (!existingIds.Contains(ep.Identifier))
+                            {
+                                Endpoints.Add(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
+                                added++;
+                            }
+                        }
+
+                        this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, toRemove.Count, Endpoints.Count);
+                    },
+                    ex => this.logger.LogError(ex, "EndpointsObservable subscription error"));
 
             var resultsSubscription = healthCheckService.ResultsObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Subscribe(result =>
-                {
-                    var row = Endpoints.FirstOrDefault(e => e.Identifier == result.HealthEndPoint);
-
-                    if (row != null)
+                .Subscribe(
+                    result =>
                     {
-                        row.StatusCode = result.StatusCode;
-                        row.LastChecked = result.Timestamp;
-                        row.ErrorMessage = result.ErrorMessage;
-                        this.logger.LogDebug("Health check result for {EndpointName}: HTTP {StatusCode}", row.Name, result.StatusCode);
-                    }
-                });
+                        var row = Endpoints.FirstOrDefault(e => e.Identifier == result.HealthEndPoint);
+
+                        if (row != null)
+                        {
+                            row.StatusCode = result.StatusCode;
+                            row.LastChecked = result.Timestamp;
+                            row.ErrorMessage = result.ErrorMessage;
+                            this.logger.LogDebug("Health check result for {EndpointName}: HTTP {StatusCode}", row.Name, result.StatusCode);
+                        }
+                    },
+                    ex => this.logger.LogError(ex, "ResultsObservable subscription error"));
 
             disposables.Add(endpointSubscription);
             disposables.Add(resultsSubscription);
