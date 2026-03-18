@@ -20,12 +20,14 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using Avalonia.Controls;
-    
+    using Argus.Health.Pulse.ViewModels;
+
+    using ReactiveUI.Avalonia;
+
     /// <summary>
     /// View for the endpoint CRUD list
     /// </summary>
-    public partial class EndpointListView : UserControl
+    public partial class EndpointListView : ReactiveUserControl<EndpointListViewModel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointListView"/> class

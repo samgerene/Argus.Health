@@ -105,7 +105,8 @@ namespace Argus.Health.Pulse
             return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .LogToTrace()
-                .UseReactiveUI(_ => { });
+                .UseReactiveUI(_ => { })
+                .RegisterReactiveUIViewsFromAssemblyOf<App>();
         }
     }
 }

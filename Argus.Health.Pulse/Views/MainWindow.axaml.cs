@@ -20,12 +20,14 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using Avalonia.Controls;
+    using Argus.Health.Pulse.ViewModels;
+
+    using ReactiveUI.Avalonia;
 
     /// <summary>
     /// Main application window
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="MainWindow"/> class

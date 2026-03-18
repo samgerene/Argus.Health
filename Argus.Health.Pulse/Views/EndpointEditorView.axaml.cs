@@ -20,12 +20,14 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using Avalonia.Controls;
-    
+    using Argus.Health.Pulse.ViewModels;
+
+    using ReactiveUI.Avalonia;
+
     /// <summary>
     /// View for the endpoint create/edit form
     /// </summary>
-    public partial class EndpointEditorView : UserControl
+    public partial class EndpointEditorView : ReactiveUserControl<EndpointEditorViewModel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointEditorView"/> class

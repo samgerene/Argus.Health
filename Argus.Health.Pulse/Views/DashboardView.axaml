@@ -1,6 +1,8 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+<reactiveui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Argus.Health.Pulse.ViewModels"
+             xmlns:reactiveui="using:ReactiveUI.Avalonia"
+             x:TypeArguments="vm:DashboardViewModel"
              x:Class="Argus.Health.Pulse.Views.DashboardView"
              x:DataType="vm:DashboardViewModel">
 
@@ -23,4 +25,4 @@
         </DataGrid>
     </DockPanel>
 
-</UserControl>
+</reactiveui:ReactiveUserControl>

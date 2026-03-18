@@ -1,6 +1,8 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+<reactiveui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Argus.Health.Pulse.ViewModels"
+             xmlns:reactiveui="using:ReactiveUI.Avalonia"
+             x:TypeArguments="vm:EndpointEditorViewModel"
              x:Class="Argus.Health.Pulse.Views.EndpointEditorView"
              x:DataType="vm:EndpointEditorViewModel">
 
@@ -44,4 +46,4 @@
         </StackPanel>
     </StackPanel>
 
-</UserControl>
+</reactiveui:ReactiveUserControl>

@@ -1,8 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
+<reactiveui:ReactiveWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Argus.Health.Pulse.ViewModels"
         xmlns:views="using:Argus.Health.Pulse.Views"
         xmlns:converters="using:Argus.Health.Pulse.Converters"
+        xmlns:reactiveui="using:ReactiveUI.Avalonia"
+        x:TypeArguments="vm:MainWindowViewModel"
         x:Class="Argus.Health.Pulse.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Argus Health Pulse"
@@ -68,7 +70,7 @@
                         </Style>
                     </ProgressBar.Styles>
                 </ProgressBar>
-                <ContentControl Content="{Binding CurrentView}" Margin="16" />
+                <reactiveui:ViewModelViewHost ViewModel="{Binding CurrentView}" Margin="16" />
             </DockPanel>
         </DockPanel>
 
@@ -79,4 +81,4 @@
                                    Margin="0,0,16,16" />
     </Panel>
 
-</Window>
+</reactiveui:ReactiveWindow>

@@ -20,12 +20,14 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using Avalonia.Controls;
-    
+    using Argus.Health.Pulse.ViewModels;
+
+    using ReactiveUI.Avalonia;
+
     /// <summary>
     /// Dashboard view displaying real-time endpoint health status
     /// </summary>
-    public partial class DashboardView : UserControl
+    public partial class DashboardView : ReactiveUserControl<DashboardViewModel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DashboardView"/> class
