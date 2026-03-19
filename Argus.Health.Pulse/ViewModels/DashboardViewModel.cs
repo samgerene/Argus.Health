@@ -129,8 +129,8 @@ namespace Argus.Health.Pulse.ViewModels
                     },
                     ex => this.logger.LogError(ex, "ResultsObservable subscription error"));
 
-            disposables.Add(endpointSubscription);
-            disposables.Add(resultsSubscription);
+            this.disposables.Add(endpointSubscription);
+            this.disposables.Add(resultsSubscription);
         }
 
         /// <summary>

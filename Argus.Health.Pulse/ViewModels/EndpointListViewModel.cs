@@ -119,19 +119,19 @@ namespace Argus.Health.Pulse.ViewModels
 
             this.disposables.Add(this.hasEndpointsHelper);
 
-            this.RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
-            this.AddCommand = ReactiveCommand.Create(OnAdd);
-            this.EditCommand = ReactiveCommand.Create<HealthEndPoint>(OnEdit);
-            this.DeleteCommand = ReactiveCommand.Create<HealthEndPoint>(OnRequestDelete);
-            this.ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(OnConfirmDeleteAsync);
-            this.CancelDeleteCommand = ReactiveCommand.Create(OnCancelDelete);
+            this.RefreshCommand = ReactiveCommand.CreateFromTask(this.RefreshAsync);
+            this.AddCommand = ReactiveCommand.Create(this.OnAdd);
+            this.EditCommand = ReactiveCommand.Create<HealthEndPoint>(this.OnEdit);
+            this.DeleteCommand = ReactiveCommand.Create<HealthEndPoint>(this.OnRequestDelete);
+            this.ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(this.OnConfirmDeleteAsync);
+            this.CancelDeleteCommand = ReactiveCommand.Create(this.OnCancelDelete);
 
             this.RefreshCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex =>
                 {
                     this.logger.LogError(ex, "RefreshCommand failed");
-                    ErrorMessage = ex.Message;
+                    this.ErrorMessage = ex.Message;
                 });
 
             this.ConfirmDeleteCommand.ThrownExceptions
@@ -139,7 +139,7 @@ namespace Argus.Health.Pulse.ViewModels
                 .Subscribe(ex =>
                 {
                     this.logger.LogError(ex, "ConfirmDeleteCommand failed");
-                    ErrorMessage = ex.Message;
+                    this.ErrorMessage = ex.Message;
                 });
 
             // auto-refresh on construction
@@ -236,8 +236,8 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         private void OnAdd()
         {
-            var editor = new EndpointEditorViewModel(client, navigate, null, loggerFactory.CreateLogger<EndpointEditorViewModel>());
-            navigate(editor);
+            var editor = new EndpointEditorViewModel(this.client, this.navigate, null, this.loggerFactory.CreateLogger<EndpointEditorViewModel>());
+            this.navigate(editor);
         }
 
         /// <summary>
@@ -248,8 +248,8 @@ namespace Argus.Health.Pulse.ViewModels
         /// </param>
         private void OnEdit(HealthEndPoint endpoint)
         {
-            var editor = new EndpointEditorViewModel(client, navigate, endpoint, loggerFactory.CreateLogger<EndpointEditorViewModel>());
-            navigate(editor);
+            var editor = new EndpointEditorViewModel(this.client, this.navigate, endpoint, this.loggerFactory.CreateLogger<EndpointEditorViewModel>());
+            this.navigate(editor);
         }
 
         /// <summary>

@@ -155,12 +155,12 @@ namespace Argus.Health.Pulse.ViewModels
             });
 
             // subscribe to sync service to feed health check service
-            var syncSubscription = syncService.EndpointsObservable
-                .Subscribe(endpoints => healthCheckService.UpdateEndpoints(endpoints));
-            disposables.Add(syncSubscription);
+            var syncSubscription = this.syncService.EndpointsObservable
+                .Subscribe(endpoints => this.healthCheckService.UpdateEndpoints(endpoints));
+            this.disposables.Add(syncSubscription);
 
             // subscribe to failures for toast notifications
-            var failureSubscription = healthCheckService.FailureObservable
+            var failureSubscription = this.healthCheckService.FailureObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(result =>
                 {
@@ -173,9 +173,9 @@ namespace Argus.Health.Pulse.ViewModels
                     };
 
                     // try to find endpoint name from dashboard
-                    if (dashboardViewModel != null)
+                    if (this.dashboardViewModel != null)
                     {
-                        var row = dashboardViewModel.Endpoints.FirstOrDefault(e => e.Identifier == result.HealthEndPoint);
+                        var row = this.dashboardViewModel.Endpoints.FirstOrDefault(e => e.Identifier == result.HealthEndPoint);
 
                         if (row != null)
                         {
@@ -191,7 +191,7 @@ namespace Argus.Health.Pulse.ViewModels
                         .Subscribe(_ => this.notificationSource.Remove(notification));
                 });
 
-            disposables.Add(failureSubscription);
+            this.disposables.Add(failureSubscription);
 
             // subscribe to connection errors for status indicator
             var connectionSubscription = this.syncService.ConnectionErrorObservable
@@ -249,15 +249,15 @@ namespace Argus.Health.Pulse.ViewModels
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(_ =>
                 {
-                    if (SyncProgress > 0)
+                    if (this.SyncProgress > 0)
                     {
-                        SyncProgress -= 1;
+                        this.SyncProgress -= 1;
                     }
                 });
-            disposables.Add(countdownSubscription);
+            this.disposables.Add(countdownSubscription);
 
             // reset progress bar on every poll result
-            var resetSubscription = syncService.EndpointsObservable
+            var resetSubscription = this.syncService.EndpointsObservable
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(_ =>
                 {
@@ -266,12 +266,12 @@ namespace Argus.Health.Pulse.ViewModels
                         this.SyncProgress = 100;
                     }
                 });
-            disposables.Add(resetSubscription);
+            this.disposables.Add(resetSubscription);
 
             // start with dashboard
-            NavigateToDashboard();
+            this.NavigateToDashboard();
             this.IsConnecting = true;
-            syncService.Start();
+            this.syncService.Start();
         }
 
         /// <summary>
@@ -376,9 +376,9 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         private void NavigateToDashboard()
         {
-            logger.LogDebug("Navigating to dashboard");
-            dashboardViewModel ??= new DashboardViewModel(syncService, healthCheckService, loggerFactory.CreateLogger<DashboardViewModel>());
-            CurrentView = dashboardViewModel;
+            this.logger.LogDebug("Navigating to dashboard");
+            this.dashboardViewModel ??= new DashboardViewModel(this.syncService, this.healthCheckService, this.loggerFactory.CreateLogger<DashboardViewModel>());
+            this.CurrentView = this.dashboardViewModel;
         }
 
         /// <summary>
@@ -402,14 +402,14 @@ namespace Argus.Health.Pulse.ViewModels
         {
             if (viewModel is EndpointEditorViewModel)
             {
-                logger.LogDebug("Navigating to endpoint editor");
-                CurrentView = viewModel;
+                this.logger.LogDebug("Navigating to endpoint editor");
+                this.CurrentView = viewModel;
             }
             else
             {
-                logger.LogDebug("Navigating back to endpoint list");
+                this.logger.LogDebug("Navigating back to endpoint list");
                 // navigate back to endpoint list (refresh it)
-                NavigateToEndpoints();
+                this.NavigateToEndpoints();
             }
         }
 
