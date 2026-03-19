@@ -109,10 +109,10 @@ namespace Argus.Health.Pulse.ViewModels
                     Uri.TryCreate(url, UriKind.Absolute, out _) &&
                     freq > 0 && timeout > 0 && retry > 0);
 
-            SaveCommand = ReactiveCommand.CreateFromTask(SaveAsync, canSave);
-            CancelCommand = ReactiveCommand.Create(OnCancel);
+            this.SaveCommand = ReactiveCommand.CreateFromTask(SaveAsync, canSave);
+            this.CancelCommand = ReactiveCommand.Create(OnCancel);
 
-            SaveCommand.ThrownExceptions
+            this.SaveCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex =>
                 {
@@ -201,7 +201,7 @@ namespace Argus.Health.Pulse.ViewModels
                 IsActive = IsActive
             };
 
-            if (IsEditing)
+            if (this.IsEditing)
             {
                 await client.UpdateAsync(endpoint);
             }
@@ -210,7 +210,7 @@ namespace Argus.Health.Pulse.ViewModels
                 await client.CreateAsync(endpoint);
             }
 
-            OnCancel(); // navigate back
+            this.OnCancel(); // navigate back
         }
 
         /// <summary>
@@ -218,7 +218,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         private void OnCancel()
         {
-            navigate(null!); // signal to go back to endpoint list
+            this.navigate(null!); // signal to go back to endpoint list
         }
     }
 }

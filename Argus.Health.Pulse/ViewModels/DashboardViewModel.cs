@@ -28,6 +28,8 @@ namespace Argus.Health.Pulse.ViewModels
 
     using Argus.Health.Pulse.Services;
 
+    using DynamicData;
+
     using Microsoft.Extensions.Logging;
 
     using ReactiveUI.Avalonia;
@@ -43,6 +45,11 @@ namespace Argus.Health.Pulse.ViewModels
         /// The <see cref="ILogger{DashboardViewModel}"/> used for logging
         /// </summary>
         private readonly ILogger<DashboardViewModel> logger;
+
+        /// <summary>
+        /// The <see cref="SourceCache{TObject,TKey}"/> backing the endpoint status collection
+        /// </summary>
+        private readonly SourceCache<EndpointStatusViewModel, Guid> endpointCache = new(e => e.Identifier);
 
         /// <summary>
         /// Disposable container for Rx subscriptions
@@ -65,35 +72,42 @@ namespace Argus.Health.Pulse.ViewModels
         {
             this.logger = logger;
 
-            var endpointSubscription = syncService.EndpointsObservable
+            var bindSubscription = this.endpointCache
+                .Connect()
                 .ObserveOn(AvaloniaScheduler.Instance)
+                .Bind(out var endpoints)
+                .Subscribe();
+
+            this.disposables.Add(bindSubscription);
+
+            this.Endpoints = endpoints;
+
+            var endpointSubscription = syncService.EndpointsObservable
                 .Subscribe(
-                    endpoints =>
+                    incomingEndpoints =>
                     {
-                        this.logger.LogDebug("EndpointsObservable received {Count} endpoint(s)", endpoints.Count);
+                        this.logger.LogDebug("EndpointsObservable received {Count} endpoint(s)", incomingEndpoints.Count);
 
-                        var existingIds = Endpoints.Select(e => e.Identifier).ToHashSet();
-                        var incomingIds = endpoints.Select(e => e.Identifier).ToHashSet();
-
-                        // remove endpoints that no longer exist
-                        var toRemove = Endpoints.Where(e => !incomingIds.Contains(e.Identifier)).ToList();
-                        foreach (var item in toRemove)
+                        this.endpointCache.Edit(updater =>
                         {
-                            Endpoints.Remove(item);
-                        }
+                            var incomingIds = incomingEndpoints.Select(e => e.Identifier).ToHashSet();
+                            var staleKeys = updater.Keys.Where(k => !incomingIds.Contains(k)).ToList();
 
-                        // add new endpoints
-                        var added = 0;
-                        foreach (var ep in endpoints)
-                        {
-                            if (!existingIds.Contains(ep.Identifier))
+                            updater.RemoveKeys(staleKeys);
+
+                            var added = 0;
+
+                            foreach (var ep in incomingEndpoints)
                             {
-                                Endpoints.Add(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
-                                added++;
+                                if (!updater.Lookup(ep.Identifier).HasValue)
+                                {
+                                    updater.AddOrUpdate(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
+                                    added++;
+                                }
                             }
-                        }
 
-                        this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, toRemove.Count, Endpoints.Count);
+                            this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, staleKeys.Count, updater.Count);
+                        });
                     },
                     ex => this.logger.LogError(ex, "EndpointsObservable subscription error"));
 
@@ -102,10 +116,11 @@ namespace Argus.Health.Pulse.ViewModels
                 .Subscribe(
                     result =>
                     {
-                        var row = Endpoints.FirstOrDefault(e => e.Identifier == result.HealthEndPoint);
+                        var lookup = this.endpointCache.Lookup(result.HealthEndPoint);
 
-                        if (row != null)
+                        if (lookup.HasValue)
                         {
+                            var row = lookup.Value;
                             row.StatusCode = result.StatusCode;
                             row.LastChecked = result.Timestamp;
                             row.ErrorMessage = result.ErrorMessage;
@@ -121,14 +136,15 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the collection of endpoint status rows displayed on the dashboard
         /// </summary>
-        public ObservableCollection<EndpointStatusViewModel> Endpoints { get; } = new();
+        public ReadOnlyObservableCollection<EndpointStatusViewModel> Endpoints { get; }
 
         /// <summary>
         /// Disposes managed resources
         /// </summary>
         public void Dispose()
         {
-            disposables.Dispose();
+            this.disposables.Dispose();
+            this.endpointCache.Dispose();
         }
     }
 }

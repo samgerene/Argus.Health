@@ -32,6 +32,8 @@ namespace Argus.Health.Pulse.ViewModels
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
+    using DynamicData;
+
     using Microsoft.Extensions.Logging;
 
     using ReactiveUI.Avalonia;
@@ -68,6 +70,11 @@ namespace Argus.Health.Pulse.ViewModels
         /// The <see cref="ILogger{MainWindowViewModel}"/> used for logging
         /// </summary>
         private readonly ILogger<MainWindowViewModel> logger;
+
+        /// <summary>
+        /// The <see cref="SourceList{T}"/> backing the notification collection
+        /// </summary>
+        private readonly SourceList<NotificationItem> notificationSource = new();
 
         /// <summary>
         /// Disposable container for Rx subscriptions
@@ -123,6 +130,16 @@ namespace Argus.Health.Pulse.ViewModels
             this.ToggleWindowCommand = ReactiveCommand.Create(() => { this.ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
             this.ShowWindowCommand = ReactiveCommand.Create(() => { this.ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
 
+            var notificationBindSubscription = this.notificationSource
+                .Connect()
+                .ObserveOn(AvaloniaScheduler.Instance)
+                .Bind(out var notifications)
+                .Subscribe();
+
+            this.disposables.Add(notificationBindSubscription);
+
+            this.Notifications = notifications;
+
             this.ToggleSyncCommand = ReactiveCommand.Create(() =>
             {
                 if (this.IsSyncRunning)
@@ -166,12 +183,12 @@ namespace Argus.Health.Pulse.ViewModels
                         }
                     }
 
-                    Notifications.Add(notification);
+                    this.notificationSource.Add(notification);
 
                     // auto-remove after 5 seconds
                     Observable.Timer(TimeSpan.FromSeconds(5))
                         .ObserveOn(AvaloniaScheduler.Instance)
-                        .Subscribe(_ => Notifications.Remove(notification));
+                        .Subscribe(_ => this.notificationSource.Remove(notification));
                 });
 
             disposables.Add(failureSubscription);
@@ -302,7 +319,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the collection of active toast notifications
         /// </summary>
-        public ObservableCollection<NotificationItem> Notifications { get; } = new();
+        public ReadOnlyObservableCollection<NotificationItem> Notifications { get; }
 
         /// <summary>
         /// Gets the command to navigate to the dashboard view
@@ -369,9 +386,10 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         private void NavigateToEndpoints()
         {
-            logger.LogDebug("Navigating to endpoints list");
-            endpointListViewModel = new EndpointListViewModel(client, NavigateFromEditor, loggerFactory.CreateLogger<EndpointListViewModel>(), loggerFactory);
-            CurrentView = endpointListViewModel;
+            this.logger.LogDebug("Navigating to endpoints list");
+            this.endpointListViewModel?.Dispose();
+            this.endpointListViewModel = new EndpointListViewModel(this.client, this.NavigateFromEditor, this.loggerFactory.CreateLogger<EndpointListViewModel>(), this.loggerFactory);
+            this.CurrentView = this.endpointListViewModel;
         }
 
         /// <summary>
@@ -403,8 +421,8 @@ namespace Argus.Health.Pulse.ViewModels
         /// </param>
         private void DismissNotification(NotificationItem item)
         {
-            logger.LogDebug("Dismissing notification {NotificationId}", item.Id);
-            Notifications.Remove(item);
+            this.logger.LogDebug("Dismissing notification {NotificationId}", item.Id);
+            this.notificationSource.Remove(item);
         }
 
         /// <summary>
@@ -412,8 +430,10 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         public void Dispose()
         {
-            disposables.Dispose();
-            dashboardViewModel?.Dispose();
+            this.disposables.Dispose();
+            this.notificationSource.Dispose();
+            this.dashboardViewModel?.Dispose();
+            this.endpointListViewModel?.Dispose();
         }
     }
 }

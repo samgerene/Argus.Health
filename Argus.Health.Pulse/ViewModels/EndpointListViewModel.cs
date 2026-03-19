@@ -22,12 +22,16 @@ namespace Argus.Health.Pulse.ViewModels
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.Linq;
     using System.Reactive;
+    using System.Reactive.Disposables;
     using System.Reactive.Linq;
     using System.Threading.Tasks;
 
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
+
+    using DynamicData;
 
     using Microsoft.Extensions.Logging;
 
@@ -39,7 +43,7 @@ namespace Argus.Health.Pulse.ViewModels
     /// <summary>
     /// Endpoint CRUD list view model
     /// </summary>
-    public class EndpointListViewModel : ViewModelBase
+    public class EndpointListViewModel : ViewModelBase, IDisposable
     {
         /// <summary>
         /// The <see cref="ILogger{EndpointListViewModel}"/> used for logging
@@ -60,6 +64,21 @@ namespace Argus.Health.Pulse.ViewModels
         /// Navigation callback to switch views
         /// </summary>
         private readonly Action<ViewModelBase> navigate;
+
+        /// <summary>
+        /// The <see cref="SourceCache{TObject,TKey}"/> backing the endpoint collection
+        /// </summary>
+        private readonly SourceCache<HealthEndPoint, Guid> endpointCache = new(e => e.Identifier);
+
+        /// <summary>
+        /// Disposable container for Rx subscriptions
+        /// </summary>
+        private readonly CompositeDisposable disposables = new();
+
+        /// <summary>
+        /// The <see cref="ObservableAsPropertyHelper{T}"/> backing <see cref="HasEndpoints"/>
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<bool> hasEndpointsHelper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointListViewModel"/> class
@@ -83,14 +102,31 @@ namespace Argus.Health.Pulse.ViewModels
             this.logger = logger;
             this.loggerFactory = loggerFactory;
 
-            RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
-            AddCommand = ReactiveCommand.Create(OnAdd);
-            EditCommand = ReactiveCommand.Create<HealthEndPoint>(OnEdit);
-            DeleteCommand = ReactiveCommand.Create<HealthEndPoint>(OnRequestDelete);
-            ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(OnConfirmDeleteAsync);
-            CancelDeleteCommand = ReactiveCommand.Create(OnCancelDelete);
+            var bindSubscription = this.endpointCache
+                .Connect()
+                .ObserveOn(AvaloniaScheduler.Instance)
+                .Bind(out var endpoints)
+                .Subscribe();
 
-            RefreshCommand.ThrownExceptions
+            this.disposables.Add(bindSubscription);
+            this.Endpoints = endpoints;
+
+            this.hasEndpointsHelper = this.endpointCache
+                .CountChanged
+                .Select(c => c > 0)
+                .ObserveOn(AvaloniaScheduler.Instance)
+                .ToProperty(this, x => x.HasEndpoints);
+
+            this.disposables.Add(this.hasEndpointsHelper);
+
+            this.RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
+            this.AddCommand = ReactiveCommand.Create(OnAdd);
+            this.EditCommand = ReactiveCommand.Create<HealthEndPoint>(OnEdit);
+            this.DeleteCommand = ReactiveCommand.Create<HealthEndPoint>(OnRequestDelete);
+            this.ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(OnConfirmDeleteAsync);
+            this.CancelDeleteCommand = ReactiveCommand.Create(OnCancelDelete);
+
+            this.RefreshCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex =>
                 {
@@ -98,7 +134,7 @@ namespace Argus.Health.Pulse.ViewModels
                     ErrorMessage = ex.Message;
                 });
 
-            ConfirmDeleteCommand.ThrownExceptions
+            this.ConfirmDeleteCommand.ThrownExceptions
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(ex =>
                 {
@@ -107,7 +143,7 @@ namespace Argus.Health.Pulse.ViewModels
                 });
 
             // auto-refresh on construction
-            RefreshCommand.Execute()
+            this.RefreshCommand.Execute()
                 .Subscribe(
                     _ => { },
                     ex => this.logger.LogError(ex, "Initial refresh failed"));
@@ -116,7 +152,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the collection of health endpoints
         /// </summary>
-        public ObservableCollection<HealthEndPoint> Endpoints { get; } = new();
+        public ReadOnlyObservableCollection<HealthEndPoint> Endpoints { get; }
 
         /// <summary>
         /// Gets or sets the currently selected endpoint
@@ -125,10 +161,9 @@ namespace Argus.Health.Pulse.ViewModels
         public HealthEndPoint? SelectedEndpoint { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the endpoint collection contains any items
+        /// Gets a value indicating whether the endpoint collection contains any items
         /// </summary>
-        [Reactive]
-        public bool HasEndpoints { get; set; }
+        public bool HasEndpoints => this.hasEndpointsHelper.Value;
 
         /// <summary>
         /// Gets or sets a value indicating whether the delete confirmation overlay is visible
@@ -184,16 +219,14 @@ namespace Argus.Health.Pulse.ViewModels
         private async Task RefreshAsync()
         {
             this.logger.LogDebug("RefreshAsync starting");
-            ErrorMessage = null;
-            var endpoints = await client.GetAllAsync();
-            Endpoints.Clear();
+            this.ErrorMessage = null;
+            var endpoints = await this.client.GetAllAsync();
 
-            foreach (var ep in endpoints)
+            this.endpointCache.Edit(updater =>
             {
-                Endpoints.Add(ep);
-            }
-
-            this.HasEndpoints = this.Endpoints.Count > 0;
+                updater.Clear();
+                updater.AddOrUpdate(endpoints);
+            });
 
             this.logger.LogDebug("RefreshAsync completed with {EndpointCount} endpoint(s)", endpoints.Count);
         }
@@ -244,8 +277,7 @@ namespace Argus.Health.Pulse.ViewModels
             var endpoint = this.PendingDeleteEndpoint;
 
             await this.client.DeleteAsync(endpoint.Identifier);
-            this.Endpoints.Remove(endpoint);
-            this.HasEndpoints = this.Endpoints.Count > 0;
+            this.endpointCache.RemoveKey(endpoint.Identifier);
 
             this.PendingDeleteEndpoint = null;
             this.IsDeleteConfirmationVisible = false;
@@ -258,6 +290,15 @@ namespace Argus.Health.Pulse.ViewModels
         {
             this.PendingDeleteEndpoint = null;
             this.IsDeleteConfirmationVisible = false;
+        }
+
+        /// <summary>
+        /// Disposes managed resources
+        /// </summary>
+        public void Dispose()
+        {
+            this.disposables.Dispose();
+            this.endpointCache.Dispose();
         }
     }
 }
