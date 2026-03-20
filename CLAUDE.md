@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Argus Health is a .NET 10 Worker Service that monitors HTTP health endpoints by executing GET requests on configurable intervals and reporting their status. It runs as a Windows Service or systemd daemon on Linux.
+Argus health combines a worker service and a desktop app as end-user fronted.
+
+  - Argus.Health.Service is a .NET 10 Worker Service that monitors HTTP health endpoints by executing GET requests on configurable intervals and reporting their status. It runs as a Windows Service or systemd daemon on Linux.
+  - Argus.Health.Pulse is an Avalonia based GUI using ReactiveUI.
 
 ## Commands
 
@@ -23,6 +26,9 @@ dotnet test Argus.Health.Service.Tests --filter "FullyQualifiedName~Verify_that_
 
 # Run the service locally
 dotnet run --project Argus.Health.Service
+
+# Run the Pulse desktop app
+dotnet run --project Argus.Health.Pulse
 ```
 
 ## Solution Structure
@@ -37,6 +43,7 @@ dotnet run --project Argus.Health.Service
 | `Argus.Health.Service` | net10.0 | Worker Service — main executable |
 | `Argus.Health.Service.Tests` | net10.0 | Tests for domain service |
 | `Argus.Health.Pulse` | net10.0 | Avalonia desktop dashboard for monitoring Argus Health endpoints |
+| `Argus.Health.Pulse.Tests` | net10.0 | Tests for Argus.Health.Pulse |
 
 ## Architecture
 
@@ -58,6 +65,22 @@ Each monitor loop wraps HTTP calls with three stacked Polly policies (innermost 
 
 The database column for URLs is named `Urls` and stores semicolon-separated values in the raw SQL, but the model property is currently `Url` (singular `string`).
 
+### Pulse Desktop Dashboard
+
+**App bootstrap**: `Program.cs` configures Serilog, registers DI services (`ArgusClient`, `HealthEndPointClient`, `IEndpointSyncService`, `IHealthCheckService`), sets `App.Services` static property. `App.axaml.cs` creates `MainWindowViewModel` and wires tray icon events.
+
+**UI framework**: Avalonia 11.3 with FluentTheme (dark), ReactiveUI 23.1 for MVVM, DynamicData for reactive collections.
+
+**ViewModels**: `MainWindowViewModel` (shell/navigation/notifications/sync state), `DashboardViewModel` (real-time endpoint status grid via `SourceCache`), `EndpointListViewModel` (CRUD list via `SourceCache`), `EndpointEditorViewModel` (create/edit form with validation), `EndpointStatusViewModel` (single dashboard row with computed `IsHealthy`/`StatusDisplay`).
+
+**Services**: `EndpointSyncService` polls every 10s, publishes `EndpointsObservable`/`ConnectionErrorObservable`/`IsRunningObservable`. `HealthCheckService` runs per-endpoint monitor loops with Polly policies, publishes `ResultsObservable`/`FailureObservable`.
+
+**Client**: `HealthEndPointClient` — typed CRUD client over ArgusTransfer named-pipe IPC with Polly retry + timeout.
+
+**Notifications**: `NotificationItem` model, fed from `FailureObservable`, backed by `SourceList`, auto-expires after 5s.
+
+**Connection resilience**: Three-state tracking (connecting → connected/degraded → error). After 2 consecutive failures, sync stops automatically.
+
 ## Key Model
 
 `HealthEndPoint` (in `Argus.Health.Common.Model`):
@@ -77,7 +100,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 - **language**: C#, no using python or other
 - **Explicit usings**: `ImplicitUsings` is disabled — all `using` directives must be written explicitly.
 - **usings location**: using statements go inside namespace.
-- **Nullable**: enabled in `Argus.Health.Service` and `Argus.Health.Common`; disabled in the test project.
+- **Nullable**: enabled in `Argus.Health.Service`, `Argus.Health.Common`, and `Argus.Health.Pulse`; disabled in the test project.
 - **XML doc comments**: required on all types and members: public, private, protetected and internal . do not use inheritdoc
 - **License header**: every `.cs` file starts with the Apache-2.0 copyright block.
 - **FluentResults**: CRUD methods return `Task<Result>` (not exceptions) for expected failures; repository read methods throw `DataException` on failure.
@@ -90,3 +113,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 - Test convention: use Nunit with `Assert.That` syntax
 - Each test copies `TestData/ArgusHealth.sqlite` → `TestDataCopy/ArgusHealth.sqlite` in `[SetUp]` to ensure test isolation. The seeded database contains exactly 2 endpoints (GUIDs `cfb2e590-...` and `fe08550c-...`).
 - The `internal` constructor of `HealthEndPointRepository` is used in tests to inject a custom database folder path.
+
+## Reference Sources
+
+When working on `Argus.Health.Pulse` and doing work related to Avalonia and/or ReactiveUI, consult the ReactiveUI source code located at `C:\Users\sgerene\Documents\15-Source-Code\ReactiveUI` and the Avalonia source code located at `C:\Users\sgerene\Documents\15-Source-Code\AvaloniaUI\Avalonia`. You are always allowed to read the contents of this folder and its subfolders to understand API usage, patterns, and idiomatic conventions.
