@@ -198,7 +198,7 @@ namespace Argus.Health.Service.BackgroundServices
         private async Task MonitorEndpointAsync(HealthEndPoint healthEndPoint, CancellationToken ct)
         {
             this.logger.LogDebug("Starting to check {Name}:{Url}", healthEndPoint.Name, healthEndPoint.Url);
-            
+
             var client = httpClientFactory.CreateClient("ArgusHealth");
 
             var retryPolicy = Policy<HttpResponseMessage>
@@ -224,12 +224,12 @@ namespace Argus.Health.Service.BackgroundServices
                     onBreak: (outcome, breakDelay, context) =>
                                 {
                                     this.logger.LogWarning("[{Name}:{ExceptionMessage}] Circuit breaker OPEN for {Delay}s", outcome.Exception.Message, healthEndPoint.Name, breakDelay.TotalSeconds);
-                               },
+                                },
                                onReset: (context) =>
                                {
                                    this.logger.LogInformation("[{Name}] Circuit breaker CLOSED", healthEndPoint.Name);
                                });
-            
+
             var wrappedPolicies = Policy.WrapAsync(retryPolicy, timeoutPolicy, breakerPolicy);
 
             while (!ct.IsCancellationRequested)

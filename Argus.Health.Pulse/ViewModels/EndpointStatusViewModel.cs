@@ -25,7 +25,7 @@ namespace Argus.Health.Pulse.ViewModels
 
     using ReactiveUI;
     using ReactiveUI.SourceGenerators;
-    
+
     /// <summary>
     /// Represents a single endpoint row on the dashboard
     /// </summary>

@@ -28,13 +28,13 @@ namespace Argus.Health.Service.Tests.BackgroundServices
     using Argus.Health.Common.Serialization;
     using Argus.Health.Service.Modules;
     using Argus.Health.Service.Repository;
-    
+
     using ArgusTransfer.Extensions;
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Routing;
     using ArgusTransfer.Serialization;
     using ArgusTransfer.Server;
-    
+
     using FluentResults;
 
     using Microsoft.Extensions.Logging;
@@ -74,7 +74,7 @@ namespace Argus.Health.Service.Tests.BackgroundServices
                 this.mockLogger.Object,
                 router,
                 options,
-                new JsonArgusBodySerializer());
+                new PlainTextArgusBodySerializer());
         }
 
         [Test]
@@ -160,7 +160,7 @@ namespace Argus.Health.Service.Tests.BackgroundServices
         }
 
         [Test]
-        public async Task Verify_that_unsupported_verb_returns_BadRequest()
+        public async Task Verify_that_unsupported_verb_returns_NotImplemented()
         {
             var request = new ArgusRequest
             {
@@ -170,7 +170,7 @@ namespace Argus.Health.Service.Tests.BackgroundServices
 
             var response = await this.service.HandleRequestAsync(request);
 
-            Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.BadRequest));
+            Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.NotImplemented));
         }
 
         [Test]

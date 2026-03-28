@@ -25,7 +25,7 @@ namespace Argus.Health.Service.Modules
     using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
-    
+
     using Argus.Health.Common.Model;
     using Argus.Health.Common.Serialization;
     using Argus.Health.Service.Repository;
@@ -75,7 +75,7 @@ namespace Argus.Health.Service.Modules
         public void AddRoutes(IArgusRouteBuilder app)
         {
             this.logger.LogDebug("register HealthEndPoint routes");
-            
+
             app.MapGet("/healthendpoint", this.HandleGetAllAsync);
             app.MapGet("/healthendpoint/{identifier:ShortGuid}", this.HandleGetByIdAsync);
             app.MapPost("/healthendpoint", this.HandleCreateAsync);
@@ -94,9 +94,9 @@ namespace Argus.Health.Service.Modules
         internal async Task HandleCreateAsync(ArgusContext context)
         {
             var sw = Stopwatch.StartNew();
-            
+
             this.logger.LogDebug("Starting to create a new HealthEndPoint");
-            
+
             var request = context.Request;
 
             try
@@ -166,9 +166,9 @@ namespace Argus.Health.Service.Modules
         internal async Task HandleGetAllAsync(ArgusContext context)
         {
             var sw = Stopwatch.StartNew();
-            
+
             this.logger.LogDebug("Starting to read all HealthEndPoints");
-            
+
             var request = context.Request;
 
             try
@@ -209,9 +209,9 @@ namespace Argus.Health.Service.Modules
         internal async Task HandleGetByIdAsync(ArgusContext context)
         {
             var sw = Stopwatch.StartNew();
-            
+
             this.logger.LogDebug("Starting to read a specific HealthEndPoint");
-            
+
             var request = context.Request;
             var routeValues = context.RouteValues;
 
@@ -266,9 +266,9 @@ namespace Argus.Health.Service.Modules
         internal async Task HandleUpdateAsync(ArgusContext context)
         {
             var sw = Stopwatch.StartNew();
-            
+
             this.logger.LogDebug("Starting to update a specific HealthEndPoint");
-            
+
             var request = context.Request;
             var routeValues = context.RouteValues;
 
@@ -340,9 +340,9 @@ namespace Argus.Health.Service.Modules
         internal async Task HandleDeleteAsync(ArgusContext context)
         {
             var sw = Stopwatch.StartNew();
-            
+
             this.logger.LogDebug("Starting to delete a specific HealthEndPoint");
-            
+
             var request = context.Request;
             var routeValues = context.RouteValues;
 

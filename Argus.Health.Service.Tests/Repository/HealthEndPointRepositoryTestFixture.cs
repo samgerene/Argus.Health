@@ -24,7 +24,7 @@ namespace Argus.Health.Service.Tests.Repository
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-    
+
     using Argus.Health.Common.Model;
     using Argus.Health.Service.Repository;
 
@@ -68,13 +68,13 @@ namespace Argus.Health.Service.Tests.Repository
         {
             var originalFile = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "ArgusHealth.sqlite");
 
-            File.Copy(originalFile, this.databaseFilePath,true);  
+            File.Copy(originalFile, this.databaseFilePath, true);
 
             var logger = this.loggerFactory.CreateLogger<HealthEndPointRepository>();
 
             this.healthEndPointRepository = new HealthEndPointRepository(logger, this.databaseFolderPath);
         }
-        
+
         [Test]
         public async Task Verify_that_HealthEndPoint_can_be_read_and_created()
         {
@@ -91,7 +91,7 @@ namespace Argus.Health.Service.Tests.Repository
             var eventRaised = false;
             HealthEndPoint addedEndpoint = null;
 
-            this.healthEndPointRepository.EndpointAdded+= (sender, e) =>
+            this.healthEndPointRepository.EndpointAdded += (sender, e) =>
             {
                 eventRaised = true;
                 addedEndpoint = e;
@@ -150,7 +150,7 @@ namespace Argus.Health.Service.Tests.Repository
 
             var knownIdentifiers = new[]
             {
-                Guid.Parse("cfb2e590-eed6-4223-b2ba-271ed0cb06da"), 
+                Guid.Parse("cfb2e590-eed6-4223-b2ba-271ed0cb06da"),
                 Guid.Parse("fe08550c-d926-4758-808f-a9a991e0ff37")
             };
 
@@ -168,7 +168,7 @@ namespace Argus.Health.Service.Tests.Repository
 
             Assert.That(healthEndPoints.Count, Is.EqualTo(2));
 
-            healthEndPoints = await this.healthEndPointRepository.ReadAsync(new [] {Guid.NewGuid(), Guid.NewGuid() });
+            healthEndPoints = await this.healthEndPointRepository.ReadAsync(new[] { Guid.NewGuid(), Guid.NewGuid() });
             Assert.That(healthEndPoints, Is.Empty);
         }
 

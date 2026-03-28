@@ -26,7 +26,7 @@ namespace Argus.Health.Pulse.Client.Tests
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    
+
     using Argus.Health.Common.Model;
     using Argus.Health.Common.Serialization;
 
@@ -34,7 +34,7 @@ namespace Argus.Health.Pulse.Client.Tests
     using ArgusTransfer.Extensions;
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Serialization;
-    
+
     using Microsoft.Extensions.Logging;
 
     using NUnit.Framework;

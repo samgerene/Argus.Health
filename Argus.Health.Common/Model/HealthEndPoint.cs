@@ -49,7 +49,7 @@ namespace Argus.Health.Common.Model
         /// <remarks>
         /// The default value is 30 seconds
         /// </remarks>
-        public int Frequency{ get; set; } = 30;
+        public int Frequency { get; set; } = 30;
 
         /// <summary>
         /// Gets or sets the timeout measured in seconds with which this endpoint needs to be

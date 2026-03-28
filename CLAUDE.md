@@ -35,8 +35,6 @@ dotnet run --project Argus.Health.Pulse
 
 | Project | Framework | Role |
 |---|---|---|
-| `ArgusTransfer` | net10.0 | Protocol, Routing, Serialization, Named-pipe client + server host |
-| `ArgusTransfer.Tests` | net10.0 | Tests for ArgusTransfer |
 | `Argus.Health.Common` | net10.0 | Shared models and domain JSON serialization |
 | `Argus.Health.Client` | net10.0 | `HealthEndPointClient` typed client |
 | `Argus.Health.Client.Tests` | net10.0 | Tests for `HealthEndPointClient` |
@@ -113,6 +111,15 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 - Test convention: use Nunit with `Assert.That` syntax
 - Each test copies `TestData/ArgusHealth.sqlite` → `TestDataCopy/ArgusHealth.sqlite` in `[SetUp]` to ensure test isolation. The seeded database contains exactly 2 endpoints (GUIDs `cfb2e590-...` and `fe08550c-...`).
 - The `internal` constructor of `HealthEndPointRepository` is used in tests to inject a custom database folder path.
+
+## Build & Verification Workflow
+
+After making code changes, follow this verification sequence before considering work complete:
+
+1. **Build and inspect warnings**: Run `dotnet build Argus.Health.sln`. Inspect the output for all warnings (CSxxxx, CAxxxx, IDExxxx). Fix all warnings before proceeding.
+2. **Run tests**: Run `dotnet test Argus.Health.sln`. All tests must pass.
+3. **Format check**: Run `dotnet format Argus.Health.sln --verify-no-changes`. Fix any formatting violations reported.
+4. **Final strict build**: Run `dotnet build Argus.Health.sln -warnaserror` as a final pass. The build must succeed with zero warnings and zero errors.
 
 ## Reference Sources
 

@@ -404,8 +404,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-/.claude/settings.local.json
-/.idea/.idea.Argus.Health/.idea/vcs.xml
-/.idea/.idea.Argus.Health/.idea/.gitignore
-/.idea/.idea.Argus.Health/.idea/encodings.xml
-/.idea/.idea.Argus.Health/.idea/indexLayout.xml
+/.claude/*
+/.idea/*

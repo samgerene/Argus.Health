@@ -37,7 +37,7 @@ namespace Argus.Health.Pulse.Client
 
     using Polly;
     using Polly.Timeout;
-    
+
     /// <summary>
     /// A typed client for <see cref="HealthEndPoint"/> CRUD operations over the Argus named-pipe IPC protocol
     /// </summary>
@@ -113,10 +113,10 @@ namespace Argus.Health.Pulse.Client
                 Route = "/healthendpoint"
             };
 
-           this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
             var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
@@ -153,7 +153,7 @@ namespace Argus.Health.Pulse.Client
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
             var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
@@ -191,7 +191,7 @@ namespace Argus.Health.Pulse.Client
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
             var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Created)
             {
@@ -229,7 +229,7 @@ namespace Argus.Health.Pulse.Client
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
             var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
@@ -263,7 +263,7 @@ namespace Argus.Health.Pulse.Client
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
             var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, ct), cancellationToken);
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {

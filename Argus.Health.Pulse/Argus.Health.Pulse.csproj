@@ -43,9 +43,9 @@
 
   <ItemGroup>
     <!--
-        <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
-        -->
-    <PackageReference Include="ArgusTransfer" Version="0.2.0" />
+    <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
+    -->    
+    <PackageReference Include="ArgusTransfer" Version="1.0.1" />
     
   </ItemGroup>
     

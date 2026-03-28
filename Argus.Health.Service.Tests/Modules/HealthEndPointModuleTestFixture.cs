@@ -29,11 +29,11 @@ namespace Argus.Health.Service.Tests.Modules
     using Argus.Health.Common.Serialization;
     using Argus.Health.Service.Modules;
     using Argus.Health.Service.Repository;
-    
+
     using ArgusTransfer.Extensions;
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Routing;
-    
+
     using FluentResults;
 
     using Microsoft.Extensions.Logging;

@@ -21,7 +21,7 @@
 namespace Argus.Health.Pulse.Views
 {
     using Avalonia.Controls;
-    
+
     /// <summary>
     /// Overlay control for displaying toast notifications
     /// </summary>

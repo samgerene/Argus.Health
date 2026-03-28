@@ -22,7 +22,7 @@ namespace Argus.Health.Service.Tests.Serialization
 {
     using System;
     using System.Collections.Generic;
-    
+
     using Argus.Health.Common.Model;
     using Argus.Health.Common.Serialization;
 
