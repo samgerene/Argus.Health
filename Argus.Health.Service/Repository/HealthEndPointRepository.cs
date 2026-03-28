@@ -236,10 +236,7 @@ namespace Argus.Health.Service.Repository
         /// </returns>
         public async Task<Result> CreateAsync(HealthEndPoint healthEndPoint)
         {
-            if (healthEndPoint == null)
-            {
-                throw new ArgumentNullException(nameof(healthEndPoint));
-            }
+            ArgumentNullException.ThrowIfNull(healthEndPoint);
 
             this.logger.LogDebug("Creating HealthEndPoint with name {Name}", healthEndPoint.Name);
 
@@ -310,10 +307,7 @@ namespace Argus.Health.Service.Repository
         /// </returns>
         public async Task<Result> UpdateAsync(HealthEndPoint healthEndPoint)
         {
-            if (healthEndPoint == null)
-            {
-                throw new ArgumentNullException(nameof(healthEndPoint));
-            }
+            ArgumentNullException.ThrowIfNull(healthEndPoint);
 
             this.logger.LogDebug("Updating HealthEndPoint with identifier {Identifier}", healthEndPoint.Identifier);
 
@@ -380,10 +374,7 @@ namespace Argus.Health.Service.Repository
         /// </returns>
         public async Task<Result> DeleteAsync(HealthEndPoint healthEndPoint)
         {
-            if (healthEndPoint == null)
-            {
-                throw new ArgumentNullException(nameof(healthEndPoint));
-            }
+            ArgumentNullException.ThrowIfNull(healthEndPoint);
 
             this.logger.LogDebug("Deleting HealthEndPoint with identifier {Identifier}", healthEndPoint.Identifier);
 

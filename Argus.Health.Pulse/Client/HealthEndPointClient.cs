@@ -69,6 +69,8 @@ namespace Argus.Health.Pulse.Client
         /// </param>
         public HealthEndPointClient(ArgusClient argusClient, ILogger<HealthEndPointClient> logger)
         {
+            ArgumentNullException.ThrowIfNull(argusClient);
+            
             this.argusClient = argusClient;
             this.logger = logger;
 
@@ -181,6 +183,8 @@ namespace Argus.Health.Pulse.Client
         /// </exception>
         public async Task<HealthEndPoint> CreateAsync(HealthEndPoint healthEndPoint, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(healthEndPoint);
+            
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.POST,
@@ -219,6 +223,8 @@ namespace Argus.Health.Pulse.Client
         /// </exception>
         public async Task<HealthEndPoint> UpdateAsync(HealthEndPoint healthEndPoint, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(healthEndPoint);
+            
             var request = new ArgusRequest
             {
                 Verb = ArgusVerb.PUT,

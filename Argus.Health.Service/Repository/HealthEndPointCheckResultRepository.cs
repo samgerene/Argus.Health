@@ -95,10 +95,7 @@ namespace Argus.Health.Service.Repository
         /// </returns>
         public async Task<Result> CreateAsync(HealthEndPointCheckResult checkResult)
         {
-            if (checkResult == null)
-            {
-                throw new ArgumentNullException(nameof(checkResult));
-            }
+            ArgumentNullException.ThrowIfNull(checkResult);
 
             this.logger.LogDebug("Creating HealthEndPointCheckResult for HealthEndPoint {HealthEndPointIdentifier}", checkResult.HealthEndPoint);
 

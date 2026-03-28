@@ -109,24 +109,24 @@ namespace Argus.Health.Service.BackgroundServices
 
             this.healthEndPointRepository.EndpointAdded += async (sender, healthEndPoint) =>
             {
-                StartHealthEndPointMonitor(healthEndPoint);
+                this.StartHealthEndPointMonitor(healthEndPoint);
             };
 
             this.healthEndPointRepository.EndpointUpdated += async (sender, healthEndPoint) =>
             {
-                logger.LogInformation("Endpoint updated: {Name}", healthEndPoint.Name);
-                StopHealthEndPointMonitor(healthEndPoint);
+                this.logger.LogInformation("Endpoint updated: {Name}", healthEndPoint.Name);
+                this.StopHealthEndPointMonitor(healthEndPoint);
 
                 if (healthEndPoint.IsActive)
                 {
-                    StartHealthEndPointMonitor(healthEndPoint);
+                    this.StartHealthEndPointMonitor(healthEndPoint);
                 }
             };
 
             this.healthEndPointRepository.EndpointRemoved += async (sender, healthEndPoint) =>
             {
-                logger.LogInformation("Endpoint removed: {Name}", healthEndPoint.Name);
-                StopHealthEndPointMonitor(healthEndPoint);
+                this.logger.LogInformation("Endpoint removed: {Name}", healthEndPoint.Name);
+                this.StopHealthEndPointMonitor(healthEndPoint);
             };
 
             foreach (var healthEndPoint in await healthEndPointRepository.ReadAsync())
@@ -179,7 +179,7 @@ namespace Argus.Health.Service.BackgroundServices
             if (this.monitors.TryRemove(healthEndPoint.Identifier, out var monitor))
             {
                 monitor.cts.Cancel();
-                logger.LogInformation("Stopped monitor for endpoint {Id}", healthEndPoint.Identifier);
+                this.logger.LogInformation("Stopped monitor for endpoint {Id}", healthEndPoint.Identifier);
             }
         }
 
@@ -199,7 +199,7 @@ namespace Argus.Health.Service.BackgroundServices
         {
             this.logger.LogDebug("Starting to check {Name}:{Url}", healthEndPoint.Name, healthEndPoint.Url);
 
-            var client = httpClientFactory.CreateClient("ArgusHealth");
+            var client = this.httpClientFactory.CreateClient("ArgusHealth");
 
             var retryPolicy = Policy<HttpResponseMessage>
                 .Handle<HttpRequestException>()
@@ -280,7 +280,7 @@ namespace Argus.Health.Service.BackgroundServices
                 await Task.Delay(TimeSpan.FromSeconds(healthEndPoint.Frequency), ct);
             }
 
-            logger.LogInformation("Stopped Health Check monitor for [{Name}]", healthEndPoint.Name);
+            this.logger.LogInformation("Stopped Health Check monitor for [{Name}]", healthEndPoint.Name);
         }
     }
 }

@@ -83,6 +83,8 @@ namespace Argus.Health.Pulse.Services
         /// <summary>Diffs the provided endpoints against currently running monitors and starts/stops as needed</summary>
         public void UpdateEndpoints(IList<HealthEndPoint> endpoints)
         {
+            ArgumentNullException.ThrowIfNull(endpoints);
+            
             var desiredIds = new HashSet<Guid>(endpoints.Select(e => e.Identifier));
 
             // stop monitors for removed endpoints
@@ -115,7 +117,7 @@ namespace Argus.Health.Pulse.Services
             this.logger.LogInformation("Starting monitor for endpoint {EndpointName} ({EndpointId})", endpoint.Name, endpoint.Identifier);
             var cts = new CancellationTokenSource();
             var task = MonitorEndpointAsync(endpoint, cts.Token);
-            monitors[endpoint.Identifier] = (task, cts);
+            this.monitors[endpoint.Identifier] = (task, cts);
         }
 
         /// <summary>
@@ -126,7 +128,7 @@ namespace Argus.Health.Pulse.Services
         /// </param>
         private void StopMonitor(Guid id)
         {
-            if (monitors.TryRemove(id, out var monitor))
+            if (this.monitors.TryRemove(id, out var monitor))
             {
                 this.logger.LogInformation("Stopping monitor for endpoint {EndpointId}", id);
                 monitor.cts.Cancel();

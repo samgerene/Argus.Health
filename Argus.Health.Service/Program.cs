@@ -93,7 +93,7 @@ namespace Argus.Health.Service
             }
             else
             {
-                Console.Error.WriteLine("The Argus Health Service only supports Windows and Linux.");
+                await Console.Error.WriteLineAsync("The Argus Health Service only supports Windows and Linux.");
                 Environment.Exit(1);
             }
 
@@ -132,7 +132,7 @@ namespace Argus.Health.Service
             }
             finally
             {
-                Log.CloseAndFlush();
+                await Log.CloseAndFlushAsync();
             }
         }
     }
