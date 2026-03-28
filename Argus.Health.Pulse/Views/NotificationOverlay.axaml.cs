@@ -20,12 +20,14 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using Avalonia.Controls;
+    using Argus.Health.Pulse.ViewModels;
+
+    using ReactiveUI.Avalonia;
 
     /// <summary>
     /// Overlay control for displaying toast notifications
     /// </summary>
-    public partial class NotificationOverlay : UserControl
+    public partial class NotificationOverlay : ReactiveUserControl<MainWindowViewModel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="NotificationOverlay"/> class

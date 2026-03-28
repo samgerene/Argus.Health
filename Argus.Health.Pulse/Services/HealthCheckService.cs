@@ -84,7 +84,7 @@ namespace Argus.Health.Pulse.Services
         public void UpdateEndpoints(IList<HealthEndPoint> endpoints)
         {
             ArgumentNullException.ThrowIfNull(endpoints);
-            
+
             var desiredIds = new HashSet<Guid>(endpoints.Select(e => e.Identifier));
 
             // stop monitors for removed endpoints
@@ -209,7 +209,7 @@ namespace Argus.Health.Pulse.Services
                     this.logger.LogError(ex, "Health check unexpected error for {EndpointName}", endpoint.Name);
                 }
 
-                resultsSubject.OnNext(result);
+                this.resultsSubject.OnNext(result);
 
                 try
                 {
@@ -225,13 +225,13 @@ namespace Argus.Health.Pulse.Services
         /// <summary>Stops all monitors and disposes managed resources</summary>
         public void Dispose()
         {
-            foreach (var id in monitors.Keys.ToList())
+            foreach (var id in this.monitors.Keys.ToList())
             {
-                StopMonitor(id);
+                this.StopMonitor(id);
             }
 
-            resultsSubject.Dispose();
-            httpClient.Dispose();
+            this.resultsSubject.Dispose();
+            this.httpClient.Dispose();
         }
     }
 }

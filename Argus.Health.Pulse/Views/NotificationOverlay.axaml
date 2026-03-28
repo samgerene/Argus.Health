@@ -1,5 +1,7 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+<reactiveui:ReactiveUserControl x:TypeArguments="vm:MainWindowViewModel"
+             xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:reactiveui="using:ReactiveUI.Avalonia"
              xmlns:vm="using:Argus.Health.Pulse.ViewModels"
              x:Class="Argus.Health.Pulse.Views.NotificationOverlay"
              x:DataType="vm:MainWindowViewModel"
@@ -40,4 +42,4 @@
         </ItemsControl.ItemTemplate>
     </ItemsControl>
 
-</UserControl>
+</reactiveui:ReactiveUserControl>
