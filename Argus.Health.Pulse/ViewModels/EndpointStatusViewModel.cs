@@ -24,12 +24,12 @@ namespace Argus.Health.Pulse.ViewModels
     using System.Reactive.Linq;
 
     using ReactiveUI;
-    using ReactiveUI.Fody.Helpers;
+    using ReactiveUI.SourceGenerators;
     
     /// <summary>
     /// Represents a single endpoint row on the dashboard
     /// </summary>
-    public class EndpointStatusViewModel : ViewModelBase
+    public partial class EndpointStatusViewModel : ViewModelBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointStatusViewModel"/> class
@@ -85,19 +85,19 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets or sets the HTTP status code from the last health check
         /// </summary>
         [Reactive]
-        public int StatusCode { get; set; }
+        public partial int StatusCode { get; set; }
 
         /// <summary>
         /// Gets or sets the timestamp of the last health check
         /// </summary>
         [Reactive]
-        public DateTime? LastChecked { get; set; }
+        public partial DateTime? LastChecked { get; set; }
 
         /// <summary>
         /// Gets or sets the error message from the last health check
         /// </summary>
         [Reactive]
-        public string? ErrorMessage { get; set; }
+        public partial string? ErrorMessage { get; set; }
 
         private readonly ObservableAsPropertyHelper<bool> isHealthyHelper;
 

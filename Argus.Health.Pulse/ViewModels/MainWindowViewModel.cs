@@ -39,12 +39,12 @@ namespace Argus.Health.Pulse.ViewModels
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
-    using ReactiveUI.Fody.Helpers;
+    using ReactiveUI.SourceGenerators;
 
     /// <summary>
     /// Shell view model with navigation, notification queue, and tray commands
     /// </summary>
-    public class MainWindowViewModel : ViewModelBase, IDisposable
+    public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         /// <summary>
         /// The <see cref="HealthEndPointClient"/> used for endpoint CRUD operations
@@ -278,43 +278,43 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets or sets the currently displayed child view model
         /// </summary>
         [Reactive]
-        public ViewModelBase? CurrentView { get; set; }
+        public partial ViewModelBase? CurrentView { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the service is in the initial connecting state
         /// </summary>
         [Reactive]
-        public bool IsConnecting { get; set; }
+        public partial bool IsConnecting { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the service connection has an error
         /// </summary>
         [Reactive]
-        public bool IsConnectionError { get; set; }
+        public partial bool IsConnectionError { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the connection is degraded after a single failure
         /// </summary>
         [Reactive]
-        public bool IsConnectionDegraded { get; set; }
+        public partial bool IsConnectionDegraded { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the sync service is currently running
         /// </summary>
         [Reactive]
-        public bool IsSyncRunning { get; set; }
+        public partial bool IsSyncRunning { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the service is connected and sync is healthy
         /// </summary>
         [Reactive]
-        public bool IsConnected { get; set; }
+        public partial bool IsConnected { get; set; }
 
         /// <summary>
         /// Gets or sets the sync progress countdown value (0–100)
         /// </summary>
         [Reactive]
-        public double SyncProgress { get; set; } = 100;
+        public partial double SyncProgress { get; set; } = 100;
 
         /// <summary>
         /// Gets the collection of active toast notifications

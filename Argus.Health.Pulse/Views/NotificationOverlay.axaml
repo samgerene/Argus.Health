@@ -22,7 +22,7 @@
                     <DockPanel>
                         <Button Content="X" DockPanel.Dock="Right"
                                 VerticalAlignment="Top"
-                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).DismissNotificationCommand}"
+                                Command="{ReflectionBinding $parent[ItemsControl].DataContext.DismissNotificationCommand}"
                                 CommandParameter="{Binding}"
                                 Background="Transparent"
                                 Padding="4,2"

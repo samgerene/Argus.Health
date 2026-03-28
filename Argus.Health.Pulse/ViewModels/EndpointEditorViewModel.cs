@@ -33,12 +33,12 @@ namespace Argus.Health.Pulse.ViewModels
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
-    using ReactiveUI.Fody.Helpers;
+    using ReactiveUI.SourceGenerators;
 
     /// <summary>
     /// Create/edit form for a health endpoint
     /// </summary>
-    public class EndpointEditorViewModel : ViewModelBase
+    public partial class EndpointEditorViewModel : ViewModelBase
     {
         /// <summary>
         /// The <see cref="ILogger{EndpointEditorViewModel}"/> used for logging
@@ -125,43 +125,43 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets or sets the endpoint name
         /// </summary>
         [Reactive]
-        public string Name { get; set; } = string.Empty;
+        public partial string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the endpoint URL
         /// </summary>
         [Reactive]
-        public string Url { get; set; } = string.Empty;
+        public partial string Url { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the polling frequency in seconds
         /// </summary>
         [Reactive]
-        public int Frequency { get; set; }
+        public partial int Frequency { get; set; }
 
         /// <summary>
         /// Gets or sets the HTTP timeout in seconds
         /// </summary>
         [Reactive]
-        public int Timeout { get; set; }
+        public partial int Timeout { get; set; }
 
         /// <summary>
         /// Gets or sets the Polly retry count
         /// </summary>
         [Reactive]
-        public int RetryCount { get; set; }
+        public partial int RetryCount { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this endpoint is active
         /// </summary>
         [Reactive]
-        public bool IsActive { get; set; } = true;
+        public partial bool IsActive { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the validation or save error message
         /// </summary>
         [Reactive]
-        public string? ErrorMessage { get; set; }
+        public partial string? ErrorMessage { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether an existing endpoint is being edited

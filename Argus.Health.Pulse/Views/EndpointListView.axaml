@@ -51,10 +51,10 @@
                             <DataTemplate x:DataType="model:HealthEndPoint">
                                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                     <Button Content="Edit"
-                                            Command="{Binding $parent[DataGrid].((vm:EndpointListViewModel)DataContext).EditCommand}"
+                                            Command="{ReflectionBinding $parent[DataGrid].DataContext.EditCommand}"
                                             CommandParameter="{Binding}" />
                                     <Button Content="Delete"
-                                            Command="{Binding $parent[DataGrid].((vm:EndpointListViewModel)DataContext).DeleteCommand}"
+                                            Command="{ReflectionBinding $parent[DataGrid].DataContext.DeleteCommand}"
                                             CommandParameter="{Binding}" />
                                 </StackPanel>
                             </DataTemplate>

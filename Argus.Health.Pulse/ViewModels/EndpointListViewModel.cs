@@ -38,12 +38,12 @@ namespace Argus.Health.Pulse.ViewModels
     using ReactiveUI.Avalonia;
 
     using ReactiveUI;
-    using ReactiveUI.Fody.Helpers;
+    using ReactiveUI.SourceGenerators;
 
     /// <summary>
     /// Endpoint CRUD list view model
     /// </summary>
-    public class EndpointListViewModel : ViewModelBase, IDisposable
+    public partial class EndpointListViewModel : ViewModelBase, IDisposable
     {
         /// <summary>
         /// The <see cref="ILogger{EndpointListViewModel}"/> used for logging
@@ -158,7 +158,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets or sets the currently selected endpoint
         /// </summary>
         [Reactive]
-        public HealthEndPoint? SelectedEndpoint { get; set; }
+        public partial HealthEndPoint? SelectedEndpoint { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the endpoint collection contains any items
@@ -169,19 +169,19 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets or sets a value indicating whether the delete confirmation overlay is visible
         /// </summary>
         [Reactive]
-        public bool IsDeleteConfirmationVisible { get; set; }
+        public partial bool IsDeleteConfirmationVisible { get; set; }
 
         /// <summary>
         /// Gets or sets the endpoint that is pending deletion confirmation
         /// </summary>
         [Reactive]
-        public HealthEndPoint? PendingDeleteEndpoint { get; set; }
+        public partial HealthEndPoint? PendingDeleteEndpoint { get; set; }
 
         /// <summary>
         /// Gets or sets the error message from the last failed operation
         /// </summary>
         [Reactive]
-        public string? ErrorMessage { get; set; }
+        public partial string? ErrorMessage { get; set; }
 
         /// <summary>
         /// Gets the command to refresh the endpoint list
