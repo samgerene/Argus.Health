@@ -25,6 +25,7 @@ namespace Argus.Health.Pulse.Services
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
     using System.Reactive.Subjects;
+    using System.Threading.Tasks;
 
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
@@ -134,6 +135,23 @@ namespace Argus.Health.Pulse.Services
 
             this.isRunningSubject.OnNext(true);
             this.logger.LogInformation("Sync polling started");
+        }
+
+        /// <summary>Triggers an immediate poll outside the regular timer interval</summary>
+        public async Task RefreshAsync()
+        {
+            try
+            {
+                var endpoints = await this.client.GetAllAsync();
+                this.connectionErrorSubject.OnNext(false);
+                this.endpointsSubject.OnNext(endpoints);
+                this.logger.LogDebug("Manual refresh completed, {EndpointCount} endpoint(s) returned", endpoints.Count);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Manual refresh failed");
+                this.connectionErrorSubject.OnNext(true);
+            }
         }
 
         /// <summary>Stops polling</summary>

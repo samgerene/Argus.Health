@@ -124,7 +124,14 @@ namespace Argus.Health.Pulse.ViewModels
 
                             foreach (var ep in incomingEndpoints)
                             {
-                                if (!updater.Lookup(ep.Identifier).HasValue)
+                                var existing = updater.Lookup(ep.Identifier);
+
+                                if (existing.HasValue)
+                                {
+                                    existing.Value.Name = ep.Name;
+                                    existing.Value.Url = ep.Url;
+                                }
+                                else
                                 {
                                     updater.AddOrUpdate(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
                                     added++;

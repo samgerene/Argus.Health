@@ -22,6 +22,7 @@ namespace Argus.Health.Pulse.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     using Argus.Health.Common.Model;
 
@@ -54,5 +55,11 @@ namespace Argus.Health.Pulse.Services
         /// Stops polling and resets connection error state
         /// </summary>
         void Stop();
+
+        /// <summary>
+        /// Triggers an immediate poll outside the regular timer interval
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation</returns>
+        Task RefreshAsync();
     }
 }

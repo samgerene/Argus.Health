@@ -379,6 +379,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.logger.LogDebug("Navigating to dashboard");
             this.dashboardViewModel ??= new DashboardViewModel(this.syncService, this.healthCheckService, this.loggerFactory.CreateLogger<DashboardViewModel>());
             this.CurrentView = this.dashboardViewModel;
+            _ = this.syncService.RefreshAsync();
         }
 
         /// <summary>

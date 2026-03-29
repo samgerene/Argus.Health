@@ -113,14 +113,16 @@ namespace Argus.Health.Pulse.ViewModels
         public Guid Identifier { get; }
 
         /// <summary>
-        /// Gets the human-readable name of the endpoint
+        /// Gets or sets the human-readable name of the endpoint
         /// </summary>
-        public string Name { get; }
+        [Reactive]
+        public partial string Name { get; set; }
 
         /// <summary>
-        /// Gets the URL of the endpoint
+        /// Gets or sets the URL of the endpoint
         /// </summary>
-        public string Url { get; }
+        [Reactive]
+        public partial string Url { get; set; }
 
         /// <summary>
         /// Gets or sets the HTTP status code from the last health check
