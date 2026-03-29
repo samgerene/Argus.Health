@@ -29,10 +29,11 @@ namespace Argus.Health.Pulse.Controls
 
     using Avalonia;
     using Avalonia.Controls;
+    using Avalonia.Input;
     using Avalonia.Media;
 
     /// <summary>
-    /// Renders a response time line chart for the detail panel
+    /// Renders a response time line chart for the detail panel with hoverable dots
     /// </summary>
     public class ResponseTimeChartControl : Control
     {
@@ -57,10 +58,25 @@ namespace Argus.Health.Pulse.Controls
         private const double RightPadding = 10;
 
         /// <summary>
+        /// Radius of the dot drawn per result
+        /// </summary>
+        private const double DotRadius = 3;
+
+        /// <summary>
+        /// Hit test distance threshold for tooltip activation
+        /// </summary>
+        private const double HitThreshold = 8;
+
+        /// <summary>
         /// Defines the <see cref="Data"/> styled property
         /// </summary>
         public static readonly StyledProperty<IReadOnlyList<HealthEndPointCheckResult>?> DataProperty =
             AvaloniaProperty.Register<ResponseTimeChartControl, IReadOnlyList<HealthEndPointCheckResult>?>(nameof(Data));
+
+        /// <summary>
+        /// Cached dot positions and associated results for hit testing
+        /// </summary>
+        private readonly List<(Point Position, HealthEndPointCheckResult Result)> dotPositions = new();
 
         /// <summary>
         /// Initializes static members of the <see cref="ResponseTimeChartControl"/> class
@@ -85,6 +101,8 @@ namespace Argus.Health.Pulse.Controls
         /// <param name="context">The drawing context</param>
         public override void Render(DrawingContext context)
         {
+            this.dotPositions.Clear();
+
             var data = this.Data;
 
             if (data == null || data.Count == 0)
@@ -127,7 +145,7 @@ namespace Argus.Health.Pulse.Controls
                 context.DrawText(label, new Point(LeftMargin - label.Width - 4, y - label.Height / 2));
             }
 
-            // Draw data points
+            // Calculate points
             var minTime = data[0].Timestamp;
             var maxTime = data[^1].Timestamp;
             var timeRange = (maxTime - minTime).TotalSeconds;
@@ -137,43 +155,44 @@ namespace Argus.Health.Pulse.Controls
                 timeRange = 1;
             }
 
-            var geometry = new StreamGeometry();
-            var failurePoints = new List<Point>();
+            var points = new List<Point>(data.Count);
 
-            using (var ctx = geometry.Open())
+            for (var i = 0; i < data.Count; i++)
             {
-                var started = false;
-
-                for (var i = 0; i < data.Count; i++)
-                {
-                    var x = LeftMargin + chartWidth * (data[i].Timestamp - minTime).TotalSeconds / timeRange;
-                    var y = TopPadding + chartHeight - chartHeight * data[i].ResponseTimeMs / maxMs;
-                    var point = new Point(x, y);
-
-                    if (!started)
-                    {
-                        ctx.BeginFigure(point, false);
-                        started = true;
-                    }
-                    else
-                    {
-                        ctx.LineTo(point);
-                    }
-
-                    if (data[i].StatusCode < 200 || data[i].StatusCode >= 300)
-                    {
-                        failurePoints.Add(point);
-                    }
-                }
+                var x = LeftMargin + chartWidth * (data[i].Timestamp - minTime).TotalSeconds / timeRange;
+                var y = TopPadding + chartHeight - chartHeight * data[i].ResponseTimeMs / maxMs;
+                points.Add(new Point(x, y));
             }
 
+            // Draw line segments between consecutive points
             var linePen = new Pen(DashboardColors.Teal, 1.5);
-            context.DrawGeometry(null, linePen, geometry);
 
-            // Draw failure markers
-            foreach (var point in failurePoints)
+            for (var i = 0; i < points.Count - 1; i++)
             {
-                context.DrawEllipse(DashboardColors.Red, null, point, 3, 3);
+                context.DrawLine(linePen, points[i], points[i + 1]);
+            }
+
+            // Draw dots at every point
+            for (var i = 0; i < data.Count; i++)
+            {
+                IBrush brush;
+
+                if (data[i].StatusCode >= 200 && data[i].StatusCode < 300)
+                {
+                    brush = DashboardColors.Green;
+                }
+                else if (data[i].StatusCode == 0)
+                {
+                    brush = DashboardColors.Red;
+                }
+                else
+                {
+                    brush = DashboardColors.Amber;
+                }
+
+                context.DrawEllipse(brush, null, points[i], DotRadius, DotRadius);
+
+                this.dotPositions.Add((points[i], data[i]));
             }
 
             // Draw X-axis time labels
@@ -189,6 +208,72 @@ namespace Argus.Health.Pulse.Controls
 
                 context.DrawText(endLabel, new Point(LeftMargin + chartWidth - endLabel.Width, TopPadding + chartHeight + 4));
             }
+        }
+
+        /// <summary>
+        /// Handles pointer movement to show tooltips on nearby dots
+        /// </summary>
+        /// <param name="e">The pointer event args</param>
+        protected override void OnPointerMoved(PointerEventArgs e)
+        {
+            base.OnPointerMoved(e);
+
+            var position = e.GetPosition(this);
+            var nearest = this.FindNearestDot(position);
+
+            if (nearest != null)
+            {
+                var timeText = nearest.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+
+                var tooltip = nearest.ErrorMessage != null
+                    ? $"{timeText} — {nearest.StatusCode} ({nearest.ResponseTimeMs}ms)\n{nearest.ErrorMessage}"
+                    : $"{timeText} — {nearest.StatusCode} ({nearest.ResponseTimeMs}ms)";
+
+                ToolTip.SetTip(this, tooltip);
+                ToolTip.SetIsOpen(this, true);
+            }
+            else
+            {
+                ToolTip.SetIsOpen(this, false);
+                ToolTip.SetTip(this, null);
+            }
+        }
+
+        /// <summary>
+        /// Clears the tooltip when the pointer exits the control
+        /// </summary>
+        /// <param name="e">The pointer event args</param>
+        protected override void OnPointerExited(PointerEventArgs e)
+        {
+            base.OnPointerExited(e);
+            ToolTip.SetIsOpen(this, false);
+            ToolTip.SetTip(this, null);
+        }
+
+        /// <summary>
+        /// Finds the nearest dot to the given position within the hit threshold
+        /// </summary>
+        /// <param name="position">The pointer position</param>
+        /// <returns>The nearest check result, or null if none within threshold</returns>
+        private HealthEndPointCheckResult? FindNearestDot(Point position)
+        {
+            HealthEndPointCheckResult? nearest = null;
+            var minDistance = HitThreshold;
+
+            foreach (var (dotPoint, result) in this.dotPositions)
+            {
+                var dx = position.X - dotPoint.X;
+                var dy = position.Y - dotPoint.Y;
+                var distance = Math.Sqrt(dx * dx + dy * dy);
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    nearest = result;
+                }
+            }
+
+            return nearest;
         }
     }
 }

@@ -225,6 +225,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             return this.Endpoint.History
                 .Where(r => r.Timestamp >= cutoff)
+                .OrderBy(r => r.Timestamp)
                 .ToList();
         }
 
