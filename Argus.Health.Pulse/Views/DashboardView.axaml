@@ -13,7 +13,8 @@
         <!-- Summary cards -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
             <!-- Total Endpoints -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
+                    ToolTip.Tip="Total number of health endpoints being monitored">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Endpoints" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="TotalEndpointsText" FontSize="24" FontWeight="Bold" Foreground="#2dd4bf" />
@@ -21,7 +22,8 @@
             </Border>
 
             <!-- Uptime % -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
+                    ToolTip.Tip="Percentage of successful health checks across all endpoints in the last 24 hours">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Uptime (24h)" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="UptimePercentText" FontSize="24" FontWeight="Bold" Foreground="#22c55e" />
@@ -29,7 +31,8 @@
             </Border>
 
             <!-- Avg Response Time -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
+                    ToolTip.Tip="Average response time of the most recent health check across all endpoints">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Avg Response" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="AvgResponseTimeText" FontSize="24" FontWeight="Bold" Foreground="#2dd4bf" />
@@ -37,7 +40,8 @@
             </Border>
 
             <!-- Currently Down -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
+                    ToolTip.Tip="Number of endpoints currently returning non-successful status codes">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Down" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="EndpointsDownText" FontSize="24" FontWeight="Bold" Foreground="#ef4444" />
@@ -45,7 +49,8 @@
             </Border>
 
             <!-- Incidents 24h -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
+                    ToolTip.Tip="Total number of failed health checks across all endpoints in the last 24 hours">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Incidents (24h)" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="IncidentsText" FontSize="24" FontWeight="Bold" Foreground="#f59e0b" />
@@ -62,49 +67,62 @@
                 <DockPanel Grid.Column="0" Margin="0,0,12,0">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
                         <TextBlock Text="Response Time" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <Button x:Name="LastHourButton" Content="1h" Padding="8,2" FontSize="11" />
-                        <Button x:Name="Last6HoursButton" Content="6h" Padding="8,2" FontSize="11" />
-                        <Button x:Name="Last24HoursButton" Content="24h" Padding="8,2" FontSize="11" />
-                        <Button x:Name="Last7DaysButton" Content="7d" Padding="8,2" FontSize="11" />
+                        <Button x:Name="LastHourButton" Content="1h" Padding="8,2" FontSize="11"
+                                ToolTip.Tip="Show the last hour" />
+                        <Button x:Name="Last6HoursButton" Content="6h" Padding="8,2" FontSize="11"
+                                ToolTip.Tip="Show the last 6 hours" />
+                        <Button x:Name="Last24HoursButton" Content="24h" Padding="8,2" FontSize="11"
+                                ToolTip.Tip="Show the last 24 hours" />
+                        <Button x:Name="Last7DaysButton" Content="7d" Padding="8,2" FontSize="11"
+                                ToolTip.Tip="Show the last 7 days" />
                     </StackPanel>
-                    <controls:ResponseTimeChartControl x:Name="ResponseTimeChart" />
+                    <controls:ResponseTimeChartControl x:Name="ResponseTimeChart"
+                        ToolTip.Tip="Response time in milliseconds over the selected time range. Red dots indicate failed checks." />
                 </DockPanel>
 
                 <!-- Uptime Timeline -->
                 <DockPanel Grid.Column="1" Margin="12,0">
                     <TextBlock DockPanel.Dock="Top" Text="Uptime" FontWeight="SemiBold" Margin="0,0,0,8" />
-                    <controls:UptimeTimelineControl x:Name="UptimeTimeline" />
+                    <controls:UptimeTimelineControl x:Name="UptimeTimeline"
+                        ToolTip.Tip="Uptime history: green = healthy, red = down, amber = degraded" />
                 </DockPanel>
 
                 <!-- Stats Summary -->
                 <DockPanel Grid.Column="2" Margin="12,0,0,0">
                     <TextBlock DockPanel.Dock="Top" Text="Statistics" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <StackPanel Spacing="6">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="Current HTTP status of the endpoint">
                             <TextBlock Text="Status:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="CurrentStatusText" FontWeight="SemiBold" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="Percentage of successful checks in the selected time range">
                             <TextBlock Text="Uptime:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="DetailUptimeText" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="Average response time in the selected time range">
                             <TextBlock Text="Avg:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="DetailAvgText" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="95th percentile response time: 95% of checks were faster than this value">
                             <TextBlock Text="P95:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="DetailP95Text" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="Slowest response time in the selected time range">
                             <TextBlock Text="Max:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="DetailMaxText" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="Total number of health checks performed in the selected time range">
                             <TextBlock Text="Checks:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="DetailTotalChecksText" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    ToolTip.Tip="Number of checks that returned a non-successful status code">
                             <TextBlock Text="Failures:" Foreground="#94a3b8" Width="80" />
                             <TextBlock x:Name="DetailFailuresText" />
                         </StackPanel>
@@ -129,7 +147,8 @@
                         <DataTemplate x:DataType="vm:EndpointStatusViewModel">
                             <controls:StatusDotControl IsHealthy="{Binding IsHealthy}" StatusCode="{Binding StatusCode}"
                                                        Width="12" Height="12"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       ToolTip.Tip="Health status: green = healthy (2xx), red = error, gray = pending" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -139,7 +158,8 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="vm:EndpointStatusViewModel">
                             <controls:SparklineControl Data="{Binding RecentResponseTimes}"
-                                                        Height="24" Margin="4,2" />
+                                                        Height="24" Margin="4,2"
+                                                        ToolTip.Tip="Response time trend for the last 20 health checks" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
