@@ -48,6 +48,11 @@ namespace Argus.Health.Common.Model
         public string? ErrorMessage { get; set; } = null;
 
         /// <summary>
+        /// Gets or sets the response time in milliseconds for this health check
+        /// </summary>
+        public long ResponseTimeMs { get; set; }
+
+        /// <summary>
         /// Gets or sets the unique identifier of the <see cref="HealthEndPoint"/>
         /// that this result is associated with
         /// </summary>

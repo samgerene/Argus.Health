@@ -1,26 +1,152 @@
 <reactiveui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Argus.Health.Pulse.ViewModels"
+             xmlns:controls="using:Argus.Health.Pulse.Controls"
              xmlns:reactiveui="using:ReactiveUI.Avalonia"
              x:TypeArguments="vm:DashboardViewModel"
              x:Class="Argus.Health.Pulse.Views.DashboardView"
              x:DataType="vm:DashboardViewModel">
 
     <DockPanel>
-        <TextBlock Text="Dashboard" FontSize="20" FontWeight="Bold" DockPanel.Dock="Top" Margin="0,0,0,16" />
+        <TextBlock Text="Dashboard" FontSize="20" FontWeight="Bold" DockPanel.Dock="Top" Margin="0,0,0,12" />
 
+        <!-- Summary cards -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+            <!-- Total Endpoints -->
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Endpoints" FontSize="11" Foreground="#94a3b8" />
+                    <TextBlock x:Name="TotalEndpointsText" FontSize="24" FontWeight="Bold" Foreground="#2dd4bf" />
+                </StackPanel>
+            </Border>
+
+            <!-- Uptime % -->
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Uptime (24h)" FontSize="11" Foreground="#94a3b8" />
+                    <TextBlock x:Name="UptimePercentText" FontSize="24" FontWeight="Bold" Foreground="#22c55e" />
+                </StackPanel>
+            </Border>
+
+            <!-- Avg Response Time -->
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Avg Response" FontSize="11" Foreground="#94a3b8" />
+                    <TextBlock x:Name="AvgResponseTimeText" FontSize="24" FontWeight="Bold" Foreground="#2dd4bf" />
+                </StackPanel>
+            </Border>
+
+            <!-- Currently Down -->
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Down" FontSize="11" Foreground="#94a3b8" />
+                    <TextBlock x:Name="EndpointsDownText" FontSize="24" FontWeight="Bold" Foreground="#ef4444" />
+                </StackPanel>
+            </Border>
+
+            <!-- Incidents 24h -->
+            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Incidents (24h)" FontSize="11" Foreground="#94a3b8" />
+                    <TextBlock x:Name="IncidentsText" FontSize="24" FontWeight="Bold" Foreground="#f59e0b" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Detail panel (bottom, shown when an endpoint is selected) -->
+        <Border x:Name="DetailPanel" DockPanel.Dock="Bottom"
+                Background="#1e293b" CornerRadius="8" Padding="16" Margin="0,12,0,0"
+                Height="220">
+            <Grid ColumnDefinitions="2*,*,*">
+                <!-- Response Time Chart -->
+                <DockPanel Grid.Column="0" Margin="0,0,12,0">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
+                        <TextBlock Text="Response Time" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <Button x:Name="LastHourButton" Content="1h" Padding="8,2" FontSize="11" />
+                        <Button x:Name="Last6HoursButton" Content="6h" Padding="8,2" FontSize="11" />
+                        <Button x:Name="Last24HoursButton" Content="24h" Padding="8,2" FontSize="11" />
+                        <Button x:Name="Last7DaysButton" Content="7d" Padding="8,2" FontSize="11" />
+                    </StackPanel>
+                    <controls:ResponseTimeChartControl x:Name="ResponseTimeChart" />
+                </DockPanel>
+
+                <!-- Uptime Timeline -->
+                <DockPanel Grid.Column="1" Margin="12,0">
+                    <TextBlock DockPanel.Dock="Top" Text="Uptime" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <controls:UptimeTimelineControl x:Name="UptimeTimeline" />
+                </DockPanel>
+
+                <!-- Stats Summary -->
+                <DockPanel Grid.Column="2" Margin="12,0,0,0">
+                    <TextBlock DockPanel.Dock="Top" Text="Statistics" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Status:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="CurrentStatusText" FontWeight="SemiBold" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Uptime:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="DetailUptimeText" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Avg:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="DetailAvgText" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="P95:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="DetailP95Text" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Max:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="DetailMaxText" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Checks:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="DetailTotalChecksText" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Failures:" Foreground="#94a3b8" Width="80" />
+                            <TextBlock x:Name="DetailFailuresText" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Grid>
+        </Border>
+
+        <!-- Enhanced DataGrid -->
         <DataGrid x:Name="EndpointsGrid"
+                  ItemsSource="{Binding Endpoints}"
+                  SelectedItem="{Binding SelectedEndpoint}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   GridLinesVisibility="Horizontal"
                   CanUserResizeColumns="True"
-                  CanUserReorderColumns="False">
+                  CanUserReorderColumns="False"
+                  SelectionMode="Single">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200" />
-                <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="300" />
-                <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="120" />
-                <DataGridTextColumn Header="Last Checked" Binding="{Binding LastChecked, StringFormat='{}{0:HH:mm:ss}'}" Width="120" />
-                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="*" />
+                <DataGridTemplateColumn Header="" Width="32">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="vm:EndpointStatusViewModel">
+                            <controls:StatusDotControl IsHealthy="{Binding IsHealthy}" StatusCode="{Binding StatusCode}"
+                                                       Width="12" Height="12"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180" />
+                <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="250" />
+                <DataGridTemplateColumn Header="Trend" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="vm:EndpointStatusViewModel">
+                            <controls:SparklineControl Data="{Binding RecentResponseTimes}"
+                                                        Height="24" Margin="4,2" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="100" />
+                <DataGridTextColumn Header="Response" Binding="{Binding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" />
+                <DataGridTextColumn Header="Last Checked" Binding="{Binding LastChecked, StringFormat='{}{0:HH:mm:ss}'}" Width="100" />
+                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="200" />
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

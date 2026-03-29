@@ -20,8 +20,11 @@
 
 namespace Argus.Health.Pulse.Views
 {
+    using System;
+    using System.Globalization;
     using System.Reactive.Disposables;
     using System.Reactive.Disposables.Fluent;
+    using System.Reactive.Linq;
 
     using Argus.Health.Pulse.ViewModels;
 
@@ -42,7 +45,95 @@ namespace Argus.Health.Pulse.Views
 
             this.WhenActivated(disposables =>
             {
-                this.OneWayBind(this.ViewModel, vm => vm.Endpoints, v => v.EndpointsGrid.ItemsSource)
+                // Summary cards
+                this.OneWayBind(this.ViewModel, vm => vm.TotalEndpoints, v => v.TotalEndpointsText.Text,
+                        value => value.ToString(CultureInfo.CurrentCulture))
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.OverallUptimePercent, v => v.UptimePercentText.Text,
+                        value => $"{value:F1}%")
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.AverageResponseTimeMs, v => v.AvgResponseTimeText.Text,
+                        value => $"{value:F0}ms")
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.EndpointsDown, v => v.EndpointsDownText.Text,
+                        value => value.ToString(CultureInfo.CurrentCulture))
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IncidentsLast24Hours, v => v.IncidentsText.Text,
+                        value => value.ToString(CultureInfo.CurrentCulture))
+                    .DisposeWith(disposables);
+
+                // Detail panel visibility
+                this.OneWayBind(this.ViewModel, vm => vm.SelectedDetail, v => v.DetailPanel.IsVisible,
+                        detail => detail != null)
+                    .DisposeWith(disposables);
+
+                // Detail panel bindings
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
+                    .Where(detail => detail != null)
+                    .Subscribe(detail =>
+                    {
+                        this.ResponseTimeChart.Data = detail!.FilteredResults;
+                        this.UptimeTimeline.Data = detail.FilteredResults;
+                        this.UptimeTimeline.SelectedTimeRange = detail.SelectedTimeRange;
+                    })
+                    .DisposeWith(disposables);
+
+                // Detail stats text bindings
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
+                    .Subscribe(detail =>
+                    {
+                        if (detail == null)
+                        {
+                            return;
+                        }
+
+                        this.CurrentStatusText.Text = detail.CurrentStatus;
+                        this.DetailUptimeText.Text = $"{detail.UptimePercent:F1}%";
+                        this.DetailAvgText.Text = $"{detail.AverageResponseTimeMs:F0}ms";
+                        this.DetailP95Text.Text = $"{detail.P95ResponseTimeMs}ms";
+                        this.DetailMaxText.Text = $"{detail.MaxResponseTimeMs}ms";
+                        this.DetailTotalChecksText.Text = detail.TotalChecks.ToString(CultureInfo.CurrentCulture);
+                        this.DetailFailuresText.Text = detail.TotalFailures.ToString(CultureInfo.CurrentCulture);
+                    })
+                    .DisposeWith(disposables);
+
+                // Time range toggle commands
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
+                    .Where(detail => detail != null)
+                    .Subscribe(detail =>
+                    {
+                        this.LastHourButton.Command = detail!.SelectLastHourCommand;
+                        this.Last6HoursButton.Command = detail.SelectLast6HoursCommand;
+                        this.Last24HoursButton.Command = detail.SelectLast24HoursCommand;
+                        this.Last7DaysButton.Command = detail.SelectLast7DaysCommand;
+                    })
+                    .DisposeWith(disposables);
+
+                // Refresh charts when detail's filtered results change
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.FilteredResults)
+                    .Subscribe(results =>
+                    {
+                        this.ResponseTimeChart.Data = results;
+                        this.UptimeTimeline.Data = results;
+
+                        var detail = this.ViewModel?.SelectedDetail;
+
+                        if (detail != null)
+                        {
+                            this.UptimeTimeline.SelectedTimeRange = detail.SelectedTimeRange;
+                            this.CurrentStatusText.Text = detail.CurrentStatus;
+                            this.DetailUptimeText.Text = $"{detail.UptimePercent:F1}%";
+                            this.DetailAvgText.Text = $"{detail.AverageResponseTimeMs:F0}ms";
+                            this.DetailP95Text.Text = $"{detail.P95ResponseTimeMs}ms";
+                            this.DetailMaxText.Text = $"{detail.MaxResponseTimeMs}ms";
+                            this.DetailTotalChecksText.Text = detail.TotalChecks.ToString(CultureInfo.CurrentCulture);
+                            this.DetailFailuresText.Text = detail.TotalFailures.ToString(CultureInfo.CurrentCulture);
+                        }
+                    })
                     .DisposeWith(disposables);
             });
         }

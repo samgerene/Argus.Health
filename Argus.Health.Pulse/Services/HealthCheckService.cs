@@ -23,6 +23,7 @@ namespace Argus.Health.Pulse.Services
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net.Http;
     using System.Reactive.Linq;
@@ -169,10 +170,12 @@ namespace Argus.Health.Pulse.Services
                     Timestamp = DateTime.UtcNow
                 };
 
+                var sw = Stopwatch.StartNew();
+
                 try
                 {
                     var response = await wrappedPolicy.ExecuteAsync(
-                        async token => await httpClient.GetAsync(endpoint.Url, token), ct);
+                        async token => await this.httpClient.GetAsync(endpoint.Url, token), ct);
 
                     result.StatusCode = (int)response.StatusCode;
 
@@ -208,6 +211,9 @@ namespace Argus.Health.Pulse.Services
                     result.ErrorMessage = ex.Message;
                     this.logger.LogError(ex, "Health check unexpected error for {EndpointName}", endpoint.Name);
                 }
+
+                sw.Stop();
+                result.ResponseTimeMs = sw.ElapsedMilliseconds;
 
                 this.resultsSubject.OnNext(result);
 

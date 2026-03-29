@@ -21,7 +21,11 @@
 namespace Argus.Health.Pulse.ViewModels
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Reactive.Linq;
+
+    using Argus.Health.Common.Model;
 
     using ReactiveUI;
     using ReactiveUI.SourceGenerators;
@@ -31,6 +35,36 @@ namespace Argus.Health.Pulse.ViewModels
     /// </summary>
     public partial class EndpointStatusViewModel : ViewModelBase
     {
+        /// <summary>
+        /// Maximum number of historical check results to retain (~7 days at 30s interval)
+        /// </summary>
+        private const int MaxHistorySize = 20160;
+
+        /// <summary>
+        /// Maximum number of recent response times for sparkline display
+        /// </summary>
+        private const int SparklineSize = 20;
+
+        /// <summary>
+        /// Backing list for historical check results
+        /// </summary>
+        private readonly List<HealthEndPointCheckResult> history = new();
+
+        /// <summary>
+        /// Helper for the <see cref="IsHealthy"/> computed property
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<bool> isHealthyHelper;
+
+        /// <summary>
+        /// Helper for the <see cref="StatusDisplay"/> computed property
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<string> statusDisplayHelper;
+
+        /// <summary>
+        /// Helper for the <see cref="RecentResponseTimes"/> computed property
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<IReadOnlyList<long>> recentResponseTimesHelper;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointStatusViewModel"/> class
         /// </summary>
@@ -45,15 +79,15 @@ namespace Argus.Health.Pulse.ViewModels
         /// </param>
         public EndpointStatusViewModel(Guid identifier, string name, string url)
         {
-            Identifier = identifier;
-            Name = name;
-            Url = url;
+            this.Identifier = identifier;
+            this.Name = name;
+            this.Url = url;
 
-            isHealthyHelper = this.WhenAnyValue(x => x.StatusCode)
+            this.isHealthyHelper = this.WhenAnyValue(x => x.StatusCode)
                 .Select(code => code >= 200 && code < 300)
                 .ToProperty(this, x => x.IsHealthy);
 
-            statusDisplayHelper = this.WhenAnyValue(x => x.StatusCode, x => x.ErrorMessage)
+            this.statusDisplayHelper = this.WhenAnyValue(x => x.StatusCode, x => x.ErrorMessage)
                 .Select(t =>
                 {
                     if (t.Item1 == 0 && t.Item2 != null)
@@ -64,6 +98,13 @@ namespace Argus.Health.Pulse.ViewModels
                     return t.Item1 == 0 ? "Pending" : t.Item1.ToString();
                 })
                 .ToProperty(this, x => x.StatusDisplay);
+
+            this.recentResponseTimesHelper = this.WhenAnyValue(x => x.ResponseTimeMs)
+                .Select(_ => this.history
+                    .Skip(Math.Max(0, this.history.Count - SparklineSize))
+                    .Select(r => r.ResponseTimeMs)
+                    .ToList() as IReadOnlyList<long>)
+                .ToProperty(this, x => x.RecentResponseTimes);
         }
 
         /// <summary>
@@ -99,18 +140,49 @@ namespace Argus.Health.Pulse.ViewModels
         [Reactive]
         public partial string? ErrorMessage { get; set; }
 
-        private readonly ObservableAsPropertyHelper<bool> isHealthyHelper;
+        /// <summary>
+        /// Gets or sets the response time in milliseconds from the last health check
+        /// </summary>
+        [Reactive]
+        public partial long ResponseTimeMs { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether the endpoint is healthy (status code 200–299)
+        /// Gets a value indicating whether the endpoint is healthy (status code 200-299)
         /// </summary>
-        public bool IsHealthy => isHealthyHelper.Value;
-
-        private readonly ObservableAsPropertyHelper<string> statusDisplayHelper;
+        public bool IsHealthy => this.isHealthyHelper.Value;
 
         /// <summary>
         /// Gets the display text for the endpoint status
         /// </summary>
-        public string StatusDisplay => statusDisplayHelper.Value;
+        public string StatusDisplay => this.statusDisplayHelper.Value;
+
+        /// <summary>
+        /// Gets the most recent response times for sparkline display (last 20 values)
+        /// </summary>
+        public IReadOnlyList<long> RecentResponseTimes => this.recentResponseTimesHelper.Value;
+
+        /// <summary>
+        /// Gets the historical check results for this endpoint
+        /// </summary>
+        public IReadOnlyList<HealthEndPointCheckResult> History => this.history;
+
+        /// <summary>
+        /// Appends a check result to the history and updates reactive properties
+        /// </summary>
+        /// <param name="result">The <see cref="HealthEndPointCheckResult"/> to add</param>
+        public void AddCheckResult(HealthEndPointCheckResult result)
+        {
+            this.history.Add(result);
+
+            if (this.history.Count > MaxHistorySize)
+            {
+                this.history.RemoveAt(0);
+            }
+
+            this.StatusCode = result.StatusCode;
+            this.LastChecked = result.Timestamp;
+            this.ErrorMessage = result.ErrorMessage;
+            this.ResponseTimeMs = result.ResponseTimeMs;
+        }
     }
 }
