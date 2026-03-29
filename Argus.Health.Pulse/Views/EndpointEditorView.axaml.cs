@@ -58,13 +58,19 @@ namespace Argus.Health.Pulse.Views
                 this.Bind(this.ViewModel, vm => vm.Url, v => v.UrlTextBox.Text)
                     .DisposeWith(disposables);
 
-                this.Bind(this.ViewModel, vm => vm.Frequency, v => v.FrequencyUpDown.Value)
+                this.Bind(this.ViewModel, vm => vm.Frequency, v => v.FrequencyUpDown.Value,
+                        vmToViewConverter: value => value,
+                        viewToVmConverter: value => (int)(value ?? 0))
                     .DisposeWith(disposables);
 
-                this.Bind(this.ViewModel, vm => vm.Timeout, v => v.TimeoutUpDown.Value)
+                this.Bind(this.ViewModel, vm => vm.Timeout, v => v.TimeoutUpDown.Value,
+                        vmToViewConverter: value => value,
+                        viewToVmConverter: value => (int)(value ?? 0))
                     .DisposeWith(disposables);
 
-                this.Bind(this.ViewModel, vm => vm.RetryCount, v => v.RetryCountUpDown.Value)
+                this.Bind(this.ViewModel, vm => vm.RetryCount, v => v.RetryCountUpDown.Value,
+                        vmToViewConverter: value => value,
+                        viewToVmConverter: value => (int)(value ?? 0))
                     .DisposeWith(disposables);
 
                 this.Bind(this.ViewModel, vm => vm.IsActive, v => v.IsActiveCheckBox.IsChecked)
