@@ -43,7 +43,7 @@
             <!-- Currently Down (clickable) -->
             <Button x:Name="DownCardButton" Background="Transparent" Padding="0" BorderThickness="0" Cursor="Hand"
                     ToolTip.Tip="Click to filter endpoints to those currently down">
-                <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <Border x:Name="DownCardBorder" Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
                     <StackPanel Spacing="4">
                         <TextBlock Text="Down" FontSize="11" Foreground="#94a3b8" />
                         <TextBlock x:Name="EndpointsDownText" FontSize="24" FontWeight="Bold" Foreground="#ef4444" />
@@ -54,7 +54,7 @@
             <!-- Incidents 24h (clickable) -->
             <Button x:Name="IncidentsCardButton" Background="Transparent" Padding="0" BorderThickness="0" Cursor="Hand"
                     ToolTip.Tip="Click to view failed health checks in the last 24 hours">
-                <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                <Border x:Name="IncidentsCardBorder" Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
                     <StackPanel Spacing="4">
                         <TextBlock Text="Incidents (24h)" FontSize="11" Foreground="#94a3b8" />
                         <TextBlock x:Name="IncidentsText" FontSize="24" FontWeight="Bold" Foreground="#f59e0b" />

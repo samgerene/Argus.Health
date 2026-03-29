@@ -26,7 +26,10 @@ namespace Argus.Health.Pulse.Views
     using System.Reactive.Disposables.Fluent;
     using System.Reactive.Linq;
 
+    using Argus.Health.Pulse.Controls;
     using Argus.Health.Pulse.ViewModels;
+
+    using Avalonia;
 
     using ReactiveUI;
     using ReactiveUI.Avalonia;
@@ -71,6 +74,23 @@ namespace Argus.Health.Pulse.Views
                     .DisposeWith(disposables);
 
                 this.BindCommand(this.ViewModel, vm => vm.ShowIncidentsCommand, v => v.IncidentsCardButton)
+                    .DisposeWith(disposables);
+
+                // Card active highlight
+                this.OneWayBind(this.ViewModel, vm => vm.ActiveViewMode, v => v.DownCardBorder.BorderThickness,
+                        mode => mode == DashboardViewMode.DownOnly ? new Thickness(2) : new Thickness(0))
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ActiveViewMode, v => v.DownCardBorder.BorderBrush,
+                        mode => mode == DashboardViewMode.DownOnly ? DashboardColors.Red : null)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ActiveViewMode, v => v.IncidentsCardBorder.BorderThickness,
+                        mode => mode == DashboardViewMode.Incidents ? new Thickness(2) : new Thickness(0))
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ActiveViewMode, v => v.IncidentsCardBorder.BorderBrush,
+                        mode => mode == DashboardViewMode.Incidents ? DashboardColors.Amber : null)
                     .DisposeWith(disposables);
 
                 // Toggle buttons
