@@ -31,6 +31,7 @@ namespace Argus.Health.Service
     using ArgusTransfer.Extensions;
     using ArgusTransfer.Routing;
 
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -62,20 +63,9 @@ namespace Argus.Health.Service
 
             var builder = Host.CreateApplicationBuilder(args);
 
-            var logFolder = Path.Combine(ApplicationDataFolder, "logs");
-
-            Directory.CreateDirectory(logFolder);
-
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.Console()
-                .WriteTo.File(
-                    Path.Combine(logFolder, "argus-health-service-.log"),
-                    rollingInterval: RollingInterval.Day)
-                .Enrich.FromLogContext()
+                .ReadFrom.Configuration(builder.Configuration)
                 .CreateLogger();
-
-            Log.Debug("Log folder: {LogFolder}", logFolder);
 
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
@@ -97,12 +87,18 @@ namespace Argus.Health.Service
                 Environment.Exit(1);
             }
 
+            var argusHealthOptions = builder.Configuration
+                .GetSection("ArgusHealth")
+                .Get<ArgusHealthOptions>() ?? new ArgusHealthOptions();
+
+            builder.Services.Configure<ArgusHealthOptions>(builder.Configuration.GetSection("ArgusHealth"));
+
             builder.Services.AddHttpClient("ArgusHealth");
 
             builder.Services.AddArgusModules();
             builder.Services.AddArgusPipeHost(options =>
             {
-                options.PipeName = "ArgusHealth";
+                options.PipeName = argusHealthOptions.PipeName;
             });
 
             builder.Services.AddSingleton<IHealthEndPointRepository, HealthEndPointRepository>();
