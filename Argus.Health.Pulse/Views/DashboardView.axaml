@@ -190,6 +190,7 @@
                   CanUserResizeColumns="True"
                   CanUserReorderColumns="False">
             <DataGrid.Columns>
+                <DataGridTextColumn Header="Endpoint" Binding="{Binding EndpointName}" Width="180" />
                 <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Width="160" />
                 <DataGridTextColumn Header="Status" Binding="{Binding StatusCode}" Width="80" />
                 <DataGridTextColumn Header="Response" Binding="{Binding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" />

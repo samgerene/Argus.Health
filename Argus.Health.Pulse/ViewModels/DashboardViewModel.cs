@@ -109,7 +109,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// The <see cref="SourceList{T}"/> backing the incidents collection
         /// </summary>
-        private readonly SourceList<HealthEndPointCheckResult> incidentSource = new();
+        private readonly SourceList<IncidentItem> incidentSource = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DashboardViewModel"/> class
@@ -395,7 +395,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the collection of failed check results in the last 24 hours
         /// </summary>
-        public ReadOnlyObservableCollection<HealthEndPointCheckResult> IncidentResults { get; private set; } = null!;
+        public ReadOnlyObservableCollection<IncidentItem> IncidentResults { get; private set; } = null!;
 
         /// <summary>
         /// Gets a value indicating whether the endpoints grid is visible
@@ -442,8 +442,16 @@ namespace Argus.Health.Pulse.ViewModels
 
             var incidents = this.endpointCache.Items
                 .SelectMany(e => e.History
-                    .Where(r => r.Timestamp >= cutoff && (r.StatusCode < 200 || r.StatusCode >= 300)))
-                .OrderByDescending(r => r.Timestamp)
+                    .Where(r => r.Timestamp >= cutoff && (r.StatusCode < 200 || r.StatusCode >= 300))
+                    .Select(r => new IncidentItem
+                    {
+                        EndpointName = e.Name,
+                        Timestamp = r.Timestamp,
+                        StatusCode = r.StatusCode,
+                        ResponseTimeMs = r.ResponseTimeMs,
+                        ErrorMessage = r.ErrorMessage
+                    }))
+                .OrderByDescending(i => i.Timestamp)
                 .ToList();
 
             this.incidentSource.Edit(updater =>
