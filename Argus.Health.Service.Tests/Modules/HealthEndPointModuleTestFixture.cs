@@ -58,7 +58,8 @@ namespace Argus.Health.Service.Tests.Modules
             this.mockLogger = new Mock<ILogger<HealthEndPointModule>>();
             this.mockRepository = new Mock<IHealthEndPointRepository>();
 
-            this.module = new HealthEndPointModule(this.mockLogger.Object, this.mockRepository.Object);
+            var mockCheckResultRepository = new Mock<IHealthEndPointCheckResultRepository>();
+            this.module = new HealthEndPointModule(this.mockLogger.Object, this.mockRepository.Object, mockCheckResultRepository.Object);
         }
 
         [Test]

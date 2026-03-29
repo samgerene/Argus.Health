@@ -12,7 +12,7 @@
 
         <!-- Summary cards -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
-            <!-- Total Endpoints -->
+            <!-- statTotal Endpoints -->
             <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
                     ToolTip.Tip="Total number of health endpoints being monitored">
                 <StackPanel Spacing="4">
@@ -27,7 +27,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="Uptime (24h)" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="UptimePercentText" FontSize="24" FontWeight="Bold" Foreground="#22c55e" />
-                </StackPanel>
+                </StackPanel> 
             </Border>
 
             <!-- Avg Response Time -->

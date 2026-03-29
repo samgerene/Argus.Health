@@ -112,14 +112,15 @@ namespace Argus.Health.Service.Repository
 
                 var command = connection.CreateCommand();
                 command.CommandText = """
-                                      INSERT INTO HealthEndPointCheckResults (Identifier, Timestamp, StatusCode, ErrorMessage, HealthEndPoint)
-                                      VALUES ($identifier, $timestamp, $statusCode, $errorMessage, $healthEndPoint);
+                                      INSERT INTO HealthEndPointCheckResults (Identifier, Timestamp, StatusCode, ErrorMessage, ResponseTimeMs, HealthEndPoint)
+                                      VALUES ($identifier, $timestamp, $statusCode, $errorMessage, $responseTimeMs, $healthEndPoint);
                                       """;
 
                 command.Parameters.AddWithValue("$identifier", checkResult.Identifier.ToString());
                 command.Parameters.AddWithValue("$timestamp", checkResult.Timestamp.ToString("o", CultureInfo.InvariantCulture));
                 command.Parameters.AddWithValue("$statusCode", checkResult.StatusCode);
                 command.Parameters.AddWithValue("$errorMessage", (object?)checkResult.ErrorMessage ?? DBNull.Value);
+                command.Parameters.AddWithValue("$responseTimeMs", checkResult.ResponseTimeMs);
                 command.Parameters.AddWithValue("$healthEndPoint", checkResult.HealthEndPoint.ToString());
 
                 await command.ExecuteNonQueryAsync();
@@ -176,6 +177,7 @@ namespace Argus.Health.Service.Repository
                                                   Timestamp,
                                                   StatusCode,
                                                   ErrorMessage,
+                                                  ResponseTimeMs,
                                                   HealthEndPoint
                                               FROM HealthEndPointCheckResults
                                               WHERE HealthEndPoint = $healthEndPoint;
@@ -191,6 +193,7 @@ namespace Argus.Health.Service.Repository
                                                   Timestamp,
                                                   StatusCode,
                                                   ErrorMessage,
+                                                  ResponseTimeMs,
                                                   HealthEndPoint
                                               FROM HealthEndPointCheckResults;
                                           """;
@@ -205,7 +208,8 @@ namespace Argus.Health.Service.Repository
                         Timestamp = DateTime.Parse(reader.GetString(1), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
                         StatusCode = reader.GetInt32(2),
                         ErrorMessage = reader.IsDBNull(3) ? null : reader.GetString(3),
-                        HealthEndPoint = Guid.Parse(reader.GetString(4))
+                        ResponseTimeMs = reader.GetInt64(4),
+                        HealthEndPoint = Guid.Parse(reader.GetString(5))
                     };
 
                     list.Add(checkResult);

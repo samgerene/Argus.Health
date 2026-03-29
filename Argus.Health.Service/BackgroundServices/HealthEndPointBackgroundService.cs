@@ -22,6 +22,7 @@ namespace Argus.Health.Service.BackgroundServices
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
@@ -240,6 +241,8 @@ namespace Argus.Health.Service.BackgroundServices
                     HealthEndPoint = healthEndPoint.Identifier
                 };
 
+                var sw = Stopwatch.StartNew();
+
                 try
                 {
                     var response = await wrappedPolicies.ExecuteAsync(() =>
@@ -274,6 +277,9 @@ namespace Argus.Health.Service.BackgroundServices
 
                     this.logger.LogWarning(ex, "[{Name}] {Url} failed after retries", healthEndPoint.Name, healthEndPoint.Url);
                 }
+
+                sw.Stop();
+                checkResult.ResponseTimeMs = sw.ElapsedMilliseconds;
 
                 await this.healthEndPointCheckResultRepository.CreateAsync(checkResult);
 

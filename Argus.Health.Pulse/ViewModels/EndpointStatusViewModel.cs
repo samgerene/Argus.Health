@@ -186,5 +186,30 @@ namespace Argus.Health.Pulse.ViewModels
             this.ErrorMessage = result.ErrorMessage;
             this.ResponseTimeMs = result.ResponseTimeMs;
         }
+
+        /// <summary>
+        /// Adds a batch of historical check results to the history, triggering a single reactive update at the end
+        /// </summary>
+        /// <param name="results">The collection of <see cref="HealthEndPointCheckResult"/> instances to add</param>
+        public void AddCheckResults(IList<HealthEndPointCheckResult> results)
+        {
+            if (results.Count == 0)
+            {
+                return;
+            }
+
+            this.history.AddRange(results);
+
+            while (this.history.Count > MaxHistorySize)
+            {
+                this.history.RemoveAt(0);
+            }
+
+            var last = results[results.Count - 1];
+            this.StatusCode = last.StatusCode;
+            this.LastChecked = last.Timestamp;
+            this.ErrorMessage = last.ErrorMessage;
+            this.ResponseTimeMs = last.ResponseTimeMs;
+        }
     }
 }

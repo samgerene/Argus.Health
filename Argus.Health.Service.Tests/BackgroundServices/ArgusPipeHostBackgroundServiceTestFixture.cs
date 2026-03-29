@@ -64,7 +64,8 @@ namespace Argus.Health.Service.Tests.BackgroundServices
             this.mockModuleLogger = new Mock<ILogger<HealthEndPointModule>>();
             this.mockRepository = new Mock<IHealthEndPointRepository>();
 
-            var module = new HealthEndPointModule(this.mockModuleLogger.Object, this.mockRepository.Object);
+            var mockCheckResultRepository = new Mock<IHealthEndPointCheckResultRepository>();
+            var module = new HealthEndPointModule(this.mockModuleLogger.Object, this.mockRepository.Object, mockCheckResultRepository.Object);
             var router = new ArgusRouter();
             module.AddRoutes(router);
 

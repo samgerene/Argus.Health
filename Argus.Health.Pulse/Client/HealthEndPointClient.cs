@@ -277,5 +277,42 @@ namespace Argus.Health.Pulse.Client
                 throw new InvalidOperationException($"Server returned {response.StatusCode}");
             }
         }
+
+        /// <summary>
+        /// Retrieves historical health check results for a specific endpoint from the server
+        /// </summary>
+        /// <param name="endpointIdentifier">
+        /// The unique identifier of the endpoint to retrieve results for
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The <see cref="CancellationToken"/> used to signal cancellation
+        /// </param>
+        /// <returns>
+        /// An <see cref="IList{HealthEndPointCheckResult}"/> containing the check results
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the server returns a non-success status code
+        /// </exception>
+        public async Task<IList<HealthEndPointCheckResult>> GetCheckResultsAsync(Guid endpointIdentifier, CancellationToken cancellationToken = default)
+        {
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.GET,
+                Route = $"/healthendpoint/{endpointIdentifier.ToShortGuid()}/results"
+            };
+
+            this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
+
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+
+            if (response.StatusCode != ArgusStatusCode.Ok)
+            {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
+                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+            }
+
+            return HealthEndPointCheckResultReader.ReadArray(response.Body!);
+        }
     }
 }

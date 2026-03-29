@@ -52,6 +52,11 @@ namespace Argus.Health.Service.Modules
         private readonly IHealthEndPointRepository healthEndPointRepository;
 
         /// <summary>
+        /// The <see cref="IHealthEndPointCheckResultRepository"/> used for reading check results
+        /// </summary>
+        private readonly IHealthEndPointCheckResultRepository healthEndPointCheckResultRepository;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="HealthEndPointModule"/> class
         /// </summary>
         /// <param name="logger">
@@ -60,10 +65,14 @@ namespace Argus.Health.Service.Modules
         /// <param name="healthEndPointRepository">
         /// The <see cref="IHealthEndPointRepository"/> used for CRUD operations
         /// </param>
-        public HealthEndPointModule(ILogger<HealthEndPointModule> logger, IHealthEndPointRepository healthEndPointRepository)
+        /// <param name="healthEndPointCheckResultRepository">
+        /// The <see cref="IHealthEndPointCheckResultRepository"/> used for reading check results
+        /// </param>
+        public HealthEndPointModule(ILogger<HealthEndPointModule> logger, IHealthEndPointRepository healthEndPointRepository, IHealthEndPointCheckResultRepository healthEndPointCheckResultRepository)
         {
             this.logger = logger;
             this.healthEndPointRepository = healthEndPointRepository;
+            this.healthEndPointCheckResultRepository = healthEndPointCheckResultRepository;
         }
 
         /// <summary>
@@ -81,6 +90,7 @@ namespace Argus.Health.Service.Modules
             app.MapPost("/healthendpoint", this.HandleCreateAsync);
             app.MapPut("/healthendpoint/{identifier:ShortGuid}", this.HandleUpdateAsync);
             app.MapDelete("/healthendpoint/{identifier:ShortGuid}", this.HandleDeleteAsync);
+            app.MapGet("/healthendpoint/{identifier:ShortGuid}/results", this.HandleGetResultsAsync);
 
             this.logger.LogDebug("HealthEndPoint routes registered");
         }
@@ -371,6 +381,51 @@ namespace Argus.Health.Service.Modules
                 CorrelationToken = request.CorrelationToken,
                 StatusCode = ArgusStatusCode.InternalServerError
             };
+        }
+
+        /// <summary>
+        /// Handles a GET request to retrieve health check results for a specific endpoint
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="ArgusContext"/> containing the request and route values
+        /// </param>
+        internal async Task HandleGetResultsAsync(ArgusContext context)
+        {
+            var sw = Stopwatch.StartNew();
+
+            this.logger.LogDebug("Starting to read HealthEndPointCheckResults for a specific endpoint");
+
+            var request = context.Request;
+            var routeValues = context.RouteValues;
+
+            var identifier = routeValues["identifier"].FromShortGuid();
+
+            try
+            {
+                var results = await this.healthEndPointCheckResultRepository.ReadAsync(identifier);
+
+                sw.Stop();
+
+                this.logger.LogInformation("Retrieved {Count} check result(s) for endpoint {Identifier} in {ElapsedMs}ms",
+                    results.Count, identifier, sw.ElapsedMilliseconds);
+
+                context.Response = new ArgusResponse
+                {
+                    CorrelationToken = request.CorrelationToken,
+                    StatusCode = ArgusStatusCode.Ok,
+                    Body = HealthEndPointCheckResultWriter.WriteArray(results)
+                };
+            }
+            catch (System.Data.DataException ex)
+            {
+                this.logger.LogError(ex, "Failed to read check results for endpoint {Identifier}", identifier);
+
+                context.Response = new ArgusResponse
+                {
+                    CorrelationToken = request.CorrelationToken,
+                    StatusCode = ArgusStatusCode.InternalServerError
+                };
+            }
         }
     }
 }

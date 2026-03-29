@@ -21,11 +21,14 @@
 namespace Argus.Health.Pulse.ViewModels
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
+    using System.Threading.Tasks;
 
+    using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
     using DynamicData;
@@ -45,6 +48,16 @@ namespace Argus.Health.Pulse.ViewModels
         /// The <see cref="ILogger{DashboardViewModel}"/> used for logging
         /// </summary>
         private readonly ILogger<DashboardViewModel> logger;
+
+        /// <summary>
+        /// The <see cref="HealthEndPointClient"/> used to fetch historical check results
+        /// </summary>
+        private readonly HealthEndPointClient client;
+
+        /// <summary>
+        /// Tracks which endpoints have had their history bootstrapped from the service database
+        /// </summary>
+        private readonly HashSet<Guid> bootstrappedEndpoints = new();
 
         /// <summary>
         /// The <see cref="SourceCache{TObject,TKey}"/> backing the endpoint status collection
@@ -84,6 +97,9 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="DashboardViewModel"/> class
         /// </summary>
+        /// <param name="client">
+        /// The <see cref="HealthEndPointClient"/> used to fetch historical check results
+        /// </param>
         /// <param name="syncService">
         /// The <see cref="IEndpointSyncService"/> used to poll endpoints
         /// </param>
@@ -93,9 +109,10 @@ namespace Argus.Health.Pulse.ViewModels
         /// <param name="logger">
         /// The <see cref="ILogger{DashboardViewModel}"/> used for logging
         /// </param>
-        public DashboardViewModel(IEndpointSyncService syncService, IHealthCheckService healthCheckService, ILogger<DashboardViewModel> logger)
+        public DashboardViewModel(HealthEndPointClient client, IEndpointSyncService syncService, IHealthCheckService healthCheckService, ILogger<DashboardViewModel> logger)
         {
             this.logger = logger;
+            this.client = client;
 
             var bindSubscription = this.endpointCache
                 .Connect()
@@ -122,6 +139,8 @@ namespace Argus.Health.Pulse.ViewModels
 
                             var added = 0;
 
+                            var toBootstrap = new List<EndpointStatusViewModel>();
+
                             foreach (var ep in incomingEndpoints)
                             {
                                 var existing = updater.Lookup(ep.Identifier);
@@ -133,12 +152,19 @@ namespace Argus.Health.Pulse.ViewModels
                                 }
                                 else
                                 {
-                                    updater.AddOrUpdate(new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url));
+                                    var row = new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url);
+                                    updater.AddOrUpdate(row);
+                                    toBootstrap.Add(row);
                                     added++;
                                 }
                             }
 
                             this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, staleKeys.Count, updater.Count);
+
+                            if (toBootstrap.Count > 0)
+                            {
+                                _ = this.BootstrapHistoryAsync(toBootstrap);
+                            }
                         });
                     },
                     ex => this.logger.LogError(ex, "EndpointsObservable subscription error"));
@@ -293,6 +319,41 @@ namespace Argus.Health.Pulse.ViewModels
             this.SelectedDetail?.Dispose();
             this.disposables.Dispose();
             this.endpointCache.Dispose();
+        }
+
+        /// <summary>
+        /// Fetches historical check results from the service for newly added endpoints
+        /// and populates their history
+        /// </summary>
+        /// <param name="endpoints">
+        /// The endpoint view models to bootstrap with historical data
+        /// </param>
+        private async Task BootstrapHistoryAsync(List<EndpointStatusViewModel> endpoints)
+        {
+            foreach (var row in endpoints)
+            {
+                if (this.bootstrappedEndpoints.Contains(row.Identifier))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var results = await this.client.GetCheckResultsAsync(row.Identifier);
+
+                    if (results.Count > 0)
+                    {
+                        row.AddCheckResults(results);
+                        this.logger.LogDebug("Bootstrapped {Count} historical result(s) for {EndpointName}", results.Count, row.Name);
+                    }
+
+                    this.bootstrappedEndpoints.Add(row.Identifier);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogWarning(ex, "Failed to bootstrap history for {EndpointName}", row.Name);
+                }
+            }
         }
     }
 }

@@ -466,6 +466,7 @@ namespace Argus.Health.Service.Repository
                         Timestamp TEXT NOT NULL,
                         StatusCode INTEGER NOT NULL,
                         ErrorMessage TEXT,
+                        ResponseTimeMs INTEGER NOT NULL DEFAULT 0,
                         HealthEndPoint TEXT NOT NULL,
                         FOREIGN KEY (HealthEndPoint) REFERENCES HealthEndpoints(Identifier)
                     );
