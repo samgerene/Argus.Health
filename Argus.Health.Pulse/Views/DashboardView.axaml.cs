@@ -66,6 +66,27 @@ namespace Argus.Health.Pulse.Views
                         value => value.ToString(CultureInfo.CurrentCulture))
                     .DisposeWith(disposables);
 
+                // Card commands
+                this.BindCommand(this.ViewModel, vm => vm.ShowDownEndpointsCommand, v => v.DownCardButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.ShowIncidentsCommand, v => v.IncidentsCardButton)
+                    .DisposeWith(disposables);
+
+                // Toggle buttons
+                this.BindCommand(this.ViewModel, vm => vm.ShowAllEndpointsCommand, v => v.ShowEndpointsButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.ShowIncidentsCommand, v => v.ShowIncidentsButton)
+                    .DisposeWith(disposables);
+
+                // Grid visibility
+                this.OneWayBind(this.ViewModel, vm => vm.IsEndpointsView, v => v.EndpointsGrid.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsIncidentsView, v => v.IncidentsGrid.IsVisible)
+                    .DisposeWith(disposables);
+
                 // Detail panel visibility
                 this.OneWayBind(this.ViewModel, vm => vm.SelectedDetail, v => v.DetailPanel.IsVisible,
                         detail => detail != null)

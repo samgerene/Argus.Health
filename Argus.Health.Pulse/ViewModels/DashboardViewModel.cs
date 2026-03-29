@@ -24,10 +24,12 @@ namespace Argus.Health.Pulse.ViewModels
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
+    using System.Reactive;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
     using System.Threading.Tasks;
 
+    using Argus.Health.Common.Model;
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
@@ -93,6 +95,21 @@ namespace Argus.Health.Pulse.ViewModels
         /// Helper for <see cref="IncidentsLast24Hours"/>
         /// </summary>
         private readonly ObservableAsPropertyHelper<int> incidentsLast24HoursHelper;
+
+        /// <summary>
+        /// Helper for <see cref="IsEndpointsView"/>
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<bool> isEndpointsViewHelper;
+
+        /// <summary>
+        /// Helper for <see cref="IsIncidentsView"/>
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<bool> isIncidentsViewHelper;
+
+        /// <summary>
+        /// The <see cref="SourceList{T}"/> backing the incidents collection
+        /// </summary>
+        private readonly SourceList<HealthEndPointCheckResult> incidentSource = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DashboardViewModel"/> class
@@ -267,6 +284,59 @@ namespace Argus.Health.Pulse.ViewModels
                 });
 
             this.disposables.Add(selectionSubscription);
+
+            // Filtered endpoints: re-filter when ActiveViewMode changes
+            var filterPredicate = this.WhenAnyValue(x => x.ActiveViewMode)
+                .Select<DashboardViewMode, Func<EndpointStatusViewModel, bool>>(mode => mode switch
+                {
+                    DashboardViewMode.DownOnly => e => !e.IsHealthy && e.StatusCode != 0,
+                    _ => _ => true
+                });
+
+            var filteredSubscription = this.endpointCache
+                .Connect()
+                .AutoRefresh(x => x.StatusCode)
+                .Filter(filterPredicate)
+                .ObserveOn(AvaloniaScheduler.Instance)
+                .Bind(out var filteredEndpoints)
+                .Subscribe();
+
+            this.disposables.Add(filteredSubscription);
+            this.FilteredEndpoints = filteredEndpoints;
+
+            // Incidents list
+            var incidentBindSubscription = this.incidentSource
+                .Connect()
+                .ObserveOn(AvaloniaScheduler.Instance)
+                .Bind(out var incidentResults)
+                .Subscribe();
+
+            this.disposables.Add(incidentBindSubscription);
+            this.IncidentResults = incidentResults;
+
+            // Refresh incidents when switching to incidents view or when new results arrive
+            var incidentRefreshSubscription = this.WhenAnyValue(x => x.ActiveViewMode)
+                .Where(mode => mode == DashboardViewMode.Incidents)
+                .Subscribe(_ => this.RefreshIncidents());
+
+            this.disposables.Add(incidentRefreshSubscription);
+
+            // View mode helpers
+            this.isEndpointsViewHelper = this.WhenAnyValue(x => x.ActiveViewMode)
+                .Select(mode => mode != DashboardViewMode.Incidents)
+                .ToProperty(this, x => x.IsEndpointsView);
+
+            this.isIncidentsViewHelper = this.WhenAnyValue(x => x.ActiveViewMode)
+                .Select(mode => mode == DashboardViewMode.Incidents)
+                .ToProperty(this, x => x.IsIncidentsView);
+
+            this.disposables.Add(this.isEndpointsViewHelper);
+            this.disposables.Add(this.isIncidentsViewHelper);
+
+            // Commands
+            this.ShowAllEndpointsCommand = ReactiveCommand.Create(() => this.ActiveViewMode = DashboardViewMode.AllEndpoints);
+            this.ShowDownEndpointsCommand = ReactiveCommand.Create(() => this.ActiveViewMode = DashboardViewMode.DownOnly);
+            this.ShowIncidentsCommand = ReactiveCommand.Create(() => this.ActiveViewMode = DashboardViewMode.Incidents);
         }
 
         /// <summary>
@@ -312,6 +382,47 @@ namespace Argus.Health.Pulse.ViewModels
         public int IncidentsLast24Hours => this.incidentsLast24HoursHelper.Value;
 
         /// <summary>
+        /// Gets or sets the active view mode (all endpoints, down only, or incidents)
+        /// </summary>
+        [Reactive]
+        public partial DashboardViewMode ActiveViewMode { get; set; }
+
+        /// <summary>
+        /// Gets the filtered endpoint collection based on the active view mode
+        /// </summary>
+        public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets the collection of failed check results in the last 24 hours
+        /// </summary>
+        public ReadOnlyObservableCollection<HealthEndPointCheckResult> IncidentResults { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets a value indicating whether the endpoints grid is visible
+        /// </summary>
+        public bool IsEndpointsView => this.isEndpointsViewHelper.Value;
+
+        /// <summary>
+        /// Gets a value indicating whether the incidents list is visible
+        /// </summary>
+        public bool IsIncidentsView => this.isIncidentsViewHelper.Value;
+
+        /// <summary>
+        /// Gets the command to show all endpoints
+        /// </summary>
+        public ReactiveCommand<Unit, DashboardViewMode> ShowAllEndpointsCommand { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets the command to filter to down endpoints only
+        /// </summary>
+        public ReactiveCommand<Unit, DashboardViewMode> ShowDownEndpointsCommand { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets the command to switch to the incidents view
+        /// </summary>
+        public ReactiveCommand<Unit, DashboardViewMode> ShowIncidentsCommand { get; private set; } = null!;
+
+        /// <summary>
         /// Disposes managed resources
         /// </summary>
         public void Dispose()
@@ -319,6 +430,27 @@ namespace Argus.Health.Pulse.ViewModels
             this.SelectedDetail?.Dispose();
             this.disposables.Dispose();
             this.endpointCache.Dispose();
+            this.incidentSource.Dispose();
+        }
+
+        /// <summary>
+        /// Rebuilds the incidents list from all endpoint histories (last 24h, non-2xx)
+        /// </summary>
+        private void RefreshIncidents()
+        {
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+
+            var incidents = this.endpointCache.Items
+                .SelectMany(e => e.History
+                    .Where(r => r.Timestamp >= cutoff && (r.StatusCode < 200 || r.StatusCode >= 300)))
+                .OrderByDescending(r => r.Timestamp)
+                .ToList();
+
+            this.incidentSource.Edit(updater =>
+            {
+                updater.Clear();
+                updater.AddRange(incidents);
+            });
         }
 
         /// <summary>

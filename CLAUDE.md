@@ -92,6 +92,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 ## Git Conventions
 
 - **No co-author trailer**: Do not add a `Co-Authored-By` line for Claude in commit messages.
+- **Commit summary on completion**: After implementing a feature or fix, return a concise description of the changes suitable for use as a git commit message. Use the format `[Type] short summary` where Type is one of: Add, Update, Fix, Refactor, Remove. Keep it under two sentences.
 
 ## Code Conventions
 

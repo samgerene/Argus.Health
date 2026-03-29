@@ -1,6 +1,7 @@
 <reactiveui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Argus.Health.Pulse.ViewModels"
+             xmlns:model="using:Argus.Health.Common.Model"
              xmlns:controls="using:Argus.Health.Pulse.Controls"
              xmlns:reactiveui="using:ReactiveUI.Avalonia"
              x:TypeArguments="vm:DashboardViewModel"
@@ -12,7 +13,7 @@
 
         <!-- Summary cards -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
-            <!-- statTotal Endpoints -->
+            <!-- Total Endpoints -->
             <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
                     ToolTip.Tip="Total number of health endpoints being monitored">
                 <StackPanel Spacing="4">
@@ -27,7 +28,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="Uptime (24h)" FontSize="11" Foreground="#94a3b8" />
                     <TextBlock x:Name="UptimePercentText" FontSize="24" FontWeight="Bold" Foreground="#22c55e" />
-                </StackPanel> 
+                </StackPanel>
             </Border>
 
             <!-- Avg Response Time -->
@@ -39,23 +40,33 @@
                 </StackPanel>
             </Border>
 
-            <!-- Currently Down -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
-                    ToolTip.Tip="Number of endpoints currently returning non-successful status codes">
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Down" FontSize="11" Foreground="#94a3b8" />
-                    <TextBlock x:Name="EndpointsDownText" FontSize="24" FontWeight="Bold" Foreground="#ef4444" />
-                </StackPanel>
-            </Border>
+            <!-- Currently Down (clickable) -->
+            <Button x:Name="DownCardButton" Background="Transparent" Padding="0" BorderThickness="0" Cursor="Hand"
+                    ToolTip.Tip="Click to filter endpoints to those currently down">
+                <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Down" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="EndpointsDownText" FontSize="24" FontWeight="Bold" Foreground="#ef4444" />
+                    </StackPanel>
+                </Border>
+            </Button>
 
-            <!-- Incidents 24h -->
-            <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140"
-                    ToolTip.Tip="Total number of failed health checks across all endpoints in the last 24 hours">
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Incidents (24h)" FontSize="11" Foreground="#94a3b8" />
-                    <TextBlock x:Name="IncidentsText" FontSize="24" FontWeight="Bold" Foreground="#f59e0b" />
-                </StackPanel>
-            </Border>
+            <!-- Incidents 24h (clickable) -->
+            <Button x:Name="IncidentsCardButton" Background="Transparent" Padding="0" BorderThickness="0" Cursor="Hand"
+                    ToolTip.Tip="Click to view failed health checks in the last 24 hours">
+                <Border Background="#1e293b" CornerRadius="8" Padding="16,12" MinWidth="140">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Incidents (24h)" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="IncidentsText" FontSize="24" FontWeight="Bold" Foreground="#f59e0b" />
+                    </StackPanel>
+                </Border>
+            </Button>
+        </StackPanel>
+
+        <!-- View toggle -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
+            <Button x:Name="ShowEndpointsButton" Content="Endpoints" Padding="12,4" FontSize="12" />
+            <Button x:Name="ShowIncidentsButton" Content="Incidents" Padding="12,4" FontSize="12" />
         </StackPanel>
 
         <!-- Detail panel (bottom, shown when an endpoint is selected) -->
@@ -131,9 +142,9 @@
             </Grid>
         </Border>
 
-        <!-- Enhanced DataGrid -->
+        <!-- Endpoints DataGrid -->
         <DataGrid x:Name="EndpointsGrid"
-                  ItemsSource="{Binding Endpoints}"
+                  ItemsSource="{Binding FilteredEndpoints}"
                   SelectedItem="{Binding SelectedEndpoint}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
@@ -167,6 +178,22 @@
                 <DataGridTextColumn Header="Response" Binding="{Binding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" />
                 <DataGridTextColumn Header="Last Checked" Binding="{Binding LastChecked, StringFormat='{}{0:HH:mm:ss}'}" Width="100" />
                 <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="200" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Incidents DataGrid -->
+        <DataGrid x:Name="IncidentsGrid"
+                  ItemsSource="{Binding IncidentResults}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  CanUserResizeColumns="True"
+                  CanUserReorderColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Width="160" />
+                <DataGridTextColumn Header="Status" Binding="{Binding StatusCode}" Width="80" />
+                <DataGridTextColumn Header="Response" Binding="{Binding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" />
+                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>
