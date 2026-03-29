@@ -2,7 +2,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Argus.Health.Pulse.ViewModels"
         xmlns:views="using:Argus.Health.Pulse.Views"
-        xmlns:converters="using:Argus.Health.Pulse.Converters"
         xmlns:reactiveui="using:ReactiveUI.Avalonia"
         x:TypeArguments="vm:MainWindowViewModel"
         x:Class="Argus.Health.Pulse.Views.MainWindow"
@@ -12,54 +11,44 @@
         MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterScreen">
 
-    <Window.Resources>
-        <converters:BoolToSyncButtonTextConverter x:Key="BoolToSyncButtonTextConverter" />
-    </Window.Resources>
-
     <Panel>
         <DockPanel>
             <!-- Sidebar -->
             <StackPanel DockPanel.Dock="Left" Width="180" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}" Spacing="4" Margin="0,8">
                 <TextBlock Text="Argus Health Pulse" FontWeight="Bold" FontSize="14" Margin="12,8,12,16" />
-                <Button Content="Dashboard" Command="{Binding GoToDashboardCommand}" HorizontalAlignment="Stretch" Margin="8,0" />
-                <Button Content="Endpoints" Command="{Binding GoToEndpointsCommand}" HorizontalAlignment="Stretch" Margin="8,0" />
+                <Button x:Name="DashboardButton" Content="Dashboard" HorizontalAlignment="Stretch" Margin="8,0" />
+                <Button x:Name="EndpointsButton" Content="Endpoints" HorizontalAlignment="Stretch" Margin="8,0" />
 
                 <!-- Connection status indicators -->
-                <Border Background="#FF9800" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
-                        IsVisible="{Binding IsConnecting}">
+                <Border x:Name="ConnectingBorder" Background="#FF9800" CornerRadius="4" Margin="8,16,8,0" Padding="8,6">
                     <TextBlock Text="Connecting..." Foreground="White" FontSize="12"
                                HorizontalAlignment="Center" TextAlignment="Center" />
                 </Border>
 
-                <Border Background="#4CAF50" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
-                        IsVisible="{Binding IsConnected}">
+                <Border x:Name="ConnectedBorder" Background="#4CAF50" CornerRadius="4" Margin="8,16,8,0" Padding="8,6">
                     <TextBlock Text="Service connected" Foreground="White" FontSize="12"
                                HorizontalAlignment="Center" TextAlignment="Center" />
                 </Border>
 
-                <Border Background="#FF9800" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
-                        IsVisible="{Binding IsConnectionDegraded}">
+                <Border x:Name="DegradedBorder" Background="#FF9800" CornerRadius="4" Margin="8,16,8,0" Padding="8,6">
                     <TextBlock Text="Connection unstable" Foreground="White" FontSize="12"
                                HorizontalAlignment="Center" TextAlignment="Center" />
                 </Border>
 
-                <Border Background="#D32F2F" CornerRadius="4" Margin="8,16,8,0" Padding="8,6"
-                        IsVisible="{Binding IsConnectionError}">
+                <Border x:Name="ErrorBorder" Background="#D32F2F" CornerRadius="4" Margin="8,16,8,0" Padding="8,6">
                     <TextBlock Text="Service unavailable" Foreground="White" FontSize="12"
                                HorizontalAlignment="Center" TextAlignment="Center" />
                 </Border>
 
                 <!-- Sync toggle button -->
-                <Button Content="{Binding IsSyncRunning, Converter={StaticResource BoolToSyncButtonTextConverter}}"
-                        Command="{Binding ToggleSyncCommand}"
+                <Button x:Name="SyncButton"
                         HorizontalAlignment="Stretch" Margin="8,8" />
             </StackPanel>
 
             <!-- Content area -->
             <DockPanel>
-                <ProgressBar DockPanel.Dock="Top"
+                <ProgressBar x:Name="SyncProgressBar" DockPanel.Dock="Top"
                              Minimum="0" Maximum="100"
-                             Value="{Binding SyncProgress}"
                              Height="3"
                              Margin="16,16,16,0"
                              Foreground="#4CAF50"
@@ -70,12 +59,12 @@
                         </Style>
                     </ProgressBar.Styles>
                 </ProgressBar>
-                <reactiveui:ViewModelViewHost ViewModel="{Binding CurrentView}" Margin="16" />
+                <reactiveui:ViewModelViewHost x:Name="ContentHost" Margin="16" />
             </DockPanel>
         </DockPanel>
 
         <!-- Toast notification overlay -->
-        <views:NotificationOverlay DataContext="{Binding}"
+        <views:NotificationOverlay x:Name="NotificationOverlayControl"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Bottom"
                                    Margin="0,0,16,16" />

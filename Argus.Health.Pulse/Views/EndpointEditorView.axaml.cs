@@ -20,8 +20,12 @@
 
 namespace Argus.Health.Pulse.Views
 {
+    using System.Reactive.Disposables;
+    using System.Reactive.Disposables.Fluent;
+
     using Argus.Health.Pulse.ViewModels;
 
+    using ReactiveUI;
     using ReactiveUI.Avalonia;
 
     /// <summary>
@@ -34,7 +38,44 @@ namespace Argus.Health.Pulse.Views
         /// </summary>
         public EndpointEditorView()
         {
-            InitializeComponent();
+            this.InitializeComponent();
+
+            this.WhenActivated(disposables =>
+            {
+                this.OneWayBind(this.ViewModel, vm => vm.Title, v => v.TitleText.Text)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ErrorMessage, v => v.ErrorMessageText.Text)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ErrorMessage, v => v.ErrorMessageText.IsVisible,
+                        message => !string.IsNullOrEmpty(message))
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.Name, v => v.NameTextBox.Text)
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.Url, v => v.UrlTextBox.Text)
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.Frequency, v => v.FrequencyUpDown.Value)
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.Timeout, v => v.TimeoutUpDown.Value)
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.RetryCount, v => v.RetryCountUpDown.Value)
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.IsActive, v => v.IsActiveCheckBox.IsChecked)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.SaveCommand, v => v.SaveButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.CancelCommand, v => v.CancelButton)
+                    .DisposeWith(disposables);
+            });
         }
     }
 }

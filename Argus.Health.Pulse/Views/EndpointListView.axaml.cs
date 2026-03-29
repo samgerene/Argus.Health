@@ -20,8 +20,13 @@
 
 namespace Argus.Health.Pulse.Views
 {
+    using System;
+    using System.Reactive.Disposables;
+    using System.Reactive.Disposables.Fluent;
+
     using Argus.Health.Pulse.ViewModels;
 
+    using ReactiveUI;
     using ReactiveUI.Avalonia;
 
     /// <summary>
@@ -34,7 +39,49 @@ namespace Argus.Health.Pulse.Views
         /// </summary>
         public EndpointListView()
         {
-            InitializeComponent();
+            this.InitializeComponent();
+
+            this.WhenActivated(disposables =>
+            {
+                this.BindCommand(this.ViewModel, vm => vm.AddCommand, v => v.AddButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.RefreshCommand, v => v.RefreshButton)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ErrorMessage, v => v.ErrorMessageText.Text)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.ErrorMessage, v => v.ErrorMessageText.IsVisible,
+                        message => !string.IsNullOrEmpty(message))
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.HasEndpoints, v => v.EmptyStateText.IsVisible,
+                        has => !has)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.Endpoints, v => v.EndpointsGrid.ItemsSource)
+                    .DisposeWith(disposables);
+
+                this.Bind(this.ViewModel, vm => vm.SelectedEndpoint, v => v.EndpointsGrid.SelectedItem)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.HasEndpoints, v => v.EndpointsGrid.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsDeleteConfirmationVisible, v => v.DeleteOverlay.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.WhenAnyValue(v => v.ViewModel!.PendingDeleteEndpoint)
+                    .Subscribe(endpoint => this.PendingDeleteNameRun.Text = endpoint?.Name ?? string.Empty)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.CancelDeleteCommand, v => v.CancelDeleteButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.ConfirmDeleteCommand, v => v.ConfirmDeleteButton)
+                    .DisposeWith(disposables);
+            });
         }
     }
 }

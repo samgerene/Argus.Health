@@ -13,32 +13,28 @@
 
             <!-- Toolbar -->
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-                <Button Content="Add" Command="{Binding AddCommand}" />
-                <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+                <Button x:Name="AddButton" Content="Add" />
+                <Button x:Name="RefreshButton" Content="Refresh" />
             </StackPanel>
 
             <!-- Error message -->
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" DockPanel.Dock="Top"
-                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+            <TextBlock x:Name="ErrorMessageText" Foreground="Red" DockPanel.Dock="Top"
                        Margin="0,0,0,8" />
 
             <!-- Empty state -->
-            <TextBlock Text="No endpoints defined yet. Click 'Add' to create one."
+            <TextBlock x:Name="EmptyStateText" Text="No endpoints defined yet. Click 'Add' to create one."
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        Opacity="0.6" FontSize="14"
-                       IsVisible="{Binding !HasEndpoints}"
                        DockPanel.Dock="Top" Margin="0,24,0,0" />
 
             <!-- Endpoint list -->
-            <DataGrid ItemsSource="{Binding Endpoints}"
-                      SelectedItem="{Binding SelectedEndpoint}"
+            <DataGrid x:Name="EndpointsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       GridLinesVisibility="Horizontal"
                       CanUserResizeColumns="True"
                       CanUserReorderColumns="False"
-                      SelectionMode="Single"
-                      IsVisible="{Binding HasEndpoints}">
+                      SelectionMode="Single">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200" />
                     <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="300" />
@@ -65,18 +61,18 @@
         </DockPanel>
 
         <!-- Delete confirmation overlay -->
-        <Border Background="#80000000" IsVisible="{Binding IsDeleteConfirmationVisible}">
+        <Border x:Name="DeleteOverlay" Background="#80000000">
             <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
                     CornerRadius="8" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center"
                     MaxWidth="400">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Confirm Delete" FontSize="18" FontWeight="Bold" />
                     <TextBlock TextWrapping="Wrap">
-                        <Run Text="Are you sure you want to delete endpoint '" /><Run Text="{Binding PendingDeleteEndpoint.Name}" /><Run Text="'?" />
+                        <Run Text="Are you sure you want to delete endpoint '" /><Run x:Name="PendingDeleteNameRun" /><Run Text="'?" />
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                        <Button Content="Cancel" Command="{Binding CancelDeleteCommand}" />
-                        <Button Content="Delete" Command="{Binding ConfirmDeleteCommand}" Classes="danger" />
+                        <Button x:Name="CancelDeleteButton" Content="Cancel" />
+                        <Button x:Name="ConfirmDeleteButton" Content="Delete" Classes="danger" />
                     </StackPanel>
                 </StackPanel>
             </Border>

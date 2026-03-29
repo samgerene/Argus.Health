@@ -20,8 +20,12 @@
 
 namespace Argus.Health.Pulse.Views
 {
+    using System.Reactive.Disposables;
+    using System.Reactive.Disposables.Fluent;
+
     using Argus.Health.Pulse.ViewModels;
 
+    using ReactiveUI;
     using ReactiveUI.Avalonia;
 
     /// <summary>
@@ -34,7 +38,13 @@ namespace Argus.Health.Pulse.Views
         /// </summary>
         public NotificationOverlay()
         {
-            InitializeComponent();
+            this.InitializeComponent();
+
+            this.WhenActivated(disposables =>
+            {
+                this.OneWayBind(this.ViewModel, vm => vm.Notifications, v => v.NotificationsItemsControl.ItemsSource)
+                    .DisposeWith(disposables);
+            });
         }
     }
 }

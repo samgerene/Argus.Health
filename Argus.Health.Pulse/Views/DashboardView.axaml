@@ -9,7 +9,7 @@
     <DockPanel>
         <TextBlock Text="Dashboard" FontSize="20" FontWeight="Bold" DockPanel.Dock="Top" Margin="0,0,0,16" />
 
-        <DataGrid ItemsSource="{Binding Endpoints}"
+        <DataGrid x:Name="EndpointsGrid"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   GridLinesVisibility="Horizontal"

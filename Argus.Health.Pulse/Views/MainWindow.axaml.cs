@@ -20,8 +20,12 @@
 
 namespace Argus.Health.Pulse.Views
 {
+    using System.Reactive.Disposables;
+    using System.Reactive.Disposables.Fluent;
+
     using Argus.Health.Pulse.ViewModels;
 
+    using ReactiveUI;
     using ReactiveUI.Avalonia;
 
     /// <summary>
@@ -34,7 +38,41 @@ namespace Argus.Health.Pulse.Views
         /// </summary>
         public MainWindow()
         {
-            InitializeComponent();
+            this.InitializeComponent();
+
+            this.WhenActivated(disposables =>
+            {
+                this.BindCommand(this.ViewModel, vm => vm.GoToDashboardCommand, v => v.DashboardButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.GoToEndpointsCommand, v => v.EndpointsButton)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsConnecting, v => v.ConnectingBorder.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsConnected, v => v.ConnectedBorder.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsConnectionDegraded, v => v.DegradedBorder.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsConnectionError, v => v.ErrorBorder.IsVisible)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.IsSyncRunning, v => v.SyncButton.Content,
+                        isRunning => isRunning ? "Stop Sync" : "Start Sync")
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.ToggleSyncCommand, v => v.SyncButton)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.SyncProgress, v => v.SyncProgressBar.Value)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(this.ViewModel, vm => vm.CurrentView, v => v.ContentHost.ViewModel)
+                    .DisposeWith(disposables);
+            });
         }
     }
 }
