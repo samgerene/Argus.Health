@@ -20,6 +20,7 @@
 
 namespace Argus.Health.Service.Modules
 {
+    using System;
     using System.Data;
     using System.Diagnostics;
     using System.Linq;

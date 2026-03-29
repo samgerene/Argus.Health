@@ -26,7 +26,7 @@ namespace Argus.Health.Pulse.Services
     using Argus.Health.Common.Model;
 
     /// <summary>
-    /// Performs HTTP health checks against endpoints, mirroring the service's background service
+    /// Polls the Argus Health service for recent health check results via IPC
     /// </summary>
     public interface IHealthCheckService : IDisposable
     {
@@ -41,9 +41,21 @@ namespace Argus.Health.Pulse.Services
         IObservable<HealthEndPointCheckResult> FailureObservable { get; }
 
         /// <summary>
-        /// Diffs the provided endpoints against currently running monitors
-        /// and starts/stops as needed
+        /// Starts polling the service for recent check results
         /// </summary>
-        void UpdateEndpoints(IList<HealthEndPoint> endpoints);
+        void Start();
+
+        /// <summary>
+        /// Stops polling
+        /// </summary>
+        void Stop();
+
+        /// <summary>
+        /// Updates the set of endpoint identifiers to poll for check results
+        /// </summary>
+        /// <param name="endpointIds">
+        /// The current set of endpoint identifiers
+        /// </param>
+        void SetEndpointIds(IEnumerable<Guid> endpointIds);
     }
 }

@@ -145,18 +145,19 @@ namespace Argus.Health.Pulse.ViewModels
                 if (this.IsSyncRunning)
                 {
                     this.syncService.Stop();
-                    this.healthCheckService.UpdateEndpoints(Array.Empty<HealthEndPoint>());
+                    this.healthCheckService.Stop();
                 }
                 else
                 {
                     this.IsConnecting = true;
                     this.syncService.Start();
+                    this.healthCheckService.Start();
                 }
             });
 
-            // subscribe to sync service to feed health check service
+            // feed endpoint IDs to health check service for polling
             var syncSubscription = this.syncService.EndpointsObservable
-                .Subscribe(endpoints => this.healthCheckService.UpdateEndpoints(endpoints));
+                .Subscribe(endpoints => this.healthCheckService.SetEndpointIds(endpoints.Select(e => e.Identifier)));
             this.disposables.Add(syncSubscription);
 
             // subscribe to failures for toast notifications
@@ -218,7 +219,7 @@ namespace Argus.Health.Pulse.ViewModels
                             this.IsConnectionError = true;
                             this.SyncProgress = 0;
                             this.syncService.Stop();
-                            this.healthCheckService.UpdateEndpoints(Array.Empty<HealthEndPoint>());
+                            this.healthCheckService.Stop();
                         }
                         else
                         {
@@ -272,6 +273,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.NavigateToDashboard();
             this.IsConnecting = true;
             this.syncService.Start();
+            this.healthCheckService.Start();
         }
 
         /// <summary>

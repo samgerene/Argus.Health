@@ -21,42 +21,36 @@
 namespace Argus.Health.Pulse.Services
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
-    using System.Net.Http;
     using System.Reactive.Linq;
     using System.Reactive.Subjects;
-    using System.Threading;
     using System.Threading.Tasks;
 
     using Argus.Health.Common.Model;
+    using Argus.Health.Pulse.Client;
 
     using Microsoft.Extensions.Logging;
 
-    using Polly;
-    using Polly.Timeout;
-
     /// <summary>
-    /// Manages per-endpoint HTTP monitor loops with Polly retry and timeout
+    /// Polls the Argus Health service via IPC for recent health check results per endpoint
     /// </summary>
     public class HealthCheckService : IHealthCheckService
     {
+        /// <summary>
+        /// The polling interval for fetching new check results
+        /// </summary>
+        public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
+
         /// <summary>
         /// The <see cref="ILogger{HealthCheckService}"/> used for logging
         /// </summary>
         private readonly ILogger<HealthCheckService> logger;
 
         /// <summary>
-        /// The <see cref="HttpClient"/> used to probe endpoints
+        /// The <see cref="HealthEndPointClient"/> used to fetch check results via IPC
         /// </summary>
-        private readonly HttpClient httpClient = new();
-
-        /// <summary>
-        /// Running monitor tasks keyed by endpoint identifier
-        /// </summary>
-        private readonly ConcurrentDictionary<Guid, (Task task, CancellationTokenSource cts)> monitors = new();
+        private readonly HealthEndPointClient client;
 
         /// <summary>
         /// Subject that publishes health check results
@@ -64,180 +58,142 @@ namespace Argus.Health.Pulse.Services
         private readonly Subject<HealthEndPointCheckResult> resultsSubject = new();
 
         /// <summary>
+        /// Tracks the newest known result timestamp per endpoint to only emit new results
+        /// </summary>
+        private readonly Dictionary<Guid, DateTime> lastKnownTimestamp = new();
+
+        /// <summary>
+        /// The current set of endpoint identifiers to poll
+        /// </summary>
+        private readonly List<Guid> endpointIds = new();
+
+        /// <summary>
+        /// Lock for thread-safe access to <see cref="endpointIds"/>
+        /// </summary>
+        private readonly object endpointLock = new();
+
+        /// <summary>
+        /// The current polling subscription
+        /// </summary>
+        private IDisposable? pollSubscription;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="HealthCheckService"/> class
         /// </summary>
+        /// <param name="client">
+        /// The <see cref="HealthEndPointClient"/> used to fetch check results via IPC
+        /// </param>
         /// <param name="logger">
         /// The <see cref="ILogger{HealthCheckService}"/> used for logging
         /// </param>
-        public HealthCheckService(ILogger<HealthCheckService> logger)
+        public HealthCheckService(HealthEndPointClient client, ILogger<HealthCheckService> logger)
         {
+            this.client = client;
             this.logger = logger;
         }
 
-        /// <summary>Gets an observable of all health check results</summary>
-        public IObservable<HealthEndPointCheckResult> ResultsObservable => resultsSubject.AsObservable();
+        /// <summary>
+        /// Gets an observable of all health check results
+        /// </summary>
+        public IObservable<HealthEndPointCheckResult> ResultsObservable => this.resultsSubject.AsObservable();
 
-        /// <summary>Gets an observable filtered to non-2xx results</summary>
+        /// <summary>
+        /// Gets an observable filtered to non-2xx results
+        /// </summary>
         public IObservable<HealthEndPointCheckResult> FailureObservable =>
-            resultsSubject.Where(r => r.StatusCode < 200 || r.StatusCode >= 300);
+            this.resultsSubject.Where(r => r.StatusCode < 200 || r.StatusCode >= 300);
 
-        /// <summary>Diffs the provided endpoints against currently running monitors and starts/stops as needed</summary>
-        public void UpdateEndpoints(IList<HealthEndPoint> endpoints)
+        /// <summary>
+        /// Starts polling the service for recent check results
+        /// </summary>
+        public void Start()
         {
-            ArgumentNullException.ThrowIfNull(endpoints);
+            this.Stop();
 
-            var desiredIds = new HashSet<Guid>(endpoints.Select(e => e.Identifier));
+            this.pollSubscription = Observable.Timer(TimeSpan.FromSeconds(1), PollInterval)
+                .SelectMany(_ => Observable.FromAsync(this.PollAsync))
+                .Subscribe();
 
-            // stop monitors for removed endpoints
-            foreach (var id in monitors.Keys)
-            {
-                if (!desiredIds.Contains(id))
-                {
-                    StopMonitor(id);
-                }
-            }
-
-            // start monitors for new endpoints
-            foreach (var endpoint in endpoints)
-            {
-                if (!monitors.ContainsKey(endpoint.Identifier))
-                {
-                    StartMonitor(endpoint);
-                }
-            }
+            this.logger.LogInformation("Health check result polling started");
         }
 
         /// <summary>
-        /// Creates a cancellation source and starts a monitor loop for the specified endpoint
+        /// Stops polling
         /// </summary>
-        /// <param name="endpoint">
-        /// The <see cref="HealthEndPoint"/> to monitor
-        /// </param>
-        private void StartMonitor(HealthEndPoint endpoint)
+        public void Stop()
         {
-            this.logger.LogInformation("Starting monitor for endpoint {EndpointName} ({EndpointId})", endpoint.Name, endpoint.Identifier);
-            var cts = new CancellationTokenSource();
-            var task = MonitorEndpointAsync(endpoint, cts.Token);
-            this.monitors[endpoint.Identifier] = (task, cts);
+            this.pollSubscription?.Dispose();
+            this.pollSubscription = null;
+            this.logger.LogInformation("Health check result polling stopped");
         }
 
         /// <summary>
-        /// Cancels and removes the monitor for the specified endpoint identifier
+        /// Updates the set of endpoint identifiers to poll for check results
         /// </summary>
-        /// <param name="id">
-        /// The endpoint identifier
+        /// <param name="endpointIds">
+        /// The current set of endpoint identifiers
         /// </param>
-        private void StopMonitor(Guid id)
+        public void SetEndpointIds(IEnumerable<Guid> endpointIds)
         {
-            if (this.monitors.TryRemove(id, out var monitor))
+            lock (this.endpointLock)
             {
-                this.logger.LogInformation("Stopping monitor for endpoint {EndpointId}", id);
-                monitor.cts.Cancel();
-                monitor.cts.Dispose();
+                this.endpointIds.Clear();
+                this.endpointIds.AddRange(endpointIds);
             }
         }
 
         /// <summary>
-        /// Runs the polling loop for a single endpoint with Polly retry and timeout
+        /// Disposes managed resources
         /// </summary>
-        /// <param name="endpoint">
-        /// The <see cref="HealthEndPoint"/> to poll
-        /// </param>
-        /// <param name="ct">
-        /// The <see cref="CancellationToken"/> used to stop the loop
-        /// </param>
-        private async Task MonitorEndpointAsync(HealthEndPoint endpoint, CancellationToken ct)
+        public void Dispose()
         {
-            var retryPolicy = Policy<HttpResponseMessage>
-                .Handle<HttpRequestException>()
-                .Or<TaskCanceledException>()
-                .WaitAndRetryAsync(
-                    retryCount: endpoint.RetryCount,
-                    sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(200 * attempt));
+            this.pollSubscription?.Dispose();
+            this.resultsSubject.Dispose();
+        }
 
-            var timeoutPolicy = Policy.TimeoutAsync<HttpResponseMessage>(
-                TimeSpan.FromSeconds(endpoint.Timeout),
-                TimeoutStrategy.Optimistic);
+        /// <summary>
+        /// Fetches check results for each known endpoint and emits only new results
+        /// </summary>
+        private async Task PollAsync()
+        {
+            List<Guid> ids;
 
-            var wrappedPolicy = Policy.WrapAsync(retryPolicy, timeoutPolicy);
-
-            while (!ct.IsCancellationRequested)
+            lock (this.endpointLock)
             {
-                var result = new HealthEndPointCheckResult
-                {
-                    Identifier = Guid.NewGuid(),
-                    HealthEndPoint = endpoint.Identifier,
-                    Timestamp = DateTime.UtcNow
-                };
+                ids = this.endpointIds.ToList();
+            }
 
-                var sw = Stopwatch.StartNew();
-
+            foreach (var endpointId in ids)
+            {
                 try
                 {
-                    var response = await wrappedPolicy.ExecuteAsync(
-                        async token => await this.httpClient.GetAsync(endpoint.Url, token), ct);
+                    var results = await this.client.GetCheckResultsAsync(endpointId);
 
-                    result.StatusCode = (int)response.StatusCode;
+                    this.lastKnownTimestamp.TryGetValue(endpointId, out var lastTimestamp);
 
-                    if (!response.IsSuccessStatusCode)
+                    var newResults = results.Where(r => r.Timestamp > lastTimestamp).ToList();
+
+                    foreach (var result in newResults)
                     {
-                        result.ErrorMessage = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
-                        this.logger.LogWarning("Health check failed for {EndpointName}: {ErrorMessage}", endpoint.Name, result.ErrorMessage);
+                        this.resultsSubject.OnNext(result);
+
+                        if (result.Timestamp > lastTimestamp)
+                        {
+                            lastTimestamp = result.Timestamp;
+                        }
                     }
-                    else
+
+                    if (newResults.Count > 0)
                     {
-                        this.logger.LogDebug("Health check OK for {EndpointName}: HTTP {StatusCode}", endpoint.Name, result.StatusCode);
+                        this.lastKnownTimestamp[endpointId] = lastTimestamp;
+                        this.logger.LogDebug("Polled {Count} new check result(s) for endpoint {EndpointId}", newResults.Count, endpointId);
                     }
-                }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch (TimeoutRejectedException)
-                {
-                    result.StatusCode = 408;
-                    result.ErrorMessage = $"Timed out after {endpoint.Timeout}s";
-                    this.logger.LogWarning("Health check timed out for {EndpointName} after {Timeout}s", endpoint.Name, endpoint.Timeout);
-                }
-                catch (HttpRequestException ex)
-                {
-                    result.StatusCode = 0;
-                    result.ErrorMessage = ex.Message;
-                    this.logger.LogWarning(ex, "Health check HTTP error for {EndpointName}", endpoint.Name);
                 }
                 catch (Exception ex)
                 {
-                    result.StatusCode = 0;
-                    result.ErrorMessage = ex.Message;
-                    this.logger.LogError(ex, "Health check unexpected error for {EndpointName}", endpoint.Name);
-                }
-
-                sw.Stop();
-                result.ResponseTimeMs = sw.ElapsedMilliseconds;
-
-                this.resultsSubject.OnNext(result);
-
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(endpoint.Frequency), ct);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
+                    this.logger.LogWarning(ex, "Failed to poll check results for endpoint {EndpointId}", endpointId);
                 }
             }
-        }
-
-        /// <summary>Stops all monitors and disposes managed resources</summary>
-        public void Dispose()
-        {
-            foreach (var id in this.monitors.Keys.ToList())
-            {
-                this.StopMonitor(id);
-            }
-
-            this.resultsSubject.Dispose();
-            this.httpClient.Dispose();
         }
     }
 }
