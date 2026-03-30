@@ -248,7 +248,7 @@ namespace Argus.Health.Pulse.ViewModels
                         {
                             totalChecks++;
 
-                            if (r.StatusCode >= 200 && r.StatusCode < 300)
+                            if (r.IsHealthy())
                             {
                                 healthyChecks++;
                             }
@@ -265,7 +265,7 @@ namespace Argus.Health.Pulse.ViewModels
                     var cutoff = DateTime.UtcNow.AddHours(-24);
 
                     return q.Items.Sum(e =>
-                        e.History.Count(r => r.Timestamp >= cutoff && (r.StatusCode < 200 || r.StatusCode >= 300)));
+                        e.History.Count(r => r.Timestamp >= cutoff && !r.IsHealthy()));
                 })
                 .ToProperty(this, x => x.IncidentsLast24Hours);
 
@@ -442,7 +442,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             var incidents = this.endpointCache.Items
                 .SelectMany(e => e.History
-                    .Where(r => r.Timestamp >= cutoff && (r.StatusCode < 200 || r.StatusCode >= 300))
+                    .Where(r => r.Timestamp >= cutoff && !r.IsHealthy())
                     .Select(r => new IncidentItem
                     {
                         EndpointName = e.Name,

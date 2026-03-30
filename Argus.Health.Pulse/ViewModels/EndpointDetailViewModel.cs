@@ -88,7 +88,9 @@ namespace Argus.Health.Pulse.ViewModels
             var recalculate = this.WhenAnyValue(
                     x => x.SelectedTimeRange,
                     x => x.Endpoint.ResponseTimeMs)
-                .Select(_ => this.ComputeFilteredResults());
+                .Select(_ => this.ComputeFilteredResults())
+                .Replay(1)
+                .RefCount();
 
             this.filteredResultsHelper = recalculate
                 .ToProperty(this, x => x.FilteredResults);
@@ -114,7 +116,7 @@ namespace Argus.Health.Pulse.ViewModels
                 .ToProperty(this, x => x.TotalChecks);
 
             this.totalFailuresHelper = recalculate
-                .Select(r => r.Count(x => x.StatusCode < 200 || x.StatusCode >= 300))
+                .Select(r => r.Count(x => !x.IsHealthy()))
                 .ToProperty(this, x => x.TotalFailures);
 
             this.SelectLastHourCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.LastHour);
@@ -241,7 +243,7 @@ namespace Argus.Health.Pulse.ViewModels
                 return 0;
             }
 
-            var healthy = results.Count(r => r.StatusCode >= 200 && r.StatusCode < 300);
+            var healthy = results.Count(r => r.IsHealthy());
             return Math.Round(100.0 * healthy / results.Count, 2);
         }
 

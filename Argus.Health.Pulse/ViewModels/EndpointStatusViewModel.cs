@@ -84,7 +84,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.Url = url;
 
             this.isHealthyHelper = this.WhenAnyValue(x => x.StatusCode)
-                .Select(code => code >= 200 && code < 300)
+                .Select(code => code.IsHealthy())
                 .ToProperty(this, x => x.IsHealthy);
 
             this.statusDisplayHelper = this.WhenAnyValue(x => x.StatusCode, x => x.ErrorMessage)
@@ -200,9 +200,11 @@ namespace Argus.Health.Pulse.ViewModels
 
             this.history.AddRange(results);
 
-            while (this.history.Count > MaxHistorySize)
+            var excess = this.history.Count - MaxHistorySize;
+
+            if (excess > 0)
             {
-                this.history.RemoveAt(0);
+                this.history.RemoveRange(0, excess);
             }
 
             var last = results[results.Count - 1];

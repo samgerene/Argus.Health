@@ -112,7 +112,7 @@ namespace Argus.Health.Pulse.Views
                         detail => detail != null)
                     .DisposeWith(disposables);
 
-                // Detail panel bindings
+                // Detail panel bindings: set chart data, stats, and time range commands
                 this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
                     .Where(detail => detail != null)
                     .Subscribe(detail =>
@@ -120,41 +120,15 @@ namespace Argus.Health.Pulse.Views
                         this.ResponseTimeChart.Data = detail!.FilteredResults;
                         this.UptimeTimeline.Data = detail.FilteredResults;
                         this.UptimeTimeline.SelectedTimeRange = detail.SelectedTimeRange;
-                    })
-                    .DisposeWith(disposables);
-
-                // Detail stats text bindings
-                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
-                    .Subscribe(detail =>
-                    {
-                        if (detail == null)
-                        {
-                            return;
-                        }
-
-                        this.CurrentStatusText.Text = detail.CurrentStatus;
-                        this.DetailUptimeText.Text = $"{detail.UptimePercent:F1}%";
-                        this.DetailAvgText.Text = $"{detail.AverageResponseTimeMs:F0}ms";
-                        this.DetailP95Text.Text = $"{detail.P95ResponseTimeMs}ms";
-                        this.DetailMaxText.Text = $"{detail.MaxResponseTimeMs}ms";
-                        this.DetailTotalChecksText.Text = detail.TotalChecks.ToString(CultureInfo.CurrentCulture);
-                        this.DetailFailuresText.Text = detail.TotalFailures.ToString(CultureInfo.CurrentCulture);
-                    })
-                    .DisposeWith(disposables);
-
-                // Time range toggle commands
-                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
-                    .Where(detail => detail != null)
-                    .Subscribe(detail =>
-                    {
-                        this.LastHourButton.Command = detail!.SelectLastHourCommand;
+                        this.UpdateDetailStats(detail);
+                        this.LastHourButton.Command = detail.SelectLastHourCommand;
                         this.Last6HoursButton.Command = detail.SelectLast6HoursCommand;
                         this.Last24HoursButton.Command = detail.SelectLast24HoursCommand;
                         this.Last7DaysButton.Command = detail.SelectLast7DaysCommand;
                     })
                     .DisposeWith(disposables);
 
-                // Refresh charts when detail's filtered results change
+                // Refresh charts and stats when detail's filtered results change
                 this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.FilteredResults)
                     .Subscribe(results =>
                     {
@@ -166,17 +140,25 @@ namespace Argus.Health.Pulse.Views
                         if (detail != null)
                         {
                             this.UptimeTimeline.SelectedTimeRange = detail.SelectedTimeRange;
-                            this.CurrentStatusText.Text = detail.CurrentStatus;
-                            this.DetailUptimeText.Text = $"{detail.UptimePercent:F1}%";
-                            this.DetailAvgText.Text = $"{detail.AverageResponseTimeMs:F0}ms";
-                            this.DetailP95Text.Text = $"{detail.P95ResponseTimeMs}ms";
-                            this.DetailMaxText.Text = $"{detail.MaxResponseTimeMs}ms";
-                            this.DetailTotalChecksText.Text = detail.TotalChecks.ToString(CultureInfo.CurrentCulture);
-                            this.DetailFailuresText.Text = detail.TotalFailures.ToString(CultureInfo.CurrentCulture);
+                            this.UpdateDetailStats(detail);
                         }
                     })
                     .DisposeWith(disposables);
             });
+        }
+        /// <summary>
+        /// Updates the detail panel statistics text blocks from the given view model
+        /// </summary>
+        /// <param name="detail">The endpoint detail view model</param>
+        private void UpdateDetailStats(EndpointDetailViewModel detail)
+        {
+            this.CurrentStatusText.Text = detail.CurrentStatus;
+            this.DetailUptimeText.Text = $"{detail.UptimePercent:F1}%";
+            this.DetailAvgText.Text = $"{detail.AverageResponseTimeMs:F0}ms";
+            this.DetailP95Text.Text = $"{detail.P95ResponseTimeMs}ms";
+            this.DetailMaxText.Text = $"{detail.MaxResponseTimeMs}ms";
+            this.DetailTotalChecksText.Text = detail.TotalChecks.ToString(CultureInfo.CurrentCulture);
+            this.DetailFailuresText.Text = detail.TotalFailures.ToString(CultureInfo.CurrentCulture);
         }
     }
 }

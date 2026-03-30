@@ -101,7 +101,7 @@ namespace Argus.Health.Pulse.Services
         /// Gets an observable filtered to non-2xx results
         /// </summary>
         public IObservable<HealthEndPointCheckResult> FailureObservable =>
-            this.resultsSubject.Where(r => r.StatusCode < 200 || r.StatusCode >= 300);
+            this.resultsSubject.Where(r => !r.IsHealthy());
 
         /// <summary>
         /// Starts polling the service for recent check results
