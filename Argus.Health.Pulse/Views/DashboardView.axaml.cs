@@ -112,40 +112,73 @@ namespace Argus.Health.Pulse.Views
                         detail => detail != null)
                     .DisposeWith(disposables);
 
-                // Detail panel bindings: set chart data, stats, and time range commands
+                // Detail panel bindings: set chart data, uptime data, stats, and commands
                 this.WhenAnyValue(v => v.ViewModel!.SelectedDetail)
                     .Where(detail => detail != null)
                     .Subscribe(detail =>
                     {
                         this.ResponseTimeChart.Data = detail!.FilteredResults;
-                        this.UptimeTimeline.Data = detail.FilteredResults;
-                        this.UptimeTimeline.SelectedTimeRange = detail.SelectedTimeRange;
+                        this.UpdateUptimeControls(detail);
                         this.UpdateDetailStats(detail);
                         this.LastHourButton.Command = detail.SelectLastHourCommand;
                         this.Last6HoursButton.Command = detail.SelectLast6HoursCommand;
                         this.Last24HoursButton.Command = detail.SelectLast24HoursCommand;
                         this.Last7DaysButton.Command = detail.SelectLast7DaysCommand;
+                        this.StatusBarViewButton.Command = detail.SelectStatusBarCommand;
+                        this.HeatmapViewButton.Command = detail.SelectHeatmapCommand;
                     })
                     .DisposeWith(disposables);
 
-                // Refresh charts and stats when detail's filtered results change
+                // Refresh response time chart and stats when filtered results change
                 this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.FilteredResults)
                     .Subscribe(results =>
                     {
                         this.ResponseTimeChart.Data = results;
-                        this.UptimeTimeline.Data = results;
 
                         var detail = this.ViewModel?.SelectedDetail;
 
                         if (detail != null)
                         {
-                            this.UptimeTimeline.SelectedTimeRange = detail.SelectedTimeRange;
                             this.UpdateDetailStats(detail);
                         }
                     })
                     .DisposeWith(disposables);
+
+                // Refresh uptime controls when summary data arrives
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.HourlySummaries)
+                    .Subscribe(_ =>
+                    {
+                        var detail = this.ViewModel?.SelectedDetail;
+
+                        if (detail != null)
+                        {
+                            this.UpdateUptimeControls(detail);
+                        }
+                    })
+                    .DisposeWith(disposables);
+
+                // Toggle uptime visualization visibility
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.IsStatusBarView)
+                    .Subscribe(isStatusBar =>
+                    {
+                        this.UptimeStatusBar.IsVisible = isStatusBar;
+                        this.UptimeHeatmap.IsVisible = !isStatusBar;
+                    })
+                    .DisposeWith(disposables);
             });
         }
+        /// <summary>
+        /// Updates the uptime visualization controls with data from the detail view model
+        /// </summary>
+        /// <param name="detail">The endpoint detail view model</param>
+        private void UpdateUptimeControls(EndpointDetailViewModel detail)
+        {
+            this.UptimeStatusBar.Data = detail.HourlySummaries;
+            this.UptimeHeatmap.Data = detail.DailySummaries;
+            this.UptimeStatusBar.IsVisible = detail.IsStatusBarView;
+            this.UptimeHeatmap.IsVisible = detail.IsHeatmapView;
+        }
+
         /// <summary>
         /// Updates the detail panel statistics text blocks from the given view model
         /// </summary>

@@ -22,6 +22,7 @@ namespace Argus.Health.Pulse.Client
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
@@ -313,6 +314,56 @@ namespace Argus.Health.Pulse.Client
             }
 
             return HealthEndPointCheckResultReader.ReadArray(response.Body!);
+        }
+
+        /// <summary>
+        /// Retrieves aggregated uptime summaries for a specific endpoint from the server
+        /// </summary>
+        /// <param name="endpointIdentifier">
+        /// The unique identifier of the endpoint to retrieve uptime summaries for
+        /// </param>
+        /// <param name="days">
+        /// The number of days to look back (default 90)
+        /// </param>
+        /// <param name="resolution">
+        /// The <see cref="UptimeResolution"/> for aggregation (default <see cref="UptimeResolution.Hour"/>)
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The <see cref="CancellationToken"/> used to signal cancellation
+        /// </param>
+        /// <returns>
+        /// An <see cref="IList{UptimeSummary}"/> containing the aggregated uptime summaries
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the server returns a non-success status code
+        /// </exception>
+        public async Task<IList<UptimeSummary>> GetUptimeSummaryAsync(
+            Guid endpointIdentifier,
+            int days = 90,
+            UptimeResolution resolution = UptimeResolution.Hour,
+            CancellationToken cancellationToken = default)
+        {
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.GET,
+                Route = $"/healthendpoint/{endpointIdentifier.ToShortGuid()}/uptime"
+            };
+
+            request.QueryParameters["days"] = days.ToString(CultureInfo.InvariantCulture);
+            request.QueryParameters["resolution"] = resolution.ToString().ToLowerInvariant();
+
+            this.logger.LogDebug("Sending {Verb} {Route}?days={Days}&resolution={Resolution}", request.Verb, request.Route, days, resolution);
+
+            var response = await this.pipePolicy.ExecuteAsync(
+                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+
+            if (response.StatusCode != ArgusStatusCode.Ok)
+            {
+                this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
+                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+            }
+
+            return UptimeSummaryReader.ReadArray(response.Body!);
         }
     }
 }

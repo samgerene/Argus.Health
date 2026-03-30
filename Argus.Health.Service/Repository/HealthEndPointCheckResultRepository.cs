@@ -26,6 +26,7 @@ namespace Argus.Health.Service.Repository
     using System.Data;
     using System.Globalization;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Argus.Health.Common.Model;
@@ -222,6 +223,95 @@ namespace Argus.Health.Service.Repository
             catch (Exception ex)
             {
                 var message = "The HealthEndPointCheckResult instances could not be READ from the SQLite database";
+
+                this.logger.LogError(ex, message);
+
+                throw new DataException(message, ex);
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously reads aggregated uptime summaries for a specific <see cref="HealthEndPoint"/>
+        /// </summary>
+        /// <param name="healthEndPointIdentifier">
+        /// The identifier of the <see cref="HealthEndPoint"/> to aggregate results for
+        /// </param>
+        /// <param name="days">
+        /// The number of days to look back from the current time
+        /// </param>
+        /// <param name="resolution">
+        /// The <see cref="UptimeResolution"/> for aggregation (hour or day)
+        /// </param>
+        /// <returns>
+        /// An <see cref="ImmutableList{UptimeSummary}"/> of aggregated uptime periods
+        /// </returns>
+        public async Task<ImmutableList<UptimeSummary>> ReadUptimeSummaryAsync(Guid healthEndPointIdentifier, int days, UptimeResolution resolution)
+        {
+            this.logger.LogDebug("Reading uptime summary for endpoint {EndpointId} with {Days} days at {Resolution} resolution",
+                healthEndPointIdentifier, days, resolution);
+
+            var strftimeFormat = resolution == UptimeResolution.Hour
+                ? "%Y-%m-%dT%H:00:00Z"
+                : "%Y-%m-%dT00:00:00Z";
+
+            var cutoff = DateTime.UtcNow.AddDays(-days).ToString("o", CultureInfo.InvariantCulture);
+
+            var list = new List<UptimeSummary>();
+
+            await using var connection = new SqliteConnection(this.connectionString);
+
+            try
+            {
+                await connection.OpenAsync();
+
+                var command = connection.CreateCommand();
+                command.CommandText = $"""
+                                       SELECT
+                                           strftime('{strftimeFormat}', Timestamp) AS PeriodStart,
+                                           COUNT(*) AS TotalChecks,
+                                           SUM(CASE WHEN StatusCode >= 200 AND StatusCode < 300 THEN 1 ELSE 0 END) AS HealthyChecks,
+                                           AVG(ResponseTimeMs) AS AverageResponseTimeMs,
+                                           MAX(ResponseTimeMs) AS MaxResponseTimeMs
+                                       FROM HealthEndPointCheckResults
+                                       WHERE HealthEndPoint = $healthEndPoint
+                                         AND Timestamp >= $cutoff
+                                       GROUP BY strftime('{strftimeFormat}', Timestamp)
+                                       ORDER BY PeriodStart;
+                                       """;
+
+                command.Parameters.AddWithValue("$healthEndPoint", healthEndPointIdentifier.ToString());
+                command.Parameters.AddWithValue("$cutoff", cutoff);
+
+                await using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    var summary = new UptimeSummary
+                    {
+                        PeriodStart = DateTime.Parse(reader.GetString(0), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+                        TotalChecks = reader.GetInt32(1),
+                        HealthyChecks = reader.GetInt32(2),
+                        AverageResponseTimeMs = reader.GetDouble(3),
+                        MaxResponseTimeMs = reader.GetInt64(4)
+                    };
+
+                    list.Add(summary);
+                }
+
+                this.logger.LogDebug("Successfully read {Count} uptime summary period(s) from the database", list.Count);
+
+                return list.ToImmutableList();
+            }
+            catch (Exception ex)
+            {
+                var message = "The uptime summary could not be READ from the SQLite database";
 
                 this.logger.LogError(ex, message);
 

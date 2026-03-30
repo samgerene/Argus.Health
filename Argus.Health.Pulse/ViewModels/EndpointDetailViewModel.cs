@@ -78,6 +78,16 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly ObservableAsPropertyHelper<int> totalFailuresHelper;
 
         /// <summary>
+        /// Helper for <see cref="IsStatusBarView"/>
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<bool> isStatusBarViewHelper;
+
+        /// <summary>
+        /// Helper for <see cref="IsHeatmapView"/>
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<bool> isHeatmapViewHelper;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="EndpointDetailViewModel"/> class
         /// </summary>
         /// <param name="endpoint">The <see cref="EndpointStatusViewModel"/> to show details for</param>
@@ -123,6 +133,20 @@ namespace Argus.Health.Pulse.ViewModels
             this.SelectLast6HoursCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last6Hours);
             this.SelectLast24HoursCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last24Hours);
             this.SelectLast7DaysCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last7Days);
+
+            this.SelectStatusBarCommand = ReactiveCommand.Create(() => this.SelectedUptimeViewMode = UptimeViewMode.StatusBar);
+            this.SelectHeatmapCommand = ReactiveCommand.Create(() => this.SelectedUptimeViewMode = UptimeViewMode.Heatmap);
+
+            this.isStatusBarViewHelper = this.WhenAnyValue(x => x.SelectedUptimeViewMode)
+                .Select(mode => mode == UptimeViewMode.StatusBar)
+                .ToProperty(this, x => x.IsStatusBarView);
+
+            this.isHeatmapViewHelper = this.WhenAnyValue(x => x.SelectedUptimeViewMode)
+                .Select(mode => mode == UptimeViewMode.Heatmap)
+                .ToProperty(this, x => x.IsHeatmapView);
+
+            this.disposables.Add(this.isStatusBarViewHelper);
+            this.disposables.Add(this.isHeatmapViewHelper);
 
             this.disposables.Add(this.filteredResultsHelper);
             this.disposables.Add(this.uptimePercentHelper);
@@ -208,6 +232,44 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets the command to select the last 7 days time range
         /// </summary>
         public ReactiveCommand<Unit, TimeRange> SelectLast7DaysCommand { get; }
+
+        /// <summary>
+        /// Gets the command to select the status bar uptime view
+        /// </summary>
+        public ReactiveCommand<Unit, UptimeViewMode> SelectStatusBarCommand { get; }
+
+        /// <summary>
+        /// Gets the command to select the heatmap uptime view
+        /// </summary>
+        public ReactiveCommand<Unit, UptimeViewMode> SelectHeatmapCommand { get; }
+
+        /// <summary>
+        /// Gets or sets the selected uptime visualization mode
+        /// </summary>
+        [Reactive]
+        public partial UptimeViewMode SelectedUptimeViewMode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the hourly uptime summaries for the status bar visualization
+        /// </summary>
+        [Reactive]
+        public partial IReadOnlyList<UptimeSummary>? HourlySummaries { get; set; }
+
+        /// <summary>
+        /// Gets or sets the daily uptime summaries for the heatmap visualization
+        /// </summary>
+        [Reactive]
+        public partial IReadOnlyList<UptimeSummary>? DailySummaries { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the status bar view is active
+        /// </summary>
+        public bool IsStatusBarView => this.isStatusBarViewHelper.Value;
+
+        /// <summary>
+        /// Gets a value indicating whether the heatmap view is active
+        /// </summary>
+        public bool IsHeatmapView => this.isHeatmapViewHelper.Value;
 
         /// <summary>
         /// Disposes managed resources

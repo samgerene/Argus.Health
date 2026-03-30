@@ -23,6 +23,7 @@ namespace Argus.Health.Service.Modules
     using System;
     using System.Data;
     using System.Diagnostics;
+    using System.Globalization;
     using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -92,6 +93,7 @@ namespace Argus.Health.Service.Modules
             app.MapPut("/healthendpoint/{identifier:ShortGuid}", this.HandleUpdateAsync);
             app.MapDelete("/healthendpoint/{identifier:ShortGuid}", this.HandleDeleteAsync);
             app.MapGet("/healthendpoint/{identifier:ShortGuid}/results", this.HandleGetResultsAsync);
+            app.MapGet("/healthendpoint/{identifier:ShortGuid}/uptime", this.HandleGetUptimeAsync);
 
             this.logger.LogDebug("HealthEndPoint routes registered");
         }
@@ -420,6 +422,68 @@ namespace Argus.Health.Service.Modules
             catch (System.Data.DataException ex)
             {
                 this.logger.LogError(ex, "Failed to read check results for endpoint {Identifier}", identifier);
+
+                context.Response = new ArgusResponse
+                {
+                    CorrelationToken = request.CorrelationToken,
+                    StatusCode = ArgusStatusCode.InternalServerError
+                };
+            }
+        }
+
+        /// <summary>
+        /// Handles a GET request to retrieve aggregated uptime summaries for a specific endpoint
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="ArgusContext"/> containing the request and route values
+        /// </param>
+        internal async Task HandleGetUptimeAsync(ArgusContext context)
+        {
+            var sw = Stopwatch.StartNew();
+
+            this.logger.LogDebug("Starting to read uptime summary for a specific endpoint");
+
+            var request = context.Request;
+            var routeValues = context.RouteValues;
+
+            var identifier = routeValues["identifier"].FromShortGuid();
+
+            var days = 90;
+
+            if (context.QueryValues.TryGetValue("days", out var daysValue)
+                && int.TryParse(daysValue, CultureInfo.InvariantCulture, out var parsedDays)
+                && parsedDays is > 0 and <= 365)
+            {
+                days = parsedDays;
+            }
+
+            var resolution = UptimeResolution.Hour;
+
+            if (context.QueryValues.TryGetValue("resolution", out var resolutionValue)
+                && string.Equals(resolutionValue, "day", StringComparison.OrdinalIgnoreCase))
+            {
+                resolution = UptimeResolution.Day;
+            }
+
+            try
+            {
+                var summaries = await this.healthEndPointCheckResultRepository.ReadUptimeSummaryAsync(identifier, days, resolution);
+
+                sw.Stop();
+
+                this.logger.LogInformation("Retrieved {Count} uptime summary period(s) for endpoint {Identifier} in {ElapsedMs}ms",
+                    summaries.Count, identifier, sw.ElapsedMilliseconds);
+
+                context.Response = new ArgusResponse
+                {
+                    CorrelationToken = request.CorrelationToken,
+                    StatusCode = ArgusStatusCode.Ok,
+                    Body = UptimeSummaryWriter.WriteArray(summaries)
+                };
+            }
+            catch (DataException ex)
+            {
+                this.logger.LogError(ex, "Failed to read uptime summary for endpoint {Identifier}", identifier);
 
                 context.Response = new ArgusResponse
                 {

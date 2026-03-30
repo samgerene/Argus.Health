@@ -280,7 +280,17 @@ namespace Argus.Health.Pulse.ViewModels
                 .Subscribe(selected =>
                 {
                     this.SelectedDetail?.Dispose();
-                    this.SelectedDetail = selected != null ? new EndpointDetailViewModel(selected) : null;
+
+                    if (selected != null)
+                    {
+                        var detail = new EndpointDetailViewModel(selected);
+                        this.SelectedDetail = detail;
+                        _ = this.LoadUptimeSummaryAsync(detail);
+                    }
+                    else
+                    {
+                        this.SelectedDetail = null;
+                    }
                 });
 
             this.disposables.Add(selectionSubscription);
@@ -493,6 +503,35 @@ namespace Argus.Health.Pulse.ViewModels
                 {
                     this.logger.LogWarning(ex, "Failed to bootstrap history for {EndpointName}", row.Name);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Fetches hourly and daily uptime summaries from the server and populates the detail view model
+        /// </summary>
+        /// <param name="detail">
+        /// The <see cref="EndpointDetailViewModel"/> to populate with uptime data
+        /// </param>
+        private async Task LoadUptimeSummaryAsync(EndpointDetailViewModel detail)
+        {
+            try
+            {
+                var hourlySummaries = await this.client.GetUptimeSummaryAsync(
+                    detail.Endpoint.Identifier, 90, UptimeResolution.Hour);
+
+                detail.HourlySummaries = hourlySummaries as IReadOnlyList<UptimeSummary> ?? hourlySummaries.ToList();
+
+                var dailySummaries = await this.client.GetUptimeSummaryAsync(
+                    detail.Endpoint.Identifier, 90, UptimeResolution.Day);
+
+                detail.DailySummaries = dailySummaries as IReadOnlyList<UptimeSummary> ?? dailySummaries.ToList();
+
+                this.logger.LogDebug("Loaded {HourlyCount} hourly and {DailyCount} daily uptime summaries for {EndpointName}",
+                    hourlySummaries.Count, dailySummaries.Count, detail.Endpoint.Name);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex, "Failed to load uptime summary for {EndpointName}", detail.Endpoint.Name);
             }
         }
     }

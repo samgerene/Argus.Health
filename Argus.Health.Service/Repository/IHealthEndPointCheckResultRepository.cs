@@ -55,5 +55,22 @@ namespace Argus.Health.Service.Repository
         /// An <see cref="ImmutableList{HealthEndPointCheckResult}"/>
         /// </returns>
         Task<ImmutableList<HealthEndPointCheckResult>> ReadAsync(Guid? healthEndPointIdentifier = null);
+
+        /// <summary>
+        /// Asynchronously reads aggregated uptime summaries for a specific <see cref="HealthEndPoint"/>
+        /// </summary>
+        /// <param name="healthEndPointIdentifier">
+        /// The identifier of the <see cref="HealthEndPoint"/> to aggregate results for
+        /// </param>
+        /// <param name="days">
+        /// The number of days to look back from the current time
+        /// </param>
+        /// <param name="resolution">
+        /// The <see cref="UptimeResolution"/> for aggregation (hour or day)
+        /// </param>
+        /// <returns>
+        /// An <see cref="ImmutableList{UptimeSummary}"/> of aggregated uptime periods
+        /// </returns>
+        Task<ImmutableList<UptimeSummary>> ReadUptimeSummaryAsync(Guid healthEndPointIdentifier, int days, UptimeResolution resolution);
     }
 }
