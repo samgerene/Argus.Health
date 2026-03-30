@@ -42,7 +42,7 @@
                     <DataGridTextColumn Header="Timeout (s)" Binding="{Binding Timeout}" Width="100" />
                     <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="80" />
                     <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" />
-                    <DataGridTemplateColumn Header="Actions" Width="160">
+                    <DataGridTemplateColumn Header="Actions" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate x:DataType="model:HealthEndPoint">
                                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">

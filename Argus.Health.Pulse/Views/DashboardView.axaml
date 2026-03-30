@@ -190,7 +190,7 @@
                 <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="100" />
                 <DataGridTextColumn Header="Response" Binding="{Binding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" />
                 <DataGridTextColumn Header="Last Checked" Binding="{Binding LastChecked, StringFormat='{}{0:HH:mm:ss}'}" Width="100" />
-                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="200" />
+                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
 
@@ -201,7 +201,8 @@
                   IsReadOnly="True"
                   GridLinesVisibility="Horizontal"
                   CanUserResizeColumns="True"
-                  CanUserReorderColumns="False">
+                  CanUserReorderColumns="False"
+                  HorizontalScrollBarVisibility="Auto">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Endpoint" Binding="{Binding EndpointName}" Width="180" />
                 <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Width="160" />
