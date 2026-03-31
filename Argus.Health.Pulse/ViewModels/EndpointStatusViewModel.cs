@@ -77,11 +77,15 @@ namespace Argus.Health.Pulse.ViewModels
         /// <param name="url">
         /// The URL of the endpoint
         /// </param>
-        public EndpointStatusViewModel(Guid identifier, string name, string url)
+        /// <param name="isActive">
+        /// A value indicating whether the endpoint is active
+        /// </param>
+        public EndpointStatusViewModel(Guid identifier, string name, string url, bool isActive)
         {
             this.Identifier = identifier;
             this.Name = name;
             this.Url = url;
+            this.IsActive = isActive;
 
             this.isHealthyHelper = this.WhenAnyValue(x => x.StatusCode)
                 .Select(code => code.IsHealthy())
@@ -147,6 +151,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// </summary>
         [Reactive]
         public partial long ResponseTimeMs { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the endpoint is active
+        /// </summary>
+        [Reactive]
+        public partial bool IsActive { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the endpoint is healthy (status code 200-299)

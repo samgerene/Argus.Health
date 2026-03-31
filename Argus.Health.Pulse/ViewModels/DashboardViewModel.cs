@@ -166,10 +166,11 @@ namespace Argus.Health.Pulse.ViewModels
                                 {
                                     existing.Value.Name = ep.Name;
                                     existing.Value.Url = ep.Url;
+                                    existing.Value.IsActive = ep.IsActive;
                                 }
                                 else
                                 {
-                                    var row = new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url);
+                                    var row = new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url, ep.IsActive);
                                     updater.AddOrUpdate(row);
                                     toBootstrap.Add(row);
                                     added++;
@@ -295,17 +296,36 @@ namespace Argus.Health.Pulse.ViewModels
 
             this.disposables.Add(selectionSubscription);
 
-            // Filtered endpoints: re-filter when ActiveViewMode changes
-            var filterPredicate = this.WhenAnyValue(x => x.ActiveViewMode)
-                .Select<DashboardViewMode, Func<EndpointStatusViewModel, bool>>(mode => mode switch
+            // Filtered endpoints: re-filter when ActiveViewMode or ActiveActivityFilter changes
+            var filterPredicate = this.WhenAnyValue(x => x.ActiveViewMode, x => x.ActiveActivityFilter)
+                .Select<(DashboardViewMode mode, EndpointActivityFilter activity), Func<EndpointStatusViewModel, bool>>(t =>
                 {
-                    DashboardViewMode.DownOnly => e => !e.IsHealthy && e.StatusCode != 0,
-                    _ => _ => true
+                    return e =>
+                    {
+                        var passesActivity = t.activity switch
+                        {
+                            EndpointActivityFilter.ActiveOnly => e.IsActive,
+                            EndpointActivityFilter.InactiveOnly => !e.IsActive,
+                            _ => true
+                        };
+
+                        if (!passesActivity)
+                        {
+                            return false;
+                        }
+
+                        return t.mode switch
+                        {
+                            DashboardViewMode.DownOnly => !e.IsHealthy && e.StatusCode != 0,
+                            _ => true
+                        };
+                    };
                 });
 
             var filteredSubscription = this.endpointCache
                 .Connect()
                 .AutoRefresh(x => x.StatusCode)
+                .AutoRefresh(x => x.IsActive)
                 .Filter(filterPredicate)
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Bind(out var filteredEndpoints)
@@ -347,6 +367,10 @@ namespace Argus.Health.Pulse.ViewModels
             this.ShowAllEndpointsCommand = ReactiveCommand.Create(() => this.ActiveViewMode = DashboardViewMode.AllEndpoints);
             this.ShowDownEndpointsCommand = ReactiveCommand.Create(() => this.ActiveViewMode = DashboardViewMode.DownOnly);
             this.ShowIncidentsCommand = ReactiveCommand.Create(() => this.ActiveViewMode = DashboardViewMode.Incidents);
+
+            this.ShowActiveCommand = ReactiveCommand.Create(() => this.ActiveActivityFilter = EndpointActivityFilter.ActiveOnly);
+            this.ShowInactiveCommand = ReactiveCommand.Create(() => this.ActiveActivityFilter = EndpointActivityFilter.InactiveOnly);
+            this.ShowAllActivityCommand = ReactiveCommand.Create(() => this.ActiveActivityFilter = EndpointActivityFilter.All);
         }
 
         /// <summary>
@@ -398,6 +422,12 @@ namespace Argus.Health.Pulse.ViewModels
         public partial DashboardViewMode ActiveViewMode { get; set; }
 
         /// <summary>
+        /// Gets or sets the active endpoint activity filter
+        /// </summary>
+        [Reactive]
+        public partial EndpointActivityFilter ActiveActivityFilter { get; set; }
+
+        /// <summary>
         /// Gets the filtered endpoint collection based on the active view mode
         /// </summary>
         public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; private set; } = null!;
@@ -431,6 +461,21 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets the command to switch to the incidents view
         /// </summary>
         public ReactiveCommand<Unit, DashboardViewMode> ShowIncidentsCommand { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets the command to filter to active endpoints only
+        /// </summary>
+        public ReactiveCommand<Unit, EndpointActivityFilter> ShowActiveCommand { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets the command to filter to inactive endpoints only
+        /// </summary>
+        public ReactiveCommand<Unit, EndpointActivityFilter> ShowInactiveCommand { get; private set; } = null!;
+
+        /// <summary>
+        /// Gets the command to show all endpoints regardless of activity status
+        /// </summary>
+        public ReactiveCommand<Unit, EndpointActivityFilter> ShowAllActivityCommand { get; private set; } = null!;
 
         /// <summary>
         /// Disposes managed resources

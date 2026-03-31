@@ -67,6 +67,10 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
             <Button x:Name="ShowEndpointsButton" Content="Endpoints" Padding="12,4" FontSize="12" />
             <Button x:Name="ShowIncidentsButton" Content="Incidents" Padding="12,4" FontSize="12" />
+            <Border Width="1" Background="#334155" Margin="8,2" />
+            <Button x:Name="ShowActiveButton" Content="Active" Padding="12,4" FontSize="12" />
+            <Button x:Name="ShowInactiveButton" Content="Inactive" Padding="12,4" FontSize="12" />
+            <Button x:Name="ShowAllActivityButton" Content="All" Padding="12,4" FontSize="12" />
         </StackPanel>
 
         <!-- Detail panel (bottom, shown when an endpoint is selected) -->

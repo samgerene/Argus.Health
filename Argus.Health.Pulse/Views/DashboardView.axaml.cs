@@ -30,6 +30,7 @@ namespace Argus.Health.Pulse.Views
     using Argus.Health.Pulse.ViewModels;
 
     using Avalonia;
+    using Avalonia.Controls;
 
     using ReactiveUI;
     using ReactiveUI.Avalonia;
@@ -100,6 +101,35 @@ namespace Argus.Health.Pulse.Views
                 this.BindCommand(this.ViewModel, vm => vm.ShowIncidentsCommand, v => v.ShowIncidentsButton)
                     .DisposeWith(disposables);
 
+                // Activity filter commands
+                this.BindCommand(this.ViewModel, vm => vm.ShowActiveCommand, v => v.ShowActiveButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.ShowInactiveCommand, v => v.ShowInactiveButton)
+                    .DisposeWith(disposables);
+
+                this.BindCommand(this.ViewModel, vm => vm.ShowAllActivityCommand, v => v.ShowAllActivityButton)
+                    .DisposeWith(disposables);
+
+                // View toggle button highlights
+                this.WhenAnyValue(v => v.ViewModel!.ActiveViewMode)
+                    .Subscribe(mode =>
+                    {
+                        this.HighlightButton(this.ShowEndpointsButton, mode != DashboardViewMode.Incidents);
+                        this.HighlightButton(this.ShowIncidentsButton, mode == DashboardViewMode.Incidents);
+                    })
+                    .DisposeWith(disposables);
+
+                // Activity filter button highlights
+                this.WhenAnyValue(v => v.ViewModel!.ActiveActivityFilter)
+                    .Subscribe(filter =>
+                    {
+                        this.HighlightButton(this.ShowActiveButton, filter == EndpointActivityFilter.ActiveOnly);
+                        this.HighlightButton(this.ShowInactiveButton, filter == EndpointActivityFilter.InactiveOnly);
+                        this.HighlightButton(this.ShowAllActivityButton, filter == EndpointActivityFilter.All);
+                    })
+                    .DisposeWith(disposables);
+
                 // Grid visibility
                 this.OneWayBind(this.ViewModel, vm => vm.IsEndpointsView, v => v.EndpointsGrid.IsVisible)
                     .DisposeWith(disposables);
@@ -165,6 +195,26 @@ namespace Argus.Health.Pulse.Views
                         this.UptimeHeatmap.IsVisible = !isStatusBar;
                     })
                     .DisposeWith(disposables);
+
+                // Time range button highlights
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.SelectedTimeRange)
+                    .Subscribe(range =>
+                    {
+                        this.HighlightButton(this.LastHourButton, range == TimeRange.LastHour);
+                        this.HighlightButton(this.Last6HoursButton, range == TimeRange.Last6Hours);
+                        this.HighlightButton(this.Last24HoursButton, range == TimeRange.Last24Hours);
+                        this.HighlightButton(this.Last7DaysButton, range == TimeRange.Last7Days);
+                    })
+                    .DisposeWith(disposables);
+
+                // Uptime view button highlights
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.SelectedUptimeViewMode)
+                    .Subscribe(mode =>
+                    {
+                        this.HighlightButton(this.StatusBarViewButton, mode == UptimeViewMode.StatusBar);
+                        this.HighlightButton(this.HeatmapViewButton, mode == UptimeViewMode.Heatmap);
+                    })
+                    .DisposeWith(disposables);
             });
         }
         /// <summary>
@@ -192,6 +242,16 @@ namespace Argus.Health.Pulse.Views
             this.DetailMaxText.Text = $"{detail.MaxResponseTimeMs}ms";
             this.DetailTotalChecksText.Text = detail.TotalChecks.ToString(CultureInfo.CurrentCulture);
             this.DetailFailuresText.Text = detail.TotalFailures.ToString(CultureInfo.CurrentCulture);
+        }
+
+        /// <summary>
+        /// Sets the foreground color of a button to indicate whether it is the active selection
+        /// </summary>
+        /// <param name="button">The button to highlight</param>
+        /// <param name="isActive">Whether the button represents the active selection</param>
+        private void HighlightButton(Button button, bool isActive)
+        {
+            button.Foreground = isActive ? DashboardColors.Teal : null;
         }
     }
 }

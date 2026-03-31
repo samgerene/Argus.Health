@@ -94,6 +94,7 @@ namespace Argus.Health.Pulse.ViewModels
         public EndpointDetailViewModel(EndpointStatusViewModel endpoint)
         {
             this.Endpoint = endpoint;
+            this.SelectedTimeRange = TimeRange.Last24Hours;
 
             var recalculate = this.WhenAnyValue(
                     x => x.SelectedTimeRange,
