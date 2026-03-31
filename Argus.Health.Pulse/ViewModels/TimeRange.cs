@@ -45,7 +45,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Last 7 days
         /// </summary>
-        Last7Days
+        Last7Days,
+
+        /// <summary>
+        /// Last 30 days
+        /// </summary>
+        Last30Days
     }
 
     /// <summary>
@@ -66,6 +71,7 @@ namespace Argus.Health.Pulse.ViewModels
                 TimeRange.Last6Hours => TimeSpan.FromHours(6),
                 TimeRange.Last24Hours => TimeSpan.FromHours(24),
                 TimeRange.Last7Days => TimeSpan.FromDays(7),
+                TimeRange.Last30Days => TimeSpan.FromDays(30),
                 _ => TimeSpan.FromHours(1)
             };
         }
@@ -83,6 +89,7 @@ namespace Argus.Health.Pulse.ViewModels
                 TimeRange.Last6Hours => "6h",
                 TimeRange.Last24Hours => "24h",
                 TimeRange.Last7Days => "7d",
+                TimeRange.Last30Days => "30d",
                 _ => "1h"
             };
         }

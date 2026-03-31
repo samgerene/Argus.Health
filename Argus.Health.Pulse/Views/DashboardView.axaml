@@ -90,6 +90,8 @@
                                 ToolTip.Tip="Show the last 24 hours" />
                         <Button x:Name="Last7DaysButton" Content="7d" Padding="8,2" FontSize="11"
                                 ToolTip.Tip="Show the last 7 days" />
+                        <Button x:Name="Last30DaysButton" Content="30d" Padding="8,2" FontSize="11"
+                                ToolTip.Tip="Show the last 30 days" />
                     </StackPanel>
                     <controls:ResponseTimeChartControl x:Name="ResponseTimeChart"
                         ToolTip.Tip="Response time in milliseconds over the selected time range. Red dots indicate failed checks." />

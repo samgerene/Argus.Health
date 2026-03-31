@@ -134,6 +134,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.SelectLast6HoursCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last6Hours);
             this.SelectLast24HoursCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last24Hours);
             this.SelectLast7DaysCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last7Days);
+            this.SelectLast30DaysCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last30Days);
 
             this.SelectStatusBarCommand = ReactiveCommand.Create(() => this.SelectedUptimeViewMode = UptimeViewMode.StatusBar);
             this.SelectHeatmapCommand = ReactiveCommand.Create(() => this.SelectedUptimeViewMode = UptimeViewMode.Heatmap);
@@ -233,6 +234,11 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets the command to select the last 7 days time range
         /// </summary>
         public ReactiveCommand<Unit, TimeRange> SelectLast7DaysCommand { get; }
+
+        /// <summary>
+        /// Gets the command to select the last 30 days time range
+        /// </summary>
+        public ReactiveCommand<Unit, TimeRange> SelectLast30DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the status bar uptime view

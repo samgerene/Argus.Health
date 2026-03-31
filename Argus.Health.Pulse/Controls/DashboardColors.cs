@@ -51,5 +51,10 @@ namespace Argus.Health.Pulse.Controls
         /// Gray color for pending/unknown status
         /// </summary>
         public static readonly SolidColorBrush Gray = new(Color.Parse("#6b7280"));
+
+        /// <summary>
+        /// Slate gray color for muted/inactive text
+        /// </summary>
+        public static readonly SolidColorBrush SlateGray = new(Color.Parse("#94a3b8"));
     }
 }

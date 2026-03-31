@@ -154,6 +154,7 @@ namespace Argus.Health.Pulse.Views
                         this.Last6HoursButton.Command = detail.SelectLast6HoursCommand;
                         this.Last24HoursButton.Command = detail.SelectLast24HoursCommand;
                         this.Last7DaysButton.Command = detail.SelectLast7DaysCommand;
+                        this.Last30DaysButton.Command = detail.SelectLast30DaysCommand;
                         this.StatusBarViewButton.Command = detail.SelectStatusBarCommand;
                         this.HeatmapViewButton.Command = detail.SelectHeatmapCommand;
                     })
@@ -204,6 +205,7 @@ namespace Argus.Health.Pulse.Views
                         this.HighlightButton(this.Last6HoursButton, range == TimeRange.Last6Hours);
                         this.HighlightButton(this.Last24HoursButton, range == TimeRange.Last24Hours);
                         this.HighlightButton(this.Last7DaysButton, range == TimeRange.Last7Days);
+                        this.HighlightButton(this.Last30DaysButton, range == TimeRange.Last30Days);
                     })
                     .DisposeWith(disposables);
 
@@ -251,7 +253,7 @@ namespace Argus.Health.Pulse.Views
         /// <param name="isActive">Whether the button represents the active selection</param>
         private void HighlightButton(Button button, bool isActive)
         {
-            button.Foreground = isActive ? DashboardColors.Teal : null;
+            button.Foreground = isActive ? DashboardColors.Teal : DashboardColors.SlateGray;
         }
     }
 }
