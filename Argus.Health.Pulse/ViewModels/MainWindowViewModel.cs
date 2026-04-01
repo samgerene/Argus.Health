@@ -254,6 +254,7 @@ namespace Argus.Health.Pulse.ViewModels
                         this.IsConnecting = false;
                         this.IsConnected = false;
                         this.IsConnectionDegraded = false;
+                        this.SyncProgress = 0;
                     }
                 });
             this.disposables.Add(runningSubscription);
@@ -263,7 +264,7 @@ namespace Argus.Health.Pulse.ViewModels
                 .ObserveOn(AvaloniaScheduler.Instance)
                 .Subscribe(_ =>
                 {
-                    if (this.SyncProgress > 0)
+                    if (this.IsSyncRunning && this.SyncProgress > 0)
                     {
                         this.SyncProgress -= 1;
                     }
