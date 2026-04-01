@@ -287,6 +287,12 @@ namespace Argus.Health.Pulse.ViewModels
                         var detail = new EndpointDetailViewModel(selected);
                         this.SelectedDetail = detail;
                         _ = this.LoadUptimeSummaryAsync(detail);
+
+                        var uptimeRangeSubscription = detail.WhenAnyValue(d => d.SelectedUptimeDaysRange)
+                            .Skip(1)
+                            .Subscribe(range => _ = this.LoadUptimeSummaryAsync(detail));
+
+                        detail.Disposables.Add(uptimeRangeSubscription);
                     }
                     else
                     {
@@ -561,18 +567,21 @@ namespace Argus.Health.Pulse.ViewModels
         {
             try
             {
-                var hourlySummaries = await this.client.GetUptimeSummaryAsync(
-                    detail.Endpoint.Identifier, 90, UptimeResolution.Hour);
+                var days = detail.SelectedUptimeDaysRange.ToDays();
 
-                detail.HourlySummaries = hourlySummaries as IReadOnlyList<UptimeSummary> ?? hourlySummaries.ToList();
+                var hourlyTask = this.client.GetUptimeSummaryAsync(
+                    detail.Endpoint.Identifier, days, UptimeResolution.Hour);
 
-                var dailySummaries = await this.client.GetUptimeSummaryAsync(
-                    detail.Endpoint.Identifier, 90, UptimeResolution.Day);
+                var dailyTask = this.client.GetUptimeSummaryAsync(
+                    detail.Endpoint.Identifier, days, UptimeResolution.Day);
 
-                detail.DailySummaries = dailySummaries as IReadOnlyList<UptimeSummary> ?? dailySummaries.ToList();
+                await Task.WhenAll(hourlyTask, dailyTask);
+
+                detail.HourlySummaries = hourlyTask.Result as IReadOnlyList<UptimeSummary> ?? hourlyTask.Result.ToList();
+                detail.DailySummaries = dailyTask.Result as IReadOnlyList<UptimeSummary> ?? dailyTask.Result.ToList();
 
                 this.logger.LogDebug("Loaded {HourlyCount} hourly and {DailyCount} daily uptime summaries for {EndpointName}",
-                    hourlySummaries.Count, dailySummaries.Count, detail.Endpoint.Name);
+                    hourlyTask.Result.Count, dailyTask.Result.Count, detail.Endpoint.Name);
             }
             catch (Exception ex)
             {

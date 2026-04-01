@@ -155,6 +155,10 @@ namespace Argus.Health.Pulse.Views
                         this.Last24HoursButton.Command = detail.SelectLast24HoursCommand;
                         this.Last7DaysButton.Command = detail.SelectLast7DaysCommand;
                         this.Last30DaysButton.Command = detail.SelectLast30DaysCommand;
+                        this.Uptime7DaysButton.Command = detail.SelectUptime7DaysCommand;
+                        this.Uptime30DaysButton.Command = detail.SelectUptime30DaysCommand;
+                        this.Uptime60DaysButton.Command = detail.SelectUptime60DaysCommand;
+                        this.Uptime90DaysButton.Command = detail.SelectUptime90DaysCommand;
                         this.StatusBarViewButton.Command = detail.SelectStatusBarCommand;
                         this.HeatmapViewButton.Command = detail.SelectHeatmapCommand;
                     })
@@ -177,6 +181,19 @@ namespace Argus.Health.Pulse.Views
 
                 // Refresh uptime controls when summary data arrives
                 this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.HourlySummaries)
+                    .Subscribe(_ =>
+                    {
+                        var detail = this.ViewModel?.SelectedDetail;
+
+                        if (detail != null)
+                        {
+                            this.UpdateUptimeControls(detail);
+                        }
+                    })
+                    .DisposeWith(disposables);
+
+                // Refresh uptime controls when daily summary data arrives
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.DailySummaries)
                     .Subscribe(_ =>
                     {
                         var detail = this.ViewModel?.SelectedDetail;
@@ -215,6 +232,18 @@ namespace Argus.Health.Pulse.Views
                     {
                         this.HighlightButton(this.StatusBarViewButton, mode == UptimeViewMode.StatusBar);
                         this.HighlightButton(this.HeatmapViewButton, mode == UptimeViewMode.Heatmap);
+                    })
+                    .DisposeWith(disposables);
+
+                // Uptime days range button highlights
+                this.WhenAnyValue(v => v.ViewModel!.SelectedDetail!.SelectedUptimeDaysRange)
+                    .Subscribe(range =>
+                    {
+                        this.HighlightButton(this.Uptime7DaysButton, range == UptimeDaysRange.Last7Days);
+                        this.HighlightButton(this.Uptime30DaysButton, range == UptimeDaysRange.Last30Days);
+                        this.HighlightButton(this.Uptime60DaysButton, range == UptimeDaysRange.Last60Days);
+                        this.HighlightButton(this.Uptime90DaysButton, range == UptimeDaysRange.Last90Days);
+                        this.UptimeLabelText.Text = $"Uptime ({range.ToDisplayString()})";
                     })
                     .DisposeWith(disposables);
             });

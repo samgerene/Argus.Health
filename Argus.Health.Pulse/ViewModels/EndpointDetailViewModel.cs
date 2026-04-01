@@ -43,6 +43,11 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly CompositeDisposable disposables = new();
 
         /// <summary>
+        /// Gets the disposable container for adding external subscriptions tied to this detail's lifetime
+        /// </summary>
+        internal CompositeDisposable Disposables => this.disposables;
+
+        /// <summary>
         /// Helper for <see cref="FilteredResults"/>
         /// </summary>
         private readonly ObservableAsPropertyHelper<IReadOnlyList<HealthEndPointCheckResult>> filteredResultsHelper;
@@ -135,6 +140,13 @@ namespace Argus.Health.Pulse.ViewModels
             this.SelectLast24HoursCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last24Hours);
             this.SelectLast7DaysCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last7Days);
             this.SelectLast30DaysCommand = ReactiveCommand.Create(() => this.SelectedTimeRange = TimeRange.Last30Days);
+
+            this.SelectedUptimeDaysRange = UptimeDaysRange.Last90Days;
+
+            this.SelectUptime7DaysCommand = ReactiveCommand.Create(() => this.SelectedUptimeDaysRange = UptimeDaysRange.Last7Days);
+            this.SelectUptime30DaysCommand = ReactiveCommand.Create(() => this.SelectedUptimeDaysRange = UptimeDaysRange.Last30Days);
+            this.SelectUptime60DaysCommand = ReactiveCommand.Create(() => this.SelectedUptimeDaysRange = UptimeDaysRange.Last60Days);
+            this.SelectUptime90DaysCommand = ReactiveCommand.Create(() => this.SelectedUptimeDaysRange = UptimeDaysRange.Last90Days);
 
             this.SelectStatusBarCommand = ReactiveCommand.Create(() => this.SelectedUptimeViewMode = UptimeViewMode.StatusBar);
             this.SelectHeatmapCommand = ReactiveCommand.Create(() => this.SelectedUptimeViewMode = UptimeViewMode.Heatmap);
@@ -241,6 +253,26 @@ namespace Argus.Health.Pulse.ViewModels
         public ReactiveCommand<Unit, TimeRange> SelectLast30DaysCommand { get; }
 
         /// <summary>
+        /// Gets the command to select the last 7 days uptime range
+        /// </summary>
+        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime7DaysCommand { get; }
+
+        /// <summary>
+        /// Gets the command to select the last 30 days uptime range
+        /// </summary>
+        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime30DaysCommand { get; }
+
+        /// <summary>
+        /// Gets the command to select the last 60 days uptime range
+        /// </summary>
+        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime60DaysCommand { get; }
+
+        /// <summary>
+        /// Gets the command to select the last 90 days uptime range
+        /// </summary>
+        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime90DaysCommand { get; }
+
+        /// <summary>
         /// Gets the command to select the status bar uptime view
         /// </summary>
         public ReactiveCommand<Unit, UptimeViewMode> SelectStatusBarCommand { get; }
@@ -249,6 +281,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets the command to select the heatmap uptime view
         /// </summary>
         public ReactiveCommand<Unit, UptimeViewMode> SelectHeatmapCommand { get; }
+
+        /// <summary>
+        /// Gets or sets the selected uptime days range for the uptime visualization
+        /// </summary>
+        [Reactive]
+        public partial UptimeDaysRange SelectedUptimeDaysRange { get; set; }
 
         /// <summary>
         /// Gets or sets the selected uptime visualization mode
