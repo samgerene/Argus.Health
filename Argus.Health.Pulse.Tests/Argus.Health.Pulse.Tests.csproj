@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
         <Authors>Sam Gerené</Authors>
         <Description>Nunit test suite for the Argus.Health.Pulse application</Description>
         <Copyright>Copyright © Sam Gerené</Copyright>

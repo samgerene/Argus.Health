@@ -22,6 +22,7 @@ namespace Argus.Health.Pulse
 {
     using System;
     using System.IO;
+    using System.Linq;
 
     using Avalonia;
     using ReactiveUI.Avalonia;
@@ -75,7 +76,20 @@ namespace Argus.Health.Pulse
                 services.AddSingleton<IEndpointSyncService, EndpointSyncService>();
                 services.AddSingleton<IHealthCheckService, HealthCheckService>();
 
+                if (OperatingSystem.IsWindows())
+                {
+                    services.AddSingleton<IAutoStartService, WindowsAutoStartService>();
+                    services.AddSingleton<IToastNotificationService, WindowsToastNotificationService>();
+                }
+                else
+                {
+                    services.AddSingleton<IAutoStartService, NullAutoStartService>();
+                    services.AddSingleton<IToastNotificationService, NullToastNotificationService>();
+                }
+
                 App.Services = services.BuildServiceProvider();
+
+                App.StartMinimized = args.Contains("--minimized", StringComparer.OrdinalIgnoreCase);
 
                 BuildAvaloniaApp()
                     .StartWithClassicDesktopLifetime(args);

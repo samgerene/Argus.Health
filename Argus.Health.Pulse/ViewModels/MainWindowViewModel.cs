@@ -62,6 +62,11 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly IHealthCheckService healthCheckService;
 
         /// <summary>
+        /// The <see cref="IAutoStartService"/> used to manage automatic startup registration
+        /// </summary>
+        private readonly IAutoStartService autoStartService;
+
+        /// <summary>
         /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
         /// </summary>
         private readonly ILoggerFactory loggerFactory;
@@ -108,6 +113,9 @@ namespace Argus.Health.Pulse.ViewModels
         /// <param name="healthCheckService">
         /// The <see cref="IHealthCheckService"/> used to monitor endpoint health
         /// </param>
+        /// <param name="autoStartService">
+        /// The <see cref="IAutoStartService"/> used to manage automatic startup registration
+        /// </param>
         /// <param name="loggerFactory">
         /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
         /// </param>
@@ -115,13 +123,17 @@ namespace Argus.Health.Pulse.ViewModels
             HealthEndPointClient client,
             IEndpointSyncService syncService,
             IHealthCheckService healthCheckService,
+            IAutoStartService autoStartService,
             ILoggerFactory loggerFactory)
         {
             this.client = client;
             this.syncService = syncService;
             this.healthCheckService = healthCheckService;
+            this.autoStartService = autoStartService;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<MainWindowViewModel>();
+
+            this.IsAutoStartEnabled = this.autoStartService.IsEnabled;
 
             this.GoToDashboardCommand = ReactiveCommand.Create(this.NavigateToDashboard);
             this.GoToEndpointsCommand = ReactiveCommand.Create(this.NavigateToEndpoints);
@@ -129,6 +141,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.ExitCommand = ReactiveCommand.Create(() => { this.ExitRequested?.Invoke(this, EventArgs.Empty); });
             this.ToggleWindowCommand = ReactiveCommand.Create(() => { this.ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
             this.ShowWindowCommand = ReactiveCommand.Create(() => { this.ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
+            this.ToggleAutoStartCommand = ReactiveCommand.Create(this.ToggleAutoStart);
 
             var notificationBindSubscription = this.notificationSource
                 .Connect()
@@ -319,6 +332,12 @@ namespace Argus.Health.Pulse.ViewModels
         public partial double SyncProgress { get; set; } = 100;
 
         /// <summary>
+        /// Gets or sets a value indicating whether autostart with Windows is enabled
+        /// </summary>
+        [Reactive]
+        public partial bool IsAutoStartEnabled { get; set; }
+
+        /// <summary>
         /// Gets the collection of active toast notifications
         /// </summary>
         public ReadOnlyObservableCollection<NotificationItem> Notifications { get; }
@@ -357,6 +376,11 @@ namespace Argus.Health.Pulse.ViewModels
         /// Gets the command to show the main window from the tray context menu
         /// </summary>
         public ICommand ShowWindowCommand { get; }
+
+        /// <summary>
+        /// Gets the command to toggle automatic startup with Windows
+        /// </summary>
+        public ReactiveCommand<Unit, Unit> ToggleAutoStartCommand { get; }
 
         /// <summary>
         /// Raised when the application should exit
@@ -426,6 +450,38 @@ namespace Argus.Health.Pulse.ViewModels
         {
             this.logger.LogDebug("Dismissing notification {NotificationId}", item.Id);
             this.notificationSource.Remove(item);
+        }
+
+        /// <summary>
+        /// Toggles automatic startup with Windows on or off
+        /// </summary>
+        private void ToggleAutoStart()
+        {
+            if (this.IsAutoStartEnabled)
+            {
+                this.autoStartService.Disable();
+            }
+            else
+            {
+                this.autoStartService.Enable();
+            }
+
+            this.IsAutoStartEnabled = this.autoStartService.IsEnabled;
+        }
+
+        /// <summary>
+        /// Resolves the display name for the specified endpoint identifier from the dashboard
+        /// </summary>
+        /// <param name="endpointId">
+        /// The unique identifier of the endpoint
+        /// </param>
+        /// <returns>
+        /// The endpoint name if found in the dashboard, or <c>null</c> if not available
+        /// </returns>
+        public string? ResolveEndpointName(Guid endpointId)
+        {
+            return this.dashboardViewModel?.Endpoints
+                .FirstOrDefault(e => e.Identifier == endpointId)?.Name;
         }
 
         /// <summary>

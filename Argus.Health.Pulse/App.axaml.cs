@@ -21,11 +21,13 @@
 namespace Argus.Health.Pulse
 {
     using System;
+    using System.Reactive.Linq;
 
     using Avalonia;
     using Avalonia.Controls;
     using Avalonia.Controls.ApplicationLifetimes;
     using Avalonia.Markup.Xaml;
+    using Avalonia.Threading;
 
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
@@ -34,6 +36,8 @@ namespace Argus.Health.Pulse
 
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+
+    using ReactiveUI.Avalonia;
 
     using Serilog;
 
@@ -63,6 +67,11 @@ namespace Argus.Health.Pulse
         public static ServiceProvider? Services { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the application should start minimized to the system tray
+        /// </summary>
+        public static bool StartMinimized { get; set; }
+
+        /// <summary>
         /// Initializes the application
         /// </summary>
         public override void Initialize()
@@ -80,35 +89,40 @@ namespace Argus.Health.Pulse
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 var healthEndPointClient = Services!.GetRequiredService<HealthEndPointClient>();
-                syncService = Services!.GetRequiredService<IEndpointSyncService>();
-                healthCheckService = Services!.GetRequiredService<IHealthCheckService>();
+                this.syncService = Services!.GetRequiredService<IEndpointSyncService>();
+                this.healthCheckService = Services!.GetRequiredService<IHealthCheckService>();
                 var loggerFactory = Services!.GetRequiredService<ILoggerFactory>();
+                var autoStartService = Services!.GetRequiredService<IAutoStartService>();
+                var toastService = Services!.GetRequiredService<IToastNotificationService>();
 
-                mainViewModel = new MainWindowViewModel(healthEndPointClient, syncService, healthCheckService, loggerFactory);
+                this.mainViewModel = new MainWindowViewModel(healthEndPointClient, this.syncService, this.healthCheckService, autoStartService, loggerFactory);
+                this.DataContext = this.mainViewModel;
 
                 var mainWindow = new MainWindow
                 {
                     DataContext = mainViewModel
                 };
 
-                mainViewModel.ExitRequested += (_, _) =>
+                this.mainViewModel.ExitRequested += (_, _) =>
                 {
                     Log.Information("Exit requested, shutting down");
-                    mainViewModel.Dispose();
-                    syncService.Dispose();
-                    healthCheckService.Dispose();
+                    toastService.Dispose();
+                    this.mainViewModel.Dispose();
+                    this.syncService.Dispose();
+                    this.healthCheckService.Dispose();
                     desktop.Shutdown();
                 };
 
                 desktop.ShutdownRequested += (_, _) =>
                 {
                     Log.Information("Desktop shutdown requested");
-                    mainViewModel.Dispose();
-                    syncService.Dispose();
-                    healthCheckService.Dispose();
+                    toastService.Dispose();
+                    this.mainViewModel.Dispose();
+                    this.syncService.Dispose();
+                    this.healthCheckService.Dispose();
                 };
 
-                mainViewModel.ToggleWindowRequested += (_, _) =>
+                this.mainViewModel.ToggleWindowRequested += (_, _) =>
                 {
                     if (mainWindow.IsVisible)
                     {
@@ -121,10 +135,47 @@ namespace Argus.Health.Pulse
                     }
                 };
 
-                mainViewModel.ShowWindowRequested += (_, _) =>
+                this.mainViewModel.ShowWindowRequested += (_, _) =>
                 {
                     mainWindow.Show();
                     mainWindow.Activate();
+                };
+
+                // close-to-tray: hide window instead of closing when user clicks X
+                mainWindow.Closing += (_, e) =>
+                {
+                    e.Cancel = true;
+                    mainWindow.Hide();
+                };
+
+                // start hidden when launched with --minimized
+                if (StartMinimized)
+                {
+                    mainWindow.Opened += (_, _) => mainWindow.Hide();
+                }
+
+                // show OS toast notifications for failures when window is hidden
+                this.healthCheckService.FailureObservable
+                    .ObserveOn(AvaloniaScheduler.Instance)
+                    .Subscribe(result =>
+                    {
+                        if (!mainWindow.IsVisible)
+                        {
+                            var endpointName = this.mainViewModel.ResolveEndpointName(result.HealthEndPoint)
+                                               ?? $"Endpoint {result.HealthEndPoint}";
+
+                            toastService.ShowEndpointFailure(endpointName, result.StatusCode, result.ErrorMessage);
+                        }
+                    });
+
+                // handle toast click: show the main window
+                toastService.ToastActivated += (_, _) =>
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        mainWindow.Show();
+                        mainWindow.Activate();
+                    });
                 };
 
                 // set window and tray icon from .ico copied to output directory

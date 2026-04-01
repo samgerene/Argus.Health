@@ -16,6 +16,8 @@
                     <NativeMenu>
                         <NativeMenuItem Header="Show" Command="{Binding ShowWindowCommand}" />
                         <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Autostart with Windows" Command="{Binding ToggleAutoStartCommand}" />
+                        <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Exit" Command="{Binding ExitCommand}" />
                     </NativeMenu>
                 </TrayIcon.Menu>
