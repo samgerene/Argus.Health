@@ -386,6 +386,11 @@ namespace Argus.Health.Service.Repository
 
                 await connection.OpenAsync();
 
+                var deleteResultsCommand = connection.CreateCommand();
+                deleteResultsCommand.CommandText = "DELETE FROM HealthEndPointCheckResults WHERE HealthEndPoint = $identifier;";
+                deleteResultsCommand.Parameters.AddWithValue("$identifier", d);
+                await deleteResultsCommand.ExecuteNonQueryAsync();
+
                 var command = connection.CreateCommand();
                 command.CommandText = "DELETE FROM HealthEndpoints WHERE Identifier = $identifier;";
                 command.Parameters.AddWithValue("$identifier", d);

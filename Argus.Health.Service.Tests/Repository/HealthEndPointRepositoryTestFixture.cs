@@ -21,6 +21,7 @@
 namespace Argus.Health.Service.Tests.Repository
 {
     using System;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
@@ -73,6 +74,7 @@ namespace Argus.Health.Service.Tests.Repository
             var logger = this.loggerFactory.CreateLogger<HealthEndPointRepository>();
 
             this.healthEndPointRepository = new HealthEndPointRepository(logger, this.databaseFolderPath);
+            this.healthEndPointRepository.InitializeDatabase();
         }
 
         [Test]
@@ -224,6 +226,35 @@ namespace Argus.Health.Service.Tests.Repository
         {
             Assert.That(async () => await this.healthEndPointRepository.DeleteAsync(null),
                 Throws.TypeOf<ArgumentNullException>());
+        }
+
+        [Test]
+        public async Task Verify_that_delete_removes_associated_check_results()
+        {
+            var endpointId = Guid.Parse("cfb2e590-eed6-4223-b2ba-271ed0cb06da");
+
+            var checkResultLogger = this.loggerFactory.CreateLogger<HealthEndPointCheckResultRepository>();
+            var checkResultRepository = new HealthEndPointCheckResultRepository(checkResultLogger, this.databaseFolderPath);
+
+            var checkResult = new HealthEndPointCheckResult
+            {
+                Identifier = Guid.NewGuid(),
+                HealthEndPoint = endpointId,
+                Timestamp = DateTime.UtcNow,
+                StatusCode = 200,
+                ResponseTimeMs = 42
+            };
+
+            await checkResultRepository.CreateAsync(checkResult);
+
+            var resultsBefore = await checkResultRepository.ReadAsync(endpointId);
+            Assert.That(resultsBefore, Is.Not.Empty);
+
+            var healthEndPoint = new HealthEndPoint { Identifier = endpointId };
+            await this.healthEndPointRepository.DeleteAsync(healthEndPoint);
+
+            var resultsAfter = await checkResultRepository.ReadAsync(endpointId);
+            Assert.That(resultsAfter, Is.Empty);
         }
 
         [Test]
