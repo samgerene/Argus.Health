@@ -13,6 +13,7 @@
         <IsPackable>false</IsPackable>
         <PreserveCompilationContext>true</PreserveCompilationContext>
         <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
     </PropertyGroup>
 
     <ItemGroup>
