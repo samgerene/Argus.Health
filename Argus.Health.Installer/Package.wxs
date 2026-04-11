@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package Name="Argus Health"
+           Manufacturer="Sam Gerené"
+           Version="0.1.0"
+           UpgradeCode="E7A83B2F-6D4C-4F8E-B5A1-3C9D2E1F0A7B"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage=
+      "A newer version of Argus Health is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="PulseIcon" SourceFile="..\Argus.Health.Pulse\Assets\argus-health-pulse-icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="PulseIcon" />
+
+    <!-- Directory structure -->
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="ArgusHealth">
+        <Directory Id="ServiceInstallFolder" Name="Service" />
+        <Directory Id="PulseInstallFolder" Name="Pulse" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ArgusHealthMenuFolder" Name="Argus Health" />
+    </StandardDirectory>
+
+    <!-- Service: main EXE with ServiceInstall and ServiceControl -->
+    <Component Id="ServiceExecutableComponent"
+               Directory="ServiceInstallFolder"
+               Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+
+      <File Id="ServiceExe"
+            Source="ServiceExe\Argus.Health.Service.exe"
+            KeyPath="yes" />
+
+      <ServiceInstall Id="ArgusHealthServiceInstall"
+                      Name="Argus Health Service"
+                      DisplayName="Argus Health Service"
+                      Description="Monitors HTTP health endpoints and reports their status."
+                      Type="ownProcess"
+                      Start="auto"
+                      Account="LocalSystem"
+                      ErrorControl="normal" />
+
+      <ServiceControl Id="ArgusHealthServiceControl"
+                      Name="Argus Health Service"
+                      Start="install"
+                      Stop="both"
+                      Remove="uninstall"
+                      Wait="yes" />
+    </Component>
+
+    <!-- Service: supporting files (EXE excluded from publish dir by build script) -->
+    <ComponentGroup Id="ServiceSupportComponents" Directory="ServiceInstallFolder">
+      <Files Include="..\Argus.Health.Service\bin\publish\**" />
+    </ComponentGroup>
+
+    <!-- Pulse: all published files -->
+    <ComponentGroup Id="PulseComponents" Directory="PulseInstallFolder">
+      <Files Include="..\Argus.Health.Pulse\bin\publish\**" />
+    </ComponentGroup>
+
+    <!-- Start Menu shortcut for Pulse -->
+    <Component Id="PulseShortcutComponent"
+               Directory="ArgusHealthMenuFolder"
+               Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901">
+
+      <Shortcut Id="PulseStartMenuShortcut"
+                Name="Argus Health Pulse"
+                Target="[PulseInstallFolder]Argus.Health.Pulse.exe"
+                WorkingDirectory="PulseInstallFolder"
+                Icon="PulseIcon" />
+
+      <RemoveFolder Id="RemoveArgusHealthMenuFolder"
+                    Directory="ArgusHealthMenuFolder"
+                    On="uninstall" />
+
+      <RegistryValue Root="HKCU"
+                     Key="Software\ArgusHealth\Pulse"
+                     Name="StartMenuShortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <!-- Features -->
+    <Feature Id="ServiceFeature"
+             Title="Argus Health Service"
+             Description="Background Windows Service that monitors health endpoints."
+             Level="1"
+             AllowAbsent="no">
+      <ComponentRef Id="ServiceExecutableComponent" />
+      <ComponentGroupRef Id="ServiceSupportComponents" />
+    </Feature>
+
+    <Feature Id="PulseFeature"
+             Title="Argus Health Pulse"
+             Description="Desktop dashboard for monitoring Argus Health endpoints."
+             Level="1"
+             AllowAbsent="yes">
+      <ComponentGroupRef Id="PulseComponents" />
+      <ComponentRef Id="PulseShortcutComponent" />
+    </Feature>
+
+  </Package>
+
+</Wix>
