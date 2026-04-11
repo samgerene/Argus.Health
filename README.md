@@ -6,7 +6,7 @@ Argus Health is a Background service that executes GET requests on configurable 
 
 ## Code Quality
 
-> More info coming soonm
+> More info coming soon
 
 ## Building the Installer
 

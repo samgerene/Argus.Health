@@ -29,6 +29,9 @@ dotnet run --project Argus.Health.Service
 
 # Run the Pulse desktop app
 dotnet run --project Argus.Health.Pulse
+
+# Build the Windows MSI installer (publishes Service + Pulse self-contained and builds the WiX project)
+pwsh .\build-installer.ps1
 ```
 
 ## Solution Structure
@@ -36,18 +39,23 @@ dotnet run --project Argus.Health.Pulse
 | Project | Framework | Role |
 |---|---|---|
 | `Argus.Health.Common` | net10.0 | Shared models and domain JSON serialization |
-| `Argus.Health.Client` | net10.0 | `HealthEndPointClient` typed client |
-| `Argus.Health.Client.Tests` | net10.0 | Tests for `HealthEndPointClient` |
 | `Argus.Health.Service` | net10.0 | Worker Service — main executable |
-| `Argus.Health.Service.Tests` | net10.0 | Tests for domain service |
-| `Argus.Health.Pulse` | net10.0 | Avalonia desktop dashboard for monitoring Argus Health endpoints |
-| `Argus.Health.Pulse.Tests` | net10.0 | Tests for Argus.Health.Pulse |
+| `Argus.Health.Service.Tests` | net10.0 | Tests for the service |
+| `Argus.Health.Pulse` | net10.0-windows | Avalonia desktop dashboard for monitoring Argus Health endpoints |
+| `Argus.Health.Pulse.Tests` | net10.0-windows | Tests for Argus.Health.Pulse |
+| `Argus.Health.Installer` | WiX 5 | MSI installer packaging the Service and Pulse |
 
 ## Architecture
 
 ### Runtime Flow
 
-`Program.cs` bootstraps a `Host` with Serilog logging, registers a named `HttpClient` (`"ArgusHealth"`), registers `HealthEndPointRepository` as a singleton, and starts `HealthEndPointBackgroundService`.
+`Program.cs` bootstraps a .NET generic `Host`:
+
+1. **Serilog** is configured with a Console sink (from `appsettings.json`) and a rolling File sink added programmatically. The log file path is built at startup from `Program.ApplicationDataFolder + "\logs\argus-health-service-.log"` (rolling daily), so logs land next to the SQLite database regardless of the OS.
+2. **OS-aware lifecycle registration**: `AddWindowsService(o => o.ServiceName = "Argus Health Service")` on Windows, `AddSystemd()` on Linux. Unsupported OSes exit with code 1.
+3. **DI registration**: `ArgusHealthOptions` bound from the `ArgusHealth` config section, a named `HttpClient("ArgusHealth")`, `AddArgusModules()`, `AddArgusPipeHost()` (named-pipe IPC host), `IHealthEndPointRepository` + `IHealthEndPointCheckResultRepository` as singletons, and `HealthEndPointBackgroundService` as a hosted service. `HostOptions.ServicesStartConcurrently = true`.
+4. **Database initialization**: after `builder.Build()`, `repository.InitializeDatabase()` runs synchronously before `app.RunAsync()`. It creates `ApplicationDataFolder` and the SQLite file/tables if missing.
+5. **Host runs** until SCM / systemd / `Ctrl+C` stops it.
 
 `HealthEndPointBackgroundService` (extends `BackgroundService`) loads all endpoints from the repository on startup and spawns a per-endpoint monitoring loop. It subscribes to repository events (`EndpointAdded`, `EndpointUpdated`, `EndpointRemoved`) to dynamically start/stop monitors without restart. Each monitor loop is tracked in a `ConcurrentDictionary<Guid, (Task, CancellationTokenSource)>`.
 
@@ -55,11 +63,15 @@ Each monitor loop wraps HTTP calls with three stacked Polly policies (innermost 
 
 ### IPC Protocol
 
-`ArgusPipeHostBackgroundService` (in `ArgusTransfer.Server`) listens on a configurable named pipe (default `"argus"`) for IPC requests. The protocol uses `ArgusRequest` / `ArgusResponse` messages with HTTP-like routes (`/healthendpoint`, `/healthendpoint/{identifier}`) and verbs (`ArgusVerb`: GET, POST, PUT, PATCH, HEAD, DELETE). Requests are routed via `ArgusRouter` to registered `IArgusModule` implementations. The pipe host is registered via `AddArgusPipeHost()` in `Program.cs`.
+The pipe host (from the `ArgusTransfer` NuGet package — see `Argus.Health.Service.csproj`) listens on a configurable named pipe. The default name is `"ArgusHealth"` (see `ArgusHealthOptions.PipeName` and the `ArgusHealth:PipeName` config key in `appsettings.json`). The protocol uses `ArgusRequest` / `ArgusResponse` messages with HTTP-like routes (`/healthendpoint`, `/healthendpoint/{identifier}`) and verbs (`ArgusVerb`: GET, POST, PUT, PATCH, HEAD, DELETE). Requests are routed via `ArgusRouter` to registered `IArgusModule` implementations. The pipe host is registered via `AddArgusPipeHost()` in `Program.cs`.
 
 ### Repository
 
-`IHealthEndPointRepository` defines CRUD + three events. `HealthEndPointRepository` stores `HealthEndPoint` records in a SQLite database at `%ProgramData%\ArgusHealth\ArgusHealth.sqlite` (Windows) or the equivalent on Linux. The constructor has an `internal` overload accepting a custom folder path — used only in tests.
+`IHealthEndPointRepository` defines CRUD + three events. `HealthEndPointRepository` stores `HealthEndPoint` records in a SQLite database named `ArgusHealth.sqlite` inside `Program.ApplicationDataFolder`, which resolves to `Environment.SpecialFolder.LocalApplicationData` + `"ArgusHealthService"`. When the service runs as `LocalSystem` (the default for the WiX MSI install), that's `C:\Windows\System32\config\systemprofile\AppData\Local\ArgusHealthService\ArgusHealth.sqlite`. On Linux it's the XDG equivalent (`~/.local/share/ArgusHealthService/`). The constructor has an `internal` overload accepting a custom folder path — used only in tests.
+
+Rolling Serilog log files live alongside the database in the same folder tree: `{ApplicationDataFolder}\logs\argus-health-service-YYYYMMDD.log`. The `logs` folder is created on startup by `Program.Main` before the Serilog logger is built.
+
+`IHealthEndPointCheckResultRepository` (backed by `HealthEndPointCheckResultRepository`) is a separate singleton repository for persisted check results. It shares the same database file.
 
 The database column for URLs is named `Urls` and stores semicolon-separated values in the raw SQL, but the model property is currently `Url` (singular `string`).
 
@@ -67,7 +79,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 
 **App bootstrap**: `Program.cs` configures Serilog, registers DI services (`ArgusClient`, `HealthEndPointClient`, `IEndpointSyncService`, `IHealthCheckService`), sets `App.Services` static property. `App.axaml.cs` creates `MainWindowViewModel` and wires tray icon events.
 
-**UI framework**: Avalonia 11.3 with FluentTheme (dark), ReactiveUI 23.1 for MVVM, DynamicData for reactive collections.
+**UI framework**: Avalonia 12.0 with FluentTheme (dark), ReactiveUI.Avalonia 11.4 for MVVM, DynamicData for reactive collections.
 
 **ViewModels**: `MainWindowViewModel` (shell/navigation/notifications/sync state), `DashboardViewModel` (real-time endpoint status grid via `SourceCache`), `EndpointListViewModel` (CRUD list via `SourceCache`), `EndpointEditorViewModel` (create/edit form with validation), `EndpointStatusViewModel` (single dashboard row with computed `IsHealthy`/`StatusDisplay`).
 

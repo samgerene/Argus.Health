@@ -63,8 +63,15 @@ namespace Argus.Health.Service
 
             var builder = Host.CreateApplicationBuilder(args);
 
+            var logFolder = Path.Combine(ApplicationDataFolder, "logs");
+            Directory.CreateDirectory(logFolder);
+            var logFilePath = Path.Combine(logFolder, "argus-health-service-.log");
+
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Configuration)
+                .WriteTo.File(
+                    path: logFilePath,
+                    rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
             builder.Logging.ClearProviders();
