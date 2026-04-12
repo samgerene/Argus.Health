@@ -61,6 +61,22 @@ pwsh .\build-installer.ps1
 
 Each monitor loop wraps HTTP calls with three stacked Polly policies (innermost to outermost): **circuit breaker** → **timeout** → **retry**.
 
+### Background Service File Paths
+
+All persistent state is rooted under `Program.ApplicationDataFolder` (`Environment.SpecialFolder.LocalApplicationData` + `"ArgusHealthService"`). This ensures the service uses absolute, OS-appropriate, writable paths regardless of the process working directory (which is `C:\Windows\System32` when SCM starts a Windows Service).
+
+| Artifact | Relative path under `ApplicationDataFolder` | Created by |
+|---|---|---|
+| SQLite database | `ArgusHealth.sqlite` | `HealthEndPointRepository.InitializeDatabase()` |
+| Rolling log files | `logs\argus-health-service-YYYYMMDD.log` | `Program.Main` (Serilog File sink) |
+
+Resolved paths per platform:
+
+- **Windows (LocalSystem):** `C:\Windows\System32\config\systemprofile\AppData\Local\ArgusHealthService\`
+- **Linux (root/systemd):** `/root/.local/share/ArgusHealthService/` (or `$XDG_DATA_HOME/ArgusHealthService/` for a non-root service user)
+
+Both the database folder and the logs folder are created via `Directory.CreateDirectory` on startup before any I/O is attempted. The Serilog File sink is added programmatically in `Program.cs` (not via `appsettings.json`) so the resolved absolute path can be injected.
+
 ### IPC Protocol
 
 The pipe host (from the `ArgusTransfer` NuGet package — see `Argus.Health.Service.csproj`) listens on a configurable named pipe. The default name is `"ArgusHealth"` (see `ArgusHealthOptions.PipeName` and the `ArgusHealth:PipeName` config key in `appsettings.json`). The protocol uses `ArgusRequest` / `ArgusResponse` messages with HTTP-like routes (`/healthendpoint`, `/healthendpoint/{identifier}`) and verbs (`ArgusVerb`: GET, POST, PUT, PATCH, HEAD, DELETE). Requests are routed via `ArgusRouter` to registered `IArgusModule` implementations. The pipe host is registered via `AddArgusPipeHost()` in `Program.cs`.
