@@ -4,6 +4,7 @@
     <option name="projectPerEditor">
       <map>
         <entry key="Argus.Health.Pulse/App.axaml" value="Argus.Health.Pulse/Argus.Health.Pulse.csproj" />
+        <entry key="Argus.Health.Pulse/Views/AboutWindow.axaml" value="Argus.Health.Pulse/Argus.Health.Pulse.csproj" />
         <entry key="Argus.Health.Pulse/Views/DashboardView.axaml" value="Argus.Health.Pulse/Argus.Health.Pulse.csproj" />
         <entry key="Argus.Health.Pulse/Views/EndpointEditorView.axaml" value="Argus.Health.Pulse/Argus.Health.Pulse.csproj" />
         <entry key="Argus.Health.Pulse/Views/EndpointListView.axaml" value="Argus.Health.Pulse/Argus.Health.Pulse.csproj" />

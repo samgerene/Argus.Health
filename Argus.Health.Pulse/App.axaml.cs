@@ -141,6 +141,20 @@ namespace Argus.Health.Pulse
                     mainWindow.Activate();
                 };
 
+                this.mainViewModel.ShowAboutRequested += (_, _) =>
+                {
+                    var aboutWindow = new AboutWindow { DataContext = new AboutViewModel() };
+
+                    if (mainWindow.IsVisible)
+                    {
+                        aboutWindow.ShowDialog(mainWindow);
+                    }
+                    else
+                    {
+                        aboutWindow.Show();
+                    }
+                };
+
                 // close-to-tray: hide window instead of closing when user clicks X
                 mainWindow.Closing += (_, e) =>
                 {

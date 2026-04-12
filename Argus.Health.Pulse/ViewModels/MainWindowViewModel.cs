@@ -141,6 +141,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.ExitCommand = ReactiveCommand.Create(() => { this.ExitRequested?.Invoke(this, EventArgs.Empty); });
             this.ToggleWindowCommand = ReactiveCommand.Create(() => { this.ToggleWindowRequested?.Invoke(this, EventArgs.Empty); });
             this.ShowWindowCommand = ReactiveCommand.Create(() => { this.ShowWindowRequested?.Invoke(this, EventArgs.Empty); });
+            this.ShowAboutCommand = ReactiveCommand.Create(() => { this.ShowAboutRequested?.Invoke(this, EventArgs.Empty); });
             this.ToggleAutoStartCommand = ReactiveCommand.Create(this.ToggleAutoStart);
 
             var notificationBindSubscription = this.notificationSource
@@ -379,9 +380,19 @@ namespace Argus.Health.Pulse.ViewModels
         public ICommand ShowWindowCommand { get; }
 
         /// <summary>
+        /// Gets the command to show the About dialog
+        /// </summary>
+        public ICommand ShowAboutCommand { get; }
+
+        /// <summary>
         /// Gets the command to toggle automatic startup with Windows
         /// </summary>
         public ReactiveCommand<Unit, Unit> ToggleAutoStartCommand { get; }
+
+        /// <summary>
+        /// Raised when the About dialog should be shown
+        /// </summary>
+        public event EventHandler? ShowAboutRequested;
 
         /// <summary>
         /// Raised when the application should exit

@@ -1,0 +1,36 @@
+<reactiveui:ReactiveWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Argus.Health.Pulse.ViewModels"
+        xmlns:reactiveui="using:ReactiveUI.Avalonia"
+        x:TypeArguments="vm:AboutViewModel"
+        x:Class="Argus.Health.Pulse.Views.AboutWindow"
+        x:DataType="vm:AboutViewModel"
+        Title="About Argus Health Pulse"
+        Width="420" Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+
+    <StackPanel Margin="24,40,24,24" Spacing="12">
+        <Image x:Name="AppIcon" Width="64" Height="64" HorizontalAlignment="Center" />
+        <TextBlock x:Name="AppNameText" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+        <TextBlock x:Name="VersionText" FontSize="13" Foreground="#94a3b8" HorizontalAlignment="Center" />
+
+        <Border Height="1" Background="#334155" Margin="0,4" />
+
+        <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" FontSize="13" Foreground="#cbd5e1" />
+        <TextBlock x:Name="CopyrightText" FontSize="12" Foreground="#94a3b8" />
+
+        <Border Height="1" Background="#334155" Margin="0,4" />
+
+        <TextBlock Text="License" FontWeight="SemiBold" FontSize="13" />
+        <TextBlock x:Name="LicenseText" TextWrapping="Wrap" FontSize="12" Foreground="#94a3b8" />
+
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button x:Name="RepositoryButton" Content="View on GitHub" />
+            <Button x:Name="CloseButton" Content="Close" Classes="accent" />
+        </StackPanel>
+    </StackPanel>
+
+</reactiveui:ReactiveWindow>

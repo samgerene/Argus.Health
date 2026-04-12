@@ -67,6 +67,9 @@ namespace Argus.Health.Pulse.Views
                 this.BindCommand(this.ViewModel, vm => vm.ToggleSyncCommand, v => v.SyncButton)
                     .DisposeWith(disposables);
 
+                this.BindCommand(this.ViewModel, vm => vm.ShowAboutCommand, v => v.AboutButton)
+                    .DisposeWith(disposables);
+
                 this.OneWayBind(this.ViewModel, vm => vm.SyncProgress, v => v.SyncProgressBar.Value)
                     .DisposeWith(disposables);
 
