@@ -20,7 +20,6 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using System.Reactive.Disposables;
     using System.Reactive.Disposables.Fluent;
 
     using Argus.Health.Pulse.ViewModels;
