@@ -5,4 +5,10 @@
     <InstallerPlatform>x64</InstallerPlatform>
   </PropertyGroup>
 
+  <!-- Skip all build targets on non-Windows (WiX v5 fails on Linux with WIX0389) -->
+  <Target Name="Build" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
+  <Target Name="Clean" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
+  <Target Name="Rebuild" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
+  <Target Name="Restore" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
+
 </Project>
