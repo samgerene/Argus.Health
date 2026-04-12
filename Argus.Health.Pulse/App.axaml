@@ -11,14 +11,14 @@
     <TrayIcon.Icons>
         <TrayIcons>
             <TrayIcon ToolTipText="Argus Health Pulse"
-                      Command="{Binding ToggleWindowCommand}">
+                      Command="{ReflectionBinding ToggleWindowCommand}">
                 <TrayIcon.Menu>
                     <NativeMenu>
-                        <NativeMenuItem Header="Show" Command="{Binding ShowWindowCommand}" />
+                        <NativeMenuItem Header="Show" Command="{ReflectionBinding ShowWindowCommand}" />
                         <NativeMenuItemSeparator />
-                        <NativeMenuItem Header="Autostart with Windows" Command="{Binding ToggleAutoStartCommand}" />
+                        <NativeMenuItem Header="Autostart with Windows" Command="{ReflectionBinding ToggleAutoStartCommand}" />
                         <NativeMenuItemSeparator />
-                        <NativeMenuItem Header="Exit" Command="{Binding ExitCommand}" />
+                        <NativeMenuItem Header="Exit" Command="{ReflectionBinding ExitCommand}" />
                     </NativeMenu>
                 </TrayIcon.Menu>
             </TrayIcon>

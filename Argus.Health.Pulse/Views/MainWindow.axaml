@@ -11,7 +11,6 @@
         MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="PreferSystemChrome"
         Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
 
     <Panel>

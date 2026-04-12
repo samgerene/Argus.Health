@@ -36,12 +36,12 @@
                       CanUserReorderColumns="False"
                       SelectionMode="Single">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200" />
-                    <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="300" />
-                    <DataGridTextColumn Header="Frequency (s)" Binding="{Binding Frequency}" Width="100" />
-                    <DataGridTextColumn Header="Timeout (s)" Binding="{Binding Timeout}" Width="100" />
-                    <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="80" />
-                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" />
+                    <DataGridTextColumn Header="Name" Binding="{ReflectionBinding Name}" Width="200" />
+                    <DataGridTextColumn Header="URL" Binding="{ReflectionBinding Url}" Width="300" />
+                    <DataGridTextColumn Header="Frequency (s)" Binding="{ReflectionBinding Frequency}" Width="100" />
+                    <DataGridTextColumn Header="Timeout (s)" Binding="{ReflectionBinding Timeout}" Width="100" />
+                    <DataGridTextColumn Header="Retries" Binding="{ReflectionBinding RetryCount}" Width="80" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{ReflectionBinding IsActive}" Width="60" />
                     <DataGridTemplateColumn Header="Actions" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate x:DataType="model:HealthEndPoint">

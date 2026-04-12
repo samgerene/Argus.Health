@@ -14,12 +14,12 @@
 
         <StackPanel Spacing="4">
             <TextBlock Text="Name" />
-            <TextBox x:Name="NameTextBox" Watermark="e.g. Production API" />
+            <TextBox x:Name="NameTextBox" PlaceholderText="e.g. Production API" />
         </StackPanel>
 
         <StackPanel Spacing="4">
             <TextBlock Text="URL" />
-            <TextBox x:Name="UrlTextBox" Watermark="https://example.com/health" />
+            <TextBox x:Name="UrlTextBox" PlaceholderText="https://example.com/health" />
         </StackPanel>
 
         <StackPanel Spacing="4">
