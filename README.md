@@ -22,6 +22,23 @@ The script publishes both projects as self-contained win-x64 applications and bu
 Argus.Health.Installer\bin\Release\Argus.Health.Installer.msi
 ```
 
+## Releasing a New Version
+
+Use the version bump script to update all project files in one step:
+
+```powershell
+pwsh .\bump-version.ps1 -Version 0.2.0
+```
+
+This updates the `<Version>` element in both `.csproj` files and the `Version` attribute in `Package.wxs`. Then:
+
+```powershell
+git diff                                              # review changes
+git add -A && git commit -m "[Release] v0.2.0"        # commit
+git tag v0.2.0                                        # tag
+pwsh .\build-installer.ps1                            # build the MSI
+```
+
 ## Build Status
 
 GitHub actions are used to build and test the Argus Health application
