@@ -5,10 +5,14 @@
     <InstallerPlatform>x64</InstallerPlatform>
   </PropertyGroup>
 
-  <!-- Skip all build targets on non-Windows (WiX v5 fails on Linux with WIX0389) -->
-  <Target Name="Build" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
-  <Target Name="Clean" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
-  <Target Name="Rebuild" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
-  <Target Name="Restore" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Returns="" />
+  <!-- CI passes /p:ExcludeWixProjects=true on Linux where WiX cannot build -->
+  <PropertyGroup Condition="'$(ExcludeWixProjects)' == 'true'">
+    <BuildProjectReferences>false</BuildProjectReferences>
+    <WixMSBuildDisabled>true</WixMSBuildDisabled>
+  </PropertyGroup>
+
+  <Target Name="Build" Condition="'$(ExcludeWixProjects)' == 'true'" Returns="" />
+  <Target Name="Rebuild" Condition="'$(ExcludeWixProjects)' == 'true'" Returns="" />
+  <Target Name="Restore" Condition="'$(ExcludeWixProjects)' == 'true'" Returns="" />
 
 </Project>

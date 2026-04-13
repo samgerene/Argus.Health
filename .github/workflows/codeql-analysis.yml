@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore /p:ExcludeWixProjects=true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
