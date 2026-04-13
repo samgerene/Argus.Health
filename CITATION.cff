@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+
+title: "Argus Health"
+abstract: "Argus Health is an application for monitoring the health of HTTP endpoints"
+version: "0.1.0"
+date-released: "2026-04-13"
+url: "https://github.com/samgerene/Argus.Health"
+
+authors:
+  - given-names: "Sam"
+    family-names: "Gerené"
+    orcid: "https://orcid.org/0009-0000-1848-550X"
+
+repository-code: "https://github.com/samgerene/Argus.Health"
+license: "Apache-2.0"
+
+preferred-citation:
+  type: software
+  title: "Argus Health"
+  authors:
+    - given-names: "Sam"
+      family-names: "Gerené"
+      orcid: "https://orcid.org/0009-0000-1848-550X"
+  version: "1.0.2"
+  url: "https://github.com/samgerene/Argus.Health"
+  date-released: "2026-04-13"

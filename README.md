@@ -2,11 +2,31 @@
 
 ## Introduction
 
-Argus Health is a Background service that executes GET requests on configurable http endpoints to verify the health of an application, typically a REST API.
+Argus Health is a combination of a 
+  - Health.Service: a background service that executes GET requests on configurable HTTP endpoints to verify the health of an application, typically a REST API.
+  - Argus.Pulse: a desktop app that visualizes the health of EndPoints and that provides funnctionality to create, update and delete endpoints.
 
 ## Code Quality
 
-> More info coming soon
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=coverage)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=samgerene_Argus.Health&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=samgerene_Argus.Health)
+
+## Build Status
+
+GitHub actions are used to build and test the Argus Health application
+
+Branch | Build Status
+------- | :------------
+Master | ![Build Status](https://github.com/samgerene/Argus.Health/actions/workflows/CodeQuality.yml/badge.svg?branch=master)
+Development | ![Build Status](https://github.com/samgerene/Argus.Health/actions/workflows/CodeQuality.yml/badge.svg?branch=development)
 
 ## Building the Installer
 
@@ -38,12 +58,3 @@ git add -A && git commit -m "[Release] v0.2.0"        # commit
 git tag v0.2.0                                        # tag
 pwsh .\build-installer.ps1                            # build the MSI
 ```
-
-## Build Status
-
-GitHub actions are used to build and test the Argus Health application
-
-Branch | Build Status
-------- | :------------
-Master | ![Build Status](https://github.com/samgerene/Argus.Health/actions/workflows/CodeQuality.yml/badge.svg?branch=master)
-Development | ![Build Status](https://github.com/samgerene/Argus.Health/actions/workflows/CodeQuality.yml/badge.svg?branch=development)
