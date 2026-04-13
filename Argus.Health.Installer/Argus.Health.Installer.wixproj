@@ -5,14 +5,4 @@
     <InstallerPlatform>x64</InstallerPlatform>
   </PropertyGroup>
 
-  <!-- CI passes /p:ExcludeWixProjects=true on Linux where WiX cannot build -->
-  <PropertyGroup Condition="'$(ExcludeWixProjects)' == 'true'">
-    <BuildProjectReferences>false</BuildProjectReferences>
-    <WixMSBuildDisabled>true</WixMSBuildDisabled>
-  </PropertyGroup>
-
-  <Target Name="Build" Condition="'$(ExcludeWixProjects)' == 'true'" Returns="" />
-  <Target Name="Rebuild" Condition="'$(ExcludeWixProjects)' == 'true'" Returns="" />
-  <Target Name="Restore" Condition="'$(ExcludeWixProjects)' == 'true'" Returns="" />
-
 </Project>

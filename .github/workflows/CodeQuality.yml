@@ -25,7 +25,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Argus.Health.sln
+        run: dotnet restore Argus.Health.CI.slnf
         
       - name: Sonarqube Begin
         env:
@@ -37,10 +37,10 @@ jobs:
           dotnet sonarscanner begin /k:"samgerene_Argus.Health" /o:"samgerene" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
           
       - name: Build
-        run: dotnet build --no-restore --no-incremental /p:ContinuousIntegrationBuild=true /p:ExcludeWixProjects=true
+        run: dotnet build Argus.Health.CI.slnf --no-restore --no-incremental /p:ContinuousIntegrationBuild=true
 
       - name: Run Tests and Compute Coverage
-        run: dotnet-coverage collect "dotnet test Argus.Health.sln --no-restore --no-build --verbosity normal" -f xml -o "coverage.xml"
+        run: dotnet-coverage collect "dotnet test Argus.Health.CI.slnf --no-restore --no-build --verbosity normal" -f xml -o "coverage.xml"
 
       - name: Sonarqube end
         env:

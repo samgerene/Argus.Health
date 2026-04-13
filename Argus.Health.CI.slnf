@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "Argus.Health.sln",
+    "projects": [
+      "Argus.Health.Common\\Argus.Health.Common.csproj",
+      "Argus.Health.Service\\Argus.Health.Service.csproj",
+      "Argus.Health.Service.Tests\\Argus.Health.Service.Tests.csproj",
+      "Argus.Health.Pulse\\Argus.Health.Pulse.csproj",
+      "Argus.Health.Pulse.Tests\\Argus.Health.Pulse.Tests.csproj"
+    ]
+  }
+}
