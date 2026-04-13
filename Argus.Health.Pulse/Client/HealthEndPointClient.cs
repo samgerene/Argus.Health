@@ -38,6 +38,7 @@ namespace Argus.Health.Pulse.Client
 
     using Polly;
     using Polly.Timeout;
+    using Polly.Wrap;
 
     /// <summary>
     /// A typed client for <see cref="HealthEndPoint"/> CRUD operations over the Argus named-pipe IPC protocol
@@ -55,9 +56,9 @@ namespace Argus.Health.Pulse.Client
         private readonly ArgusClient argusClient;
 
         /// <summary>
-        /// The combined retry + timeout <see cref="IAsyncPolicy"/> applied to every pipe call
+        /// The combined retry + timeout <see cref="AsyncPolicyWrap"/> applied to every pipe call
         /// </summary>
-        private readonly IAsyncPolicy pipePolicy;
+        private readonly AsyncPolicyWrap pipePolicy;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HealthEndPointClient"/> class
