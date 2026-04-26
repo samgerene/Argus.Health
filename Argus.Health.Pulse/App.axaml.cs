@@ -94,8 +94,9 @@ namespace Argus.Health.Pulse
                 var loggerFactory = Services!.GetRequiredService<ILoggerFactory>();
                 var autoStartService = Services!.GetRequiredService<IAutoStartService>();
                 var toastService = Services!.GetRequiredService<IToastNotificationService>();
+                var pipeNameProvider = Services!.GetRequiredService<PipeNameProvider>();
 
-                this.mainViewModel = new MainWindowViewModel(healthEndPointClient, this.syncService, this.healthCheckService, autoStartService, loggerFactory);
+                this.mainViewModel = new MainWindowViewModel(healthEndPointClient, this.syncService, this.healthCheckService, autoStartService, loggerFactory, pipeNameProvider);
                 this.DataContext = this.mainViewModel;
 
                 var mainWindow = new MainWindow

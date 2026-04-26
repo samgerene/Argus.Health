@@ -119,12 +119,16 @@ namespace Argus.Health.Pulse.ViewModels
         /// <param name="loggerFactory">
         /// The <see cref="ILoggerFactory"/> used to create loggers for child view models
         /// </param>
+        /// <param name="pipeNameProvider">
+        /// The <see cref="PipeNameProvider"/> exposing the named pipe Pulse is connected to
+        /// </param>
         public MainWindowViewModel(
             HealthEndPointClient client,
             IEndpointSyncService syncService,
             IHealthCheckService healthCheckService,
             IAutoStartService autoStartService,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            PipeNameProvider pipeNameProvider)
         {
             this.client = client;
             this.syncService = syncService;
@@ -132,6 +136,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.autoStartService = autoStartService;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<MainWindowViewModel>();
+            this.Title = $"Argus Health Pulse — {pipeNameProvider.PipeName}";
 
             this.IsAutoStartEnabled = this.autoStartService.IsEnabled;
 
@@ -290,6 +295,11 @@ namespace Argus.Health.Pulse.ViewModels
             this.syncService.Start();
             this.healthCheckService.Start();
         }
+
+        /// <summary>
+        /// Gets the window title, including the connected pipe name
+        /// </summary>
+        public string Title { get; }
 
         /// <summary>
         /// Gets or sets the currently displayed child view model

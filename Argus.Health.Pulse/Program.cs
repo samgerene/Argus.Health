@@ -72,7 +72,11 @@ namespace Argus.Health.Pulse
 
                 var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
                     ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+#if DEBUG
+                    ?? "Development";
+#else
                     ?? "Production";
+#endif
 
                 var configuration = new ConfigurationBuilder()
                     .SetBasePath(AppContext.BaseDirectory)
@@ -86,6 +90,7 @@ namespace Argus.Health.Pulse
 
                 var services = new ServiceCollection();
                 services.AddLogging(builder => builder.AddSerilog());
+                services.AddSingleton(new PipeNameProvider(pipeName));
                 services.AddSingleton(new ArgusClient(pipeName));
                 services.AddSingleton<HealthEndPointClient>();
                 services.AddSingleton<IEndpointSyncService, EndpointSyncService>();

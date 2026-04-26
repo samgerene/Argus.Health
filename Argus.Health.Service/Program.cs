@@ -61,7 +61,19 @@ namespace Argus.Health.Service
         {
             Console.Title = "Argus Health";
 
-            var builder = Host.CreateApplicationBuilder(args);
+            var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+#if DEBUG
+                ?? "Development";
+#else
+                ?? "Production";
+#endif
+
+            var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+            {
+                Args = args,
+                EnvironmentName = environmentName
+            });
 
             var logFolder = Path.Combine(ApplicationDataFolder, "logs");
             Directory.CreateDirectory(logFolder);
@@ -107,6 +119,11 @@ namespace Argus.Health.Service
             {
                 options.PipeName = argusHealthOptions.PipeName;
             });
+
+            Log.Information(
+                "Argus Health Service listening on pipe {PipeName} (env: {Environment})",
+                argusHealthOptions.PipeName,
+                environmentName);
 
             builder.Services.AddSingleton<IHealthEndPointRepository, HealthEndPointRepository>();
             builder.Services.AddSingleton<IHealthEndPointCheckResultRepository, HealthEndPointCheckResultRepository>();
