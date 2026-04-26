@@ -50,7 +50,7 @@
     <!--
     <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
     -->    
-    <PackageReference Include="ArgusTransfer" Version="1.1.0" />
+    <PackageReference Include="ArgusTransfer" Version="1.2.1" />
     
   </ItemGroup>
     

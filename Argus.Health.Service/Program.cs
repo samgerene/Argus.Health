@@ -34,6 +34,7 @@ namespace Argus.Health.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Hosting.WindowsServices;
     using Microsoft.Extensions.Logging;
 
     using Serilog;
@@ -59,7 +60,17 @@ namespace Argus.Health.Service
         /// </param>
         public static async Task Main(string[] args)
         {
-            Console.Title = "Argus Health";
+            if (!OperatingSystem.IsWindows() || !WindowsServiceHelpers.IsWindowsService())
+            {
+                try
+                {
+                    Console.Title = "Argus Health";
+                }
+                catch (IOException)
+                {
+                    // No console attached — ignore.
+                }
+            }
 
             var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
                 ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
