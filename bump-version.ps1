@@ -30,7 +30,9 @@ foreach ($file in $files) {
         $content = $content -replace '<Version>[^<]+</Version>', "<Version>$Version</Version>"
     }
     elseif ($file -like '*.wxs') {
-        $content = $content -replace 'Version="[^"]+"', "Version=`"$Version`""
+        # -creplace (case-sensitive) avoids matching the lowercase `version` in the XML declaration.
+        # (?<!\w) prevents matching `Version` inside `InstallerVersion`.
+        $content = $content -creplace '(?<!\w)Version="[^"]+"', "Version=`"$Version`""
     }
 
     Set-Content $file $content -NoNewline

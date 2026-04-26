@@ -3,7 +3,7 @@
 
   <Package Name="Argus Health"
            Manufacturer="Sam Gerené"
-           Version="0.1.0"
+           Version="1.0.0"
            UpgradeCode="E7A83B2F-6D4C-4F8E-B5A1-3C9D2E1F0A7B"
            Scope="perMachine"
            InstallerVersion="500"
