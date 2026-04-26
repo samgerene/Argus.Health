@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build MSI and publish GitHub Release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v5.1.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Read version and release notes
+        id: meta
+        shell: pwsh
+        run: |
+          [xml]$csproj = Get-Content "$env:GITHUB_WORKSPACE\Argus.Health.Service\Argus.Health.Service.csproj"
+
+          $versionNode = $csproj.SelectSingleNode('//Version')
+          $notesNode = $csproj.SelectSingleNode('//PackageReleaseNotes')
+
+          if ($null -eq $versionNode) { throw "Version not found in Argus.Health.Service.csproj" }
+          if ($null -eq $notesNode) { throw "PackageReleaseNotes not found in Argus.Health.Service.csproj" }
+
+          $version = $versionNode.InnerText.Trim()
+          $notes = $notesNode.InnerText.Trim()
+
+          if (-not $version) { throw "Version is empty in Argus.Health.Service.csproj" }
+          if (-not $notes) { throw "PackageReleaseNotes is empty in Argus.Health.Service.csproj" }
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Set-Content -Path "release-notes.md" -Value $notes -Encoding utf8
+
+          Write-Host "Version: $version"
+          Write-Host "Release notes:"
+          Write-Host $notes
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: pwsh .\build-installer.ps1
+
+      - name: Rename MSI with version
+        id: rename
+        shell: pwsh
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          $src = "$env:GITHUB_WORKSPACE\Argus.Health.Installer\bin\Release\Argus.Health.Installer.msi"
+          $dst = "$env:GITHUB_WORKSPACE\Argus.Health.Installer\bin\Release\Argus.Health-v$version.msi"
+
+          if (-not (Test-Path $src)) { throw "MSI not found at $src" }
+
+          Move-Item -Path $src -Destination $dst -Force
+          "asset=$dst" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          Write-Host "Asset: $dst"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          $tag = "v$version"
+          $title = "Argus Health v$version"
+          $asset = "${{ steps.rename.outputs.asset }}"
+
+          gh release create $tag $asset `
+            --title $title `
+            --notes-file release-notes.md `
+            --target $env:GITHUB_SHA
+
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
