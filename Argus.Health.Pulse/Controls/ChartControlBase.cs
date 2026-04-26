@@ -152,12 +152,14 @@ namespace Argus.Health.Pulse.Controls
             // Draw X-axis time labels
             if (data.Count > 1)
             {
-                var startLabel = new FormattedText(minTime.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture),
+                var axisFormat = (maxTime - minTime).TotalHours > 24 ? "MM-dd HH:mm" : "HH:mm";
+
+                var startLabel = new FormattedText(minTime.ToLocalTime().ToString(axisFormat, CultureInfo.CurrentCulture),
                     CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default, this.LabelFontSize, DashboardColors.Gray);
 
                 context.DrawText(startLabel, new Point(this.LeftMargin, this.TopPadding + chartHeight + 2));
 
-                var endLabel = new FormattedText(maxTime.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture),
+                var endLabel = new FormattedText(maxTime.ToLocalTime().ToString(axisFormat, CultureInfo.CurrentCulture),
                     CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default, this.LabelFontSize, DashboardColors.Gray);
 
                 context.DrawText(endLabel, new Point(this.LeftMargin + chartWidth - endLabel.Width, this.TopPadding + chartHeight + 2));
@@ -224,7 +226,7 @@ namespace Argus.Health.Pulse.Controls
 
             if (nearest != null)
             {
-                var timeText = nearest.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+                var timeText = nearest.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture);
 
                 var tooltip = nearest.ErrorMessage != null
                     ? $"{timeText} — {nearest.StatusCode} ({nearest.ResponseTimeMs}ms)\n{nearest.ErrorMessage}"
