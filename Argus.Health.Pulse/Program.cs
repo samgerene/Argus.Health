@@ -32,6 +32,7 @@ namespace Argus.Health.Pulse
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
@@ -69,9 +70,23 @@ namespace Argus.Health.Pulse
             {
                 Log.Information("Argus Health Pulse starting");
 
+                var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                    ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                    ?? "Production";
+
+                var configuration = new ConfigurationBuilder()
+                    .SetBasePath(AppContext.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                    .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: false)
+                    .Build();
+
+                var pipeName = configuration["ArgusHealth:PipeName"] ?? "ArgusHealth";
+
+                Log.Information("Argus Health Pulse connecting to pipe {PipeName} (env: {Environment})", pipeName, environmentName);
+
                 var services = new ServiceCollection();
                 services.AddLogging(builder => builder.AddSerilog());
-                services.AddSingleton(new ArgusClient("ArgusHealth"));
+                services.AddSingleton(new ArgusClient(pipeName));
                 services.AddSingleton<HealthEndPointClient>();
                 services.AddSingleton<IEndpointSyncService, EndpointSyncService>();
                 services.AddSingleton<IHealthCheckService, HealthCheckService>();

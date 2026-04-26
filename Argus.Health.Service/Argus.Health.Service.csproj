@@ -49,13 +49,21 @@
     </ItemGroup>
 
     <ItemGroup>
-        
+
         <ProjectReference Include="..\Argus.Health.Common\Argus.Health.Common.csproj" />
 
         <!--
         <ProjectReference Include="..\..\ArgusTransfer\ArgusTransfer\ArgusTransfer.csproj" />
         -->
-        <PackageReference Include="ArgusTransfer" Version="1.0.2" />
-        
+        <PackageReference Include="ArgusTransfer" Version="1.1.0" />
+
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="appsettings.Development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </None>
     </ItemGroup>
 </Project>
