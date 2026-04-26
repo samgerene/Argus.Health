@@ -6,6 +6,11 @@ $ErrorActionPreference = 'Stop'
 
 $root = $PSScriptRoot
 
+Write-Host "Cleaning previous publish output..." -ForegroundColor Cyan
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue `
+    "$root\Argus.Health.Service\bin\publish", `
+    "$root\Argus.Health.Pulse\bin\publish"
+
 Write-Host "Publishing Argus.Health.Service..." -ForegroundColor Cyan
 dotnet publish "$root\Argus.Health.Service\Argus.Health.Service.csproj" `
     -c Release -r win-x64 --self-contained true `
