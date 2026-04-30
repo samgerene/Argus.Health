@@ -23,6 +23,7 @@ namespace Argus.Health.Pulse.ViewModels
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Linq;
     using System.Reactive;
     using System.Reactive.Disposables;
@@ -328,13 +329,21 @@ namespace Argus.Health.Pulse.ViewModels
                     };
                 });
 
+            var comparerObservable = this.WhenAnyValue(x => x.SortColumn, x => x.SortDirection)
+                .Select(t => BuildComparer(t.Item1, t.Item2));
+
             var filteredSubscription = this.endpointCache
                 .Connect()
                 .AutoRefresh(x => x.StatusCode)
                 .AutoRefresh(x => x.IsActive)
+                .AutoRefresh(x => x.Name)
+                .AutoRefresh(x => x.Url)
+                .AutoRefresh(x => x.ResponseTimeMs)
+                .AutoRefresh(x => x.LastChecked)
+                .AutoRefresh(x => x.ErrorMessage)
                 .Filter(filterPredicate)
                 .ObserveOn(AvaloniaScheduler.Instance)
-                .Bind(out var filteredEndpoints)
+                .SortAndBind(out var filteredEndpoints, comparerObservable)
                 .Subscribe();
 
             this.disposables.Add(filteredSubscription);
@@ -434,6 +443,18 @@ namespace Argus.Health.Pulse.ViewModels
         public partial EndpointActivityFilter ActiveActivityFilter { get; set; }
 
         /// <summary>
+        /// Gets or sets the column the endpoint table is sorted by
+        /// </summary>
+        [Reactive]
+        public partial EndpointSortColumn SortColumn { get; set; }
+
+        /// <summary>
+        /// Gets or sets the direction in which the endpoint table is sorted
+        /// </summary>
+        [Reactive]
+        public partial ListSortDirection SortDirection { get; set; }
+
+        /// <summary>
         /// Gets the filtered endpoint collection based on the active view mode
         /// </summary>
         public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; private set; } = null!;
@@ -492,6 +513,75 @@ namespace Argus.Health.Pulse.ViewModels
             this.disposables.Dispose();
             this.endpointCache.Dispose();
             this.incidentSource.Dispose();
+        }
+
+        /// <summary>
+        /// Builds an <see cref="IComparer{T}"/> for the endpoint table given the current sort column
+        /// and direction. Null values for the chosen field always sort after non-null values
+        /// regardless of direction
+        /// </summary>
+        /// <param name="column">
+        /// The <see cref="EndpointSortColumn"/> indicating which field to sort by
+        /// </param>
+        /// <param name="direction">
+        /// The <see cref="ListSortDirection"/> indicating ascending or descending order
+        /// </param>
+        /// <returns>
+        /// An <see cref="IComparer{T}"/> over <see cref="EndpointStatusViewModel"/>
+        /// </returns>
+        private static IComparer<EndpointStatusViewModel> BuildComparer(EndpointSortColumn column, ListSortDirection direction)
+        {
+            var sign = direction == ListSortDirection.Ascending ? 1 : -1;
+
+            return column switch
+            {
+                EndpointSortColumn.Url => Comparer<EndpointStatusViewModel>.Create((a, b) =>
+                    sign * string.Compare(a.Url, b.Url, StringComparison.OrdinalIgnoreCase)),
+                EndpointSortColumn.Status => Comparer<EndpointStatusViewModel>.Create((a, b) =>
+                    sign * a.StatusCode.CompareTo(b.StatusCode)),
+                EndpointSortColumn.ResponseTime => Comparer<EndpointStatusViewModel>.Create((a, b) =>
+                    sign * a.ResponseTimeMs.CompareTo(b.ResponseTimeMs)),
+                EndpointSortColumn.LastChecked => Comparer<EndpointStatusViewModel>.Create((a, b) =>
+                {
+                    if (a.LastChecked == null && b.LastChecked == null)
+                    {
+                        return 0;
+                    }
+
+                    if (a.LastChecked == null)
+                    {
+                        return 1;
+                    }
+
+                    if (b.LastChecked == null)
+                    {
+                        return -1;
+                    }
+
+                    return sign * a.LastChecked.Value.CompareTo(b.LastChecked.Value);
+                }),
+                EndpointSortColumn.ErrorMessage => Comparer<EndpointStatusViewModel>.Create((a, b) =>
+                {
+                    if (string.IsNullOrEmpty(a.ErrorMessage) && string.IsNullOrEmpty(b.ErrorMessage))
+                    {
+                        return 0;
+                    }
+
+                    if (string.IsNullOrEmpty(a.ErrorMessage))
+                    {
+                        return 1;
+                    }
+
+                    if (string.IsNullOrEmpty(b.ErrorMessage))
+                    {
+                        return -1;
+                    }
+
+                    return sign * string.Compare(a.ErrorMessage, b.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+                }),
+                _ => Comparer<EndpointStatusViewModel>.Create((a, b) =>
+                    sign * string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase)),
+            };
         }
 
         /// <summary>
