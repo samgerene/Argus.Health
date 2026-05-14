@@ -45,7 +45,7 @@ namespace Argus.Health.Pulse.ViewModels
     /// <summary>
     /// Real-time status grid showing health of all endpoints
     /// </summary>
-    public partial class DashboardViewModel : ViewModelBase, IDisposable
+    public sealed partial class DashboardViewModel : ViewModelBase, IDisposable
     {
         /// <summary>
         /// The <see cref="ILogger{DashboardViewModel}"/> used for logging
@@ -457,12 +457,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the filtered endpoint collection based on the active view mode
         /// </summary>
-        public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; private set; } = null!;
+        public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; private set; }
 
         /// <summary>
         /// Gets the collection of failed check results in the last 24 hours
         /// </summary>
-        public ReadOnlyObservableCollection<IncidentItem> IncidentResults { get; private set; } = null!;
+        public ReadOnlyObservableCollection<IncidentItem> IncidentResults { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the endpoints grid is visible
@@ -477,32 +477,32 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to show all endpoints
         /// </summary>
-        public ReactiveCommand<Unit, DashboardViewMode> ShowAllEndpointsCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, DashboardViewMode> ShowAllEndpointsCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to filter to down endpoints only
         /// </summary>
-        public ReactiveCommand<Unit, DashboardViewMode> ShowDownEndpointsCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, DashboardViewMode> ShowDownEndpointsCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to switch to the incidents view
         /// </summary>
-        public ReactiveCommand<Unit, DashboardViewMode> ShowIncidentsCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, DashboardViewMode> ShowIncidentsCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to filter to active endpoints only
         /// </summary>
-        public ReactiveCommand<Unit, EndpointActivityFilter> ShowActiveCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, EndpointActivityFilter> ShowActiveCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to filter to inactive endpoints only
         /// </summary>
-        public ReactiveCommand<Unit, EndpointActivityFilter> ShowInactiveCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, EndpointActivityFilter> ShowInactiveCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to show all endpoints regardless of activity status
         /// </summary>
-        public ReactiveCommand<Unit, EndpointActivityFilter> ShowAllActivityCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, EndpointActivityFilter> ShowAllActivityCommand { get; private set; }
 
         /// <summary>
         /// Disposes managed resources
