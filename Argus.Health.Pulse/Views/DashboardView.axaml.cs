@@ -21,6 +21,7 @@
 namespace Argus.Health.Pulse.Views
 {
     using System;
+    using System.ComponentModel;
     using System.Globalization;
     using System.Reactive.Disposables;
     using System.Reactive.Disposables.Fluent;
@@ -128,6 +129,14 @@ namespace Argus.Health.Pulse.Views
                         this.HighlightButton(this.ShowInactiveButton, filter == EndpointActivityFilter.InactiveOnly);
                         this.HighlightButton(this.ShowAllActivityButton, filter == EndpointActivityFilter.All);
                     })
+                    .DisposeWith(disposables);
+
+                // Endpoints grid sorting: translate header clicks into VM sort state
+                Observable
+                    .FromEventPattern<EventHandler<DataGridColumnEventArgs>, DataGridColumnEventArgs>(
+                        h => this.EndpointsGrid.Sorting += h,
+                        h => this.EndpointsGrid.Sorting -= h)
+                    .Subscribe(args => this.HandleSorting(args.EventArgs))
                     .DisposeWith(disposables);
 
                 // Grid visibility
@@ -284,5 +293,54 @@ namespace Argus.Health.Pulse.Views
         {
             button.Foreground = isActive ? DashboardColors.Teal : DashboardColors.SlateGray;
         }
+
+        /// <summary>
+        /// Translates a DataGrid <see cref="DataGrid.Sorting"/> event into updates to
+        /// <see cref="DashboardViewModel.SortColumn"/> and <see cref="DashboardViewModel.SortDirection"/>.
+        /// Marks the event handled so the DataGrid does not attempt its own sort
+        /// </summary>
+        /// <param name="e">The <see cref="DataGridColumnEventArgs"/> from the Sorting event</param>
+        private void HandleSorting(DataGridColumnEventArgs e)
+        {
+            e.Handled = true;
+
+            if (this.ViewModel == null)
+            {
+                return;
+            }
+
+            var sortColumn = MapSortMemberPath(e.Column.SortMemberPath);
+
+            if (sortColumn == null)
+            {
+                return;
+            }
+
+            var nextDirection = sortColumn == this.ViewModel.SortColumn
+                && this.ViewModel.SortDirection == ListSortDirection.Ascending
+                    ? ListSortDirection.Descending
+                    : ListSortDirection.Ascending;
+
+            this.ViewModel.SortColumn = sortColumn.Value;
+            this.ViewModel.SortDirection = nextDirection;
+        }
+
+        /// <summary>
+        /// Maps a DataGrid column <see cref="DataGridColumn.SortMemberPath"/> string to the
+        /// corresponding <see cref="EndpointSortColumn"/>. Returns null for paths that are
+        /// not sortable from the dashboard
+        /// </summary>
+        /// <param name="memberPath">The column's SortMemberPath value</param>
+        /// <returns>The matching <see cref="EndpointSortColumn"/>, or null if unrecognised</returns>
+        private static EndpointSortColumn? MapSortMemberPath(string? memberPath) => memberPath switch
+        {
+            "Name" => EndpointSortColumn.Name,
+            "Url" => EndpointSortColumn.Url,
+            "StatusCode" => EndpointSortColumn.Status,
+            "ResponseTimeMs" => EndpointSortColumn.ResponseTime,
+            "LastChecked" => EndpointSortColumn.LastChecked,
+            "ErrorMessage" => EndpointSortColumn.ErrorMessage,
+            _ => null,
+        };
     }
 }

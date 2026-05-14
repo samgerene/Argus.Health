@@ -183,9 +183,10 @@
                   GridLinesVisibility="Horizontal"
                   CanUserResizeColumns="True"
                   CanUserReorderColumns="False"
+                  CanUserSortColumns="True"
                   SelectionMode="Single">
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="" Width="32">
+                <DataGridTemplateColumn Header="" Width="32" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="vm:EndpointStatusViewModel">
                             <controls:StatusDotControl IsHealthy="{Binding IsHealthy}" StatusCode="{Binding StatusCode}"
@@ -195,9 +196,9 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Name" Binding="{ReflectionBinding Name}" Width="180" />
-                <DataGridTextColumn Header="URL" Binding="{ReflectionBinding Url}" Width="250" />
-                <DataGridTemplateColumn Header="Trend" Width="120">
+                <DataGridTextColumn Header="Name" Binding="{ReflectionBinding Name}" Width="180" SortMemberPath="Name" />
+                <DataGridTextColumn Header="URL" Binding="{ReflectionBinding Url}" Width="250" SortMemberPath="Url" />
+                <DataGridTemplateColumn Header="Trend" Width="120" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="vm:EndpointStatusViewModel">
                             <controls:SparklineControl Data="{Binding RecentResponseTimes}"
@@ -206,10 +207,10 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Status" Binding="{ReflectionBinding StatusDisplay}" Width="100" />
-                <DataGridTextColumn Header="Response" Binding="{ReflectionBinding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" />
-                <DataGridTextColumn Header="Last Checked" Binding="{ReflectionBinding LastChecked, StringFormat='{}{0:HH:mm:ss}'}" Width="100" />
-                <DataGridTextColumn Header="Error" Binding="{ReflectionBinding ErrorMessage}" Width="*" />
+                <DataGridTextColumn Header="Status" Binding="{ReflectionBinding StatusDisplay}" Width="100" SortMemberPath="StatusCode" />
+                <DataGridTextColumn Header="Response" Binding="{ReflectionBinding ResponseTimeMs, StringFormat='{}{0}ms'}" Width="80" SortMemberPath="ResponseTimeMs" />
+                <DataGridTextColumn Header="Last Checked" Binding="{ReflectionBinding LastChecked, StringFormat='{}{0:HH:mm:ss}'}" Width="100" SortMemberPath="LastChecked" />
+                <DataGridTextColumn Header="Error" Binding="{ReflectionBinding ErrorMessage}" Width="*" SortMemberPath="ErrorMessage" />
             </DataGrid.Columns>
         </DataGrid>
 
