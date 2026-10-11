@@ -126,9 +126,11 @@ namespace Argus.Health.Service
             builder.Services.AddHttpClient("ArgusHealth");
 
             builder.Services.AddArgusModules();
+            builder.Services.AddArgusExceptionHandler();
             builder.Services.AddArgusPipeHost(options =>
             {
                 options.PipeName = argusHealthOptions.PipeName;
+                options.Compression.Enabled = true;
             });
 
             Log.Information(

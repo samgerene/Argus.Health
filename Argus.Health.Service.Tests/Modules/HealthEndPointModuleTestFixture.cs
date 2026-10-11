@@ -257,6 +257,63 @@ namespace Argus.Health.Service.Tests.Modules
         }
 
         [Test]
+        public async Task Verify_that_HandleGetById_returns_problem_details_when_not_exists()
+        {
+            var identifier = Guid.NewGuid();
+
+            this.mockRepository
+                .Setup(r => r.ReadAsync(It.IsAny<Guid[]>()))
+                .ReturnsAsync(ImmutableList<HealthEndPoint>.Empty);
+
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.GET,
+                Route = $"/healthendpoint/{identifier.ToShortGuid()}"
+            };
+
+            var context = new ArgusContext(request, CancellationToken.None);
+            await router.RouteAsync(context);
+            var response = context.Response;
+
+            Assert.That(ArgusProblemDetails.TryRead(response, out var problemDetails), Is.True);
+            Assert.That(problemDetails.Status, Is.EqualTo(404));
+            Assert.That(problemDetails.Detail, Does.Contain(identifier.ToString()));
+            Assert.That(response.CorrelationToken, Is.EqualTo(request.CorrelationToken));
+        }
+
+        [Test]
+        public async Task Verify_that_HandleCreate_returns_the_repository_errors_as_problem_detail()
+        {
+            var endpoint = new HealthEndPoint
+            {
+                Name = "duplicate",
+                Url = "https://example.com/healthz"
+            };
+
+            this.mockRepository
+                .Setup(r => r.CreateAsync(It.IsAny<HealthEndPoint>()))
+                .ReturnsAsync(Result.Fail("the name is already in use"));
+
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.POST,
+                Route = "/healthendpoint",
+                Body = HealthEndPointWriter.Write(endpoint)
+            };
+
+            var context = new ArgusContext(request, CancellationToken.None);
+            await this.module.HandleCreateAsync(context);
+            var response = context.Response;
+
+            Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.InternalServerError));
+            Assert.That(ArgusProblemDetails.TryRead(response, out var problemDetails), Is.True);
+            Assert.That(problemDetails.Detail, Does.Contain("the name is already in use"));
+        }
+
+        [Test]
         public async Task Verify_that_HandleUpdate_with_valid_body_returns_Ok()
         {
             var identifier = Guid.NewGuid();
@@ -374,6 +431,82 @@ namespace Argus.Health.Service.Tests.Modules
             var response = context.Response;
 
             Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.InternalServerError));
+        }
+
+        [Test]
+        public async Task Verify_that_HandleDelete_returns_NotFound_when_the_endpoint_does_not_exist()
+        {
+            this.mockRepository
+                .Setup(r => r.DeleteAsync(It.IsAny<HealthEndPoint>()))
+                .ReturnsAsync(Result.Fail(new NotFoundError("No HealthEndPoint exists.")));
+
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.DELETE,
+                Route = $"/healthendpoint/{Guid.NewGuid().ToShortGuid()}"
+            };
+
+            var router = new ArgusRouter();
+            this.module.AddRoutes(router);
+
+            var context = new ArgusContext(request, CancellationToken.None);
+            await router.RouteAsync(context);
+
+            Assert.That(context.Response.StatusCode, Is.EqualTo(ArgusStatusCode.NotFound));
+        }
+
+        [Test]
+        public async Task Verify_that_HandleCreate_returns_Conflict_when_the_name_is_in_use()
+        {
+            this.mockRepository
+                .Setup(r => r.CreateAsync(It.IsAny<HealthEndPoint>()))
+                .ReturnsAsync(Result.Fail(new ConflictError("A HealthEndPoint with the name 'duplicate' already exists.")));
+
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.POST,
+                Route = "/healthendpoint",
+                Body = HealthEndPointWriter.Write(new HealthEndPoint { Name = "duplicate", Url = "https://example.com/healthz" })
+            };
+
+            var context = new ArgusContext(request, CancellationToken.None);
+            await this.module.HandleCreateAsync(context);
+            var response = context.Response;
+
+            Assert.That(response.StatusCode, Is.EqualTo(ArgusStatusCode.Conflict));
+            Assert.That(ArgusProblemDetails.TryRead(response, out var problemDetails), Is.True);
+            Assert.That(problemDetails.Detail, Does.Contain("already exists"));
+        }
+
+        [TestCase("", "https://example.com/healthz", 30, 5, 3)]
+        [TestCase("name", "not-a-url", 30, 5, 3)]
+        [TestCase("name", "https://example.com/healthz", 0, 5, 3)]
+        [TestCase("name", "https://example.com/healthz", 30, 0, 3)]
+        [TestCase("name", "https://example.com/healthz", 30, 5, -1)]
+        public async Task Verify_that_HandleCreate_returns_UnprocessableEntity_for_invalid_values(string name, string url, int frequency, int timeout, int retryCount)
+        {
+            var endpoint = new HealthEndPoint
+            {
+                Name = name,
+                Url = url,
+                Frequency = frequency,
+                Timeout = timeout,
+                RetryCount = retryCount
+            };
+
+            var request = new ArgusRequest
+            {
+                Verb = ArgusVerb.POST,
+                Route = "/healthendpoint",
+                Body = HealthEndPointWriter.Write(endpoint)
+            };
+
+            var context = new ArgusContext(request, CancellationToken.None);
+            await this.module.HandleCreateAsync(context);
+
+            Assert.That(context.Response.StatusCode, Is.EqualTo(ArgusStatusCode.UnprocessableEntity));
+
+            this.mockRepository.Verify(r => r.CreateAsync(It.IsAny<HealthEndPoint>()), Times.Never);
         }
     }
 }

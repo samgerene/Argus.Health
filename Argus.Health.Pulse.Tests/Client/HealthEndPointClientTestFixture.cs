@@ -216,13 +216,36 @@ namespace Argus.Health.Pulse.Client.Tests
             serverTask.Wait();
         }
 
+        [Test]
+        public void Verify_that_GetAllAsync_includes_the_problem_detail_in_the_exception_message()
+        {
+            var pipeName = $"argus-test-{Guid.NewGuid()}";
+
+            var problemResponse = ArgusProblemDetails
+                .Create(ArgusStatusCode.InternalServerError, "The HealthEndPoints could not be read.")
+                .ToResponse();
+
+            var serverTask = CreateServerTask(pipeName, ArgusVerb.GET, "/healthendpoint",
+                ArgusStatusCode.InternalServerError, null, cannedResponse: problemResponse);
+
+            using var argusClient = new ArgusClient(pipeName);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
+
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAllAsync());
+
+            serverTask.Wait();
+
+            Assert.That(exception.Message, Is.EqualTo("Server returned InternalServerError: The HealthEndPoints could not be read."));
+        }
+
         /// <summary>
         /// Creates an in-process named pipe server that reads the request, verifies verb and route,
         /// and writes a canned response. An optional assertion callback can inspect the request
-        /// (e.g. to verify query parameters or body content).
+        /// (e.g. to verify query parameters or body content). When <paramref name="cannedResponse"/>
+        /// is set it is written instead of a response built from the status code and body.
         /// </summary>
         private static Task CreateServerTask(string pipeName, ArgusVerb expectedVerb, string expectedRoute,
-            ArgusStatusCode statusCode, string responseBody, Action<ArgusRequest> requestAssert = null)
+            ArgusStatusCode statusCode, string responseBody, Action<ArgusRequest> requestAssert = null, ArgusResponse cannedResponse = null)
         {
             var requestSerializer = new ArgusRequestSerializer();
             var responseSerializer = new ArgusResponseSerializer();
@@ -242,12 +265,13 @@ namespace Argus.Health.Pulse.Client.Tests
 
                 requestAssert?.Invoke(request);
 
-                var response = new ArgusResponse
+                var response = cannedResponse ?? new ArgusResponse
                 {
-                    CorrelationToken = request.CorrelationToken,
                     StatusCode = statusCode,
                     Body = responseBody
                 };
+
+                response.CorrelationToken = request.CorrelationToken;
 
                 responseSerializer.Write(writer, response);
             });
@@ -442,7 +466,7 @@ namespace Argus.Health.Pulse.Client.Tests
             var identifier = Guid.NewGuid();
 
             var serverTask = CreateServerTask(pipeName, ArgusVerb.DELETE, $"/healthendpoint/{identifier.ToShortGuid()}",
-                ArgusStatusCode.NotFound, null);
+                ArgusStatusCode.InternalServerError, null);
 
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
@@ -450,6 +474,61 @@ namespace Argus.Health.Pulse.Client.Tests
             Assert.ThrowsAsync<InvalidOperationException>(async () => await client.DeleteAsync(identifier));
 
             serverTask.Wait();
+        }
+
+        [Test]
+        public async Task Verify_that_DeleteAsync_treats_an_endpoint_that_does_not_exist_as_deleted()
+        {
+            var pipeName = $"argus-test-{Guid.NewGuid()}";
+            var identifier = Guid.NewGuid();
+
+            var serverTask = CreateServerTask(pipeName, ArgusVerb.DELETE, $"/healthendpoint/{identifier.ToShortGuid()}",
+                ArgusStatusCode.NotFound, null);
+
+            using var argusClient = new ArgusClient(pipeName);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
+
+            Assert.That(async () => await client.DeleteAsync(identifier), Throws.Nothing);
+
+            await serverTask;
+        }
+
+        [Test]
+        public void Verify_that_CreateArgusClient_configures_timeout_retries_and_compression()
+        {
+            using var argusClient = HealthEndPointClient.CreateArgusClient($"argus-test-{Guid.NewGuid()}");
+
+            Assert.That(argusClient.DefaultTimeout, Is.EqualTo(HealthEndPointClient.CallTimeout));
+            Assert.That(argusClient.RetryPolicy, Is.Not.Null);
+            Assert.That(argusClient.RetryPolicy.MaxRetries, Is.EqualTo(3));
+            Assert.That(argusClient.RetryPolicy.RetryNonIdempotentRequests, Is.False);
+            Assert.That(argusClient.Compression.Enabled, Is.True);
+        }
+
+        [Test]
+        public async Task Verify_that_a_request_is_retried_when_the_server_drops_the_connection()
+        {
+            var pipeName = $"argus-test-{Guid.NewGuid()}";
+
+            var serverTask = Task.Run(async () =>
+            {
+                // first connection: closed before a response is written
+                using (var dropped = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 2))
+                {
+                    await dropped.WaitForConnectionAsync();
+                }
+
+                await CreateServerTask(pipeName, ArgusVerb.GET, "/healthendpoint", ArgusStatusCode.Ok, "[]");
+            });
+
+            using var argusClient = HealthEndPointClient.CreateArgusClient(pipeName);
+            var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
+
+            var result = await client.GetAllAsync();
+
+            await serverTask;
+
+            Assert.That(result, Is.Empty);
         }
 
         [Test]

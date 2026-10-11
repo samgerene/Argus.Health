@@ -23,7 +23,6 @@ namespace Argus.Health.Pulse.Client
     using System;
     using System.Collections.Generic;
     using System.Globalization;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -36,15 +35,18 @@ namespace Argus.Health.Pulse.Client
 
     using Microsoft.Extensions.Logging;
 
-    using Polly;
-    using Polly.Timeout;
-    using Polly.Wrap;
-
     /// <summary>
-    /// A typed client for <see cref="HealthEndPoint"/> CRUD operations over the Argus named-pipe IPC protocol
+    /// A typed client for <see cref="HealthEndPoint"/> CRUD operations over the Argus named-pipe IPC protocol.
+    /// The timeout and the retries of a call are those of the <see cref="ArgusClient"/> it is given; see
+    /// <see cref="CreateArgusClient"/>
     /// </summary>
     public class HealthEndPointClient
     {
+        /// <summary>
+        /// The time a call may take in total, including its retries and the delays between them
+        /// </summary>
+        public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(10);
+
         /// <summary>
         /// The <see cref="ILogger{HealthEndPointClient}"/> used for logging
         /// </summary>
@@ -54,11 +56,6 @@ namespace Argus.Health.Pulse.Client
         /// The <see cref="ArgusClient"/> used to send requests
         /// </summary>
         private readonly ArgusClient argusClient;
-
-        /// <summary>
-        /// The combined retry + timeout <see cref="AsyncPolicyWrap"/> applied to every pipe call
-        /// </summary>
-        private readonly AsyncPolicyWrap pipePolicy;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HealthEndPointClient"/> class
@@ -75,26 +72,44 @@ namespace Argus.Health.Pulse.Client
 
             this.argusClient = argusClient;
             this.logger = logger;
+        }
 
-            var retryPolicy = Policy
-                .Handle<IOException>()
-                .Or<TimeoutException>()
-                .Or<TimeoutRejectedException>()
-                .WaitAndRetryAsync(
-                    retryCount: 3,
-                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)),
-                    onRetry: (exception, delay, attempt, _) =>
-                    {
-                        this.logger.LogWarning(
-                            "Pipe call attempt {Attempt} failed ({ExceptionMessage}), retrying in {Delay}s",
-                            attempt, exception.Message, delay.TotalSeconds);
-                    });
+        /// <summary>
+        /// Creates the <see cref="ArgusClient"/> for a <see cref="HealthEndPointClient"/>: a call takes at most
+        /// <see cref="CallTimeout"/> and a transient pipe failure is retried up to three times with an exponential
+        /// backoff. A request that may already have reached the service is only retried when it is idempotent, so
+        /// a create is never sent twice. Compression of large bodies is enabled
+        /// </summary>
+        /// <param name="pipeName">
+        /// The name of the named pipe the Argus Health Service listens on
+        /// </param>
+        /// <param name="logger">
+        /// The optional <see cref="ILogger"/> the <see cref="ArgusClient"/> logs its retries to
+        /// </param>
+        /// <returns>
+        /// The configured <see cref="ArgusClient"/>
+        /// </returns>
+        public static ArgusClient CreateArgusClient(string pipeName, ILogger? logger = null)
+        {
+            var client = new ArgusClient(pipeName)
+            {
+                DefaultTimeout = CallTimeout,
+                RetryPolicy = new ArgusRetryPolicy
+                {
+                    MaxRetries = 3,
+                    InitialDelay = TimeSpan.FromMilliseconds(500),
+                    Strategy = RetryBackoffStrategy.Exponential
+                }
+            };
 
-            var timeoutPolicy = Policy.TimeoutAsync(
-                TimeSpan.FromSeconds(5),
-                TimeoutStrategy.Optimistic);
+            client.Compression.Enabled = true;
 
-            this.pipePolicy = Policy.WrapAsync(retryPolicy, timeoutPolicy);
+            if (logger != null)
+            {
+                client.Logger = logger;
+            }
+
+            return client;
         }
 
         /// <summary>
@@ -119,13 +134,12 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
 
             return HealthEndPointReader.ReadArray(response.Body!);
@@ -156,13 +170,12 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
 
             return HealthEndPointReader.Read(response.Body!);
@@ -196,13 +209,12 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Created)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
 
             return HealthEndPointReader.Read(response.Body!);
@@ -236,20 +248,20 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
 
             return HealthEndPointReader.Read(response.Body!);
         }
 
         /// <summary>
-        /// Deletes a <see cref="HealthEndPoint"/> from the server
+        /// Deletes a <see cref="HealthEndPoint"/> from the server. An endpoint that does not exist counts as
+        /// deleted, so a delete that is retried after the server already processed it does not fail
         /// </summary>
         /// <param name="identifier">
         /// The unique identifier of the endpoint to delete
@@ -270,13 +282,18 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
+
+            if (response.StatusCode == ArgusStatusCode.NotFound)
+            {
+                this.logger.LogInformation("The HealthEndPoint of {Verb} {Route} does not exist, it counts as deleted", request.Verb, request.Route);
+                return;
+            }
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
         }
 
@@ -305,13 +322,12 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}", request.Verb, request.Route);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
 
             return HealthEndPointCheckResultReader.ReadArray(response.Body!);
@@ -355,16 +371,35 @@ namespace Argus.Health.Pulse.Client
 
             this.logger.LogDebug("Sending {Verb} {Route}?days={Days}&resolution={Resolution}", request.Verb, request.Route, days, resolution);
 
-            var response = await this.pipePolicy.ExecuteAsync(
-                async ct => await this.argusClient.SendAsync(request, null, ct), cancellationToken);
+            var response = await this.argusClient.SendAsync(request, null, cancellationToken);
 
             if (response.StatusCode != ArgusStatusCode.Ok)
             {
                 this.logger.LogWarning("Server returned {StatusCode} for {Verb} {Route}", response.StatusCode, request.Verb, request.Route);
-                throw new InvalidOperationException($"Server returned {response.StatusCode}");
+                throw CreateServerException(response);
             }
 
             return UptimeSummaryReader.ReadArray(response.Body!);
+        }
+
+        /// <summary>
+        /// Creates the exception for a response with an unexpected status code. When the server answered
+        /// with <see cref="ArgusProblemDetails"/>, its detail is included in the message
+        /// </summary>
+        /// <param name="response">
+        /// The <see cref="ArgusResponse"/> returned by the server
+        /// </param>
+        /// <returns>
+        /// The <see cref="InvalidOperationException"/> to throw
+        /// </returns>
+        private static InvalidOperationException CreateServerException(ArgusResponse response)
+        {
+            if (ArgusProblemDetails.TryRead(response, out var problemDetails) && !string.IsNullOrWhiteSpace(problemDetails.Detail))
+            {
+                return new InvalidOperationException($"Server returned {response.StatusCode}: {problemDetails.Detail}");
+            }
+
+            return new InvalidOperationException($"Server returned {response.StatusCode}");
         }
     }
 }

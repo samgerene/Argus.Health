@@ -91,7 +91,7 @@ namespace Argus.Health.Pulse
                 var services = new ServiceCollection();
                 services.AddLogging(builder => builder.AddSerilog());
                 services.AddSingleton(new PipeNameProvider(pipeName));
-                services.AddSingleton(new ArgusClient(pipeName));
+                services.AddSingleton(provider => HealthEndPointClient.CreateArgusClient(pipeName, provider.GetRequiredService<ILogger<ArgusClient>>()));
                 services.AddSingleton<HealthEndPointClient>();
                 services.AddSingleton<IEndpointSyncService, EndpointSyncService>();
                 services.AddSingleton<IHealthCheckService, HealthCheckService>();

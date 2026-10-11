@@ -294,5 +294,63 @@ namespace Argus.Health.Service.Tests.Repository
             Assert.That(updatedEndpoint?.Url, Is.EqualTo(hep.Url));
             Assert.That(updatedEndpoint?.IsActive, Is.EqualTo(false));
         }
+
+        [Test]
+        public async Task Verify_that_creating_a_HealthEndPoint_with_a_name_that_is_in_use_fails_with_a_ConflictError()
+        {
+            var existing = (await this.healthEndPointRepository.ReadAsync()).First();
+
+            var duplicate = new HealthEndPoint
+            {
+                Name = existing.Name,
+                Url = "https://example.com/healthz"
+            };
+
+            var result = await this.healthEndPointRepository.CreateAsync(duplicate);
+
+            Assert.That(result.IsFailed, Is.True);
+            Assert.That(result.HasError<ConflictError>(), Is.True);
+        }
+
+        [Test]
+        public async Task Verify_that_renaming_a_HealthEndPoint_to_a_name_that_is_in_use_fails_with_a_ConflictError()
+        {
+            var healthEndPoints = await this.healthEndPointRepository.ReadAsync();
+
+            var first = healthEndPoints[0];
+            first.Name = healthEndPoints[1].Name;
+
+            var result = await this.healthEndPointRepository.UpdateAsync(first);
+
+            Assert.That(result.IsFailed, Is.True);
+            Assert.That(result.HasError<ConflictError>(), Is.True);
+        }
+
+        [Test]
+        public async Task Verify_that_updating_a_HealthEndPoint_that_does_not_exist_fails_with_a_NotFoundError()
+        {
+            var unknown = new HealthEndPoint
+            {
+                Identifier = Guid.NewGuid(),
+                Name = "unknown",
+                Url = "https://example.com/healthz"
+            };
+
+            var result = await this.healthEndPointRepository.UpdateAsync(unknown);
+
+            Assert.That(result.IsFailed, Is.True);
+            Assert.That(result.HasError<NotFoundError>(), Is.True);
+        }
+
+        [Test]
+        public async Task Verify_that_deleting_a_HealthEndPoint_that_does_not_exist_fails_with_a_NotFoundError()
+        {
+            var unknown = new HealthEndPoint { Identifier = Guid.NewGuid() };
+
+            var result = await this.healthEndPointRepository.DeleteAsync(unknown);
+
+            Assert.That(result.IsFailed, Is.True);
+            Assert.That(result.HasError<NotFoundError>(), Is.True);
+        }
     }
 }
