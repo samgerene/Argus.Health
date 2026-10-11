@@ -5,4 +5,8 @@
     <InstallerPlatform>x64</InstallerPlatform>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+
 </Project>

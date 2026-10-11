@@ -60,10 +60,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="appsettings.Development.json">
+        <!-- The Worker SDK includes appsettings*.json as Content, so a None item would not match -->
+        <Content Update="appsettings.Development.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>Never</CopyToPublishDirectory>
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </None>
+        </Content>
     </ItemGroup>
 </Project>

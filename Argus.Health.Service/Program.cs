@@ -23,6 +23,7 @@ namespace Argus.Health.Service
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Argus.Health.Service.BackgroundServices;
@@ -155,6 +156,9 @@ namespace Argus.Health.Service
                 repository.InitializeDatabase();
                 Log.Information("Database initialization complete");
 
+                app.Services.GetRequiredService<IHostApplicationLifetime>()
+                    .ApplicationStopping.Register(() => ExitWhenBackgroundServiceFailed(app));
+
                 Log.Information("Starting Argus Health Service...");
                 await app.RunAsync();
                 Log.Information("Argus Health Service stopped.");
@@ -162,11 +166,44 @@ namespace Argus.Health.Service
             catch (Exception ex)
             {
                 Log.Fatal(ex, "Argus Health Service terminated unexpectedly.");
+
+                Environment.ExitCode = 1;
             }
             finally
             {
                 await Log.CloseAndFlushAsync();
             }
+        }
+
+        /// <summary>
+        /// Ends the process with exit code 1 when the host is stopping because a <see cref="BackgroundService"/>
+        /// failed. The host would otherwise stop cleanly with exit code 0, which the Windows Service Control
+        /// Manager and systemd take for an intended stop: the recovery actions of the service would not run
+        /// and the service would stay stopped.
+        /// </summary>
+        /// <param name="host">
+        /// The <see cref="IHost"/> that is stopping
+        /// </param>
+        private static void ExitWhenBackgroundServiceFailed(IHost host)
+        {
+            var failedService = host.Services
+                .GetServices<IHostedService>()
+                .OfType<BackgroundService>()
+                .FirstOrDefault(service => service.ExecuteTask is { IsFaulted: true });
+
+            if (failedService == null)
+            {
+                return;
+            }
+
+            Log.Fatal(
+                failedService.ExecuteTask?.Exception,
+                "{BackgroundService} failed, the Argus Health Service exits with code 1 so that it is restarted",
+                failedService.GetType().Name);
+
+            Log.CloseAndFlush();
+
+            Environment.Exit(1);
         }
     }
 }
