@@ -79,7 +79,9 @@ Both the database folder and the logs folder are created via `Directory.CreateDi
 
 ### IPC Protocol
 
-The pipe host (from the `ArgusTransfer` NuGet package — see `Argus.Health.Service.csproj`) listens on a configurable named pipe. The default name is `"ArgusHealth"` (see `ArgusHealthOptions.PipeName` and the `ArgusHealth:PipeName` config key in `appsettings.json`). The protocol uses `ArgusRequest` / `ArgusResponse` messages with HTTP-like routes (`/healthendpoint`, `/healthendpoint/{identifier}`) and verbs (`ArgusVerb`: GET, POST, PUT, PATCH, HEAD, DELETE). Requests are routed via `ArgusRouter` to registered `IArgusModule` implementations. The pipe host is registered via `AddArgusPipeHost()` in `Program.cs`.
+The pipe host (from the `ArgusTransfer` NuGet package — see `Argus.Health.Service.csproj`) listens on a configurable named pipe. The default name is `"ArgusHealth"` (see `ArgusHealthOptions.PipeName` and the `ArgusHealth:PipeName` config key in `appsettings.json`). The protocol uses `ArgusRequest` / `ArgusResponse` messages with HTTP-like routes (`/healthendpoint`, `/healthendpoint/{identifier}`) and verbs (`ArgusVerb`: GET, POST, PUT, PATCH, HEAD, DELETE). Requests are routed via `ArgusRouter` to registered `IArgusModule` implementations. The pipe host is registered via `AddArgusPipeHost()` in `Program.cs`, with response compression enabled; `AddArgusExceptionHandler()` turns an unhandled handler exception into a 500 problem details response.
+
+Error responses of `HealthEndPointModule` are `ArgusProblemDetails` (`application/problem+json`) with a `detail` that explains the failure. Status codes: 400 for an empty or unreadable body, 422 for invalid values (empty name, url that is not absolute, frequency or timeout not greater than zero, negative retry count), 404 when the endpoint does not exist (`NotFoundError` from the repository on update and delete), 409 when the name or identifier is already in use (`ConflictError`), 500 for any other failure. `HealthEndPointClient` appends that detail to the message of the `InvalidOperationException` it throws (`Server returned {StatusCode}: {detail}`).
 
 ### Repository
 
@@ -101,7 +103,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 
 **Services**: `EndpointSyncService` polls every 10s, publishes `EndpointsObservable`/`ConnectionErrorObservable`/`IsRunningObservable`. `HealthCheckService` runs per-endpoint monitor loops with Polly policies, publishes `ResultsObservable`/`FailureObservable`.
 
-**Client**: `HealthEndPointClient` — typed CRUD client over ArgusTransfer named-pipe IPC with Polly retry + timeout.
+**Client**: `HealthEndPointClient` — typed CRUD client over ArgusTransfer named-pipe IPC. Timeout and retries are those of its `ArgusClient`, built by `HealthEndPointClient.CreateArgusClient`: a 10 s budget per call including retries, and an `ArgusRetryPolicy` (3 retries, exponential from 500 ms) that retries transient pipe failures but never a timeout, and never a POST that may already have reached the service. `DeleteAsync` treats a 404 as deleted, so a retried delete does not fail. Pulse no longer references Polly.
 
 **Notifications**: `NotificationItem` model, fed from `FailureObservable`, backed by `SourceList`, auto-expires after 5s.
 
@@ -130,7 +132,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 - **Nullable**: enabled in `Argus.Health.Service`, `Argus.Health.Common`, and `Argus.Health.Pulse`; disabled in the test project.
 - **XML doc comments**: required on all types and members: public, private, protetected and internal . do not use inheritdoc
 - **License header**: every `.cs` file starts with the Apache-2.0 copyright block.
-- **FluentResults**: CRUD methods return `Task<Result>` (not exceptions) for expected failures; repository read methods throw `DataException` on failure.
+- **FluentResults**: CRUD methods return `Task<Result>` (not exceptions) for expected failures; repository read methods throw `DataException` on failure. A failure the caller can act on carries a typed error (`NotFoundError`, `ConflictError`) that `HealthEndPointModule` maps to a status code.
 - **this**: make use of the `this` keyword on properties and methods
 
 ## Testing Conventions

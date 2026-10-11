@@ -226,6 +226,22 @@ namespace Argus.Health.Service.Repository
         }
 
         /// <summary>
+        /// Determines whether a <see cref="SqliteException"/> reports that a UNIQUE or PRIMARY KEY
+        /// constraint was violated
+        /// </summary>
+        /// <param name="exception">
+        /// The <see cref="SqliteException"/> to inspect
+        /// </param>
+        /// <returns>
+        /// <c>true</c> when the extended error code is SQLITE_CONSTRAINT_UNIQUE (2067) or
+        /// SQLITE_CONSTRAINT_PRIMARYKEY (1555); otherwise <c>false</c>
+        /// </returns>
+        private static bool IsUniquenessViolation(SqliteException exception)
+        {
+            return exception.SqliteExtendedErrorCode is 2067 or 1555;
+        }
+
+        /// <summary>
         /// Asynchronously creates a <see cref="HealthEndPoint"/> in the database
         /// </summary>
         /// <param name="healthEndPoint">
@@ -278,6 +294,12 @@ namespace Argus.Health.Service.Repository
                 }
 
                 return Result.Ok();
+            }
+            catch (SqliteException ex) when (IsUniquenessViolation(ex))
+            {
+                this.logger.LogWarning(ex, "The HealthEndPoint {Name} was not CREATED, its name or identifier is already in use", healthEndPoint.Name);
+
+                return Result.Fail(new ConflictError($"A HealthEndPoint with the name '{healthEndPoint.Name}' or the identifier {healthEndPoint.Identifier} already exists."));
             }
             catch (Exception ex)
             {
@@ -341,10 +363,18 @@ namespace Argus.Health.Service.Repository
                 }
                 else
                 {
-                    this.logger.LogWarning("The HealthEndPoint with identifier {identifier} was not UPDATED, it probably does not exist in the database", healthEndPoint.Identifier);
+                    this.logger.LogWarning("The HealthEndPoint with identifier {identifier} was not UPDATED, it does not exist in the database", healthEndPoint.Identifier);
+
+                    return Result.Fail(new NotFoundError($"No HealthEndPoint with identifier {healthEndPoint.Identifier} exists."));
                 }
 
                 return Result.Ok();
+            }
+            catch (SqliteException ex) when (IsUniquenessViolation(ex))
+            {
+                this.logger.LogWarning(ex, "The HealthEndPoint with identifier {Identifier} was not UPDATED, the name {Name} is already in use", healthEndPoint.Identifier, healthEndPoint.Name);
+
+                return Result.Fail(new ConflictError($"Another HealthEndPoint with the name '{healthEndPoint.Name}' already exists."));
             }
             catch (Exception ex)
             {
@@ -404,7 +434,9 @@ namespace Argus.Health.Service.Repository
                 }
                 else
                 {
-                    this.logger.LogWarning("The HealthEndPoint with identifier {identifier} was not DELETED, it probably does not exist in the database", healthEndPoint.Identifier);
+                    this.logger.LogWarning("The HealthEndPoint with identifier {identifier} was not DELETED, it does not exist in the database", healthEndPoint.Identifier);
+
+                    return Result.Fail(new NotFoundError($"No HealthEndPoint with identifier {healthEndPoint.Identifier} exists."));
                 }
 
                 return Result.Ok();

@@ -36,6 +36,8 @@ namespace Argus.Health.Service.Modules
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Routing;
 
+    using FluentResults;
+
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -120,15 +122,16 @@ namespace Argus.Health.Service.Modules
                 {
                     this.logger.LogWarning("Create HealthEndPoint request received with empty body");
 
-                    context.Response = new ArgusResponse
-                    {
-                        CorrelationToken = request.CorrelationToken,
-                        StatusCode = ArgusStatusCode.BadRequest
-                    };
+                    SetProblem(context, ArgusStatusCode.BadRequest, "The request body is empty; a HealthEndPoint is expected.");
                     return;
                 }
 
                 var healthEndPoint = HealthEndPointReader.Read(bodyJson);
+
+                if (!this.TryValidate(context, healthEndPoint))
+                {
+                    return;
+                }
 
                 var result = await this.healthEndPointRepository.CreateAsync(healthEndPoint);
 
@@ -148,21 +151,13 @@ namespace Argus.Health.Service.Modules
 
                 this.logger.LogError("Failed to create HealthEndPoint: {Errors}", string.Join("; ", result.Errors));
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.InternalServerError
-                };
+                SetFailure(context, result, "created");
             }
             catch (JsonException ex)
             {
                 this.logger.LogError(ex, "Failed to deserialize HealthEndPoint from request body.");
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.BadRequest
-                };
+                SetProblem(context, ArgusStatusCode.BadRequest, $"The request body is not a valid HealthEndPoint: {ex.Message}");
             }
             finally
             {
@@ -201,11 +196,7 @@ namespace Argus.Health.Service.Modules
             {
                 this.logger.LogError(ex, "Failed to read HealthEndPoints.");
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.InternalServerError
-                };
+                SetProblem(context, ArgusStatusCode.InternalServerError, "The HealthEndPoints could not be read.");
             }
             finally
             {
@@ -237,11 +228,7 @@ namespace Argus.Health.Service.Modules
                 {
                     this.logger.LogDebug("HealthEndPoint with identifier {Identifier} not found", identifier);
 
-                    context.Response = new ArgusResponse
-                    {
-                        CorrelationToken = request.CorrelationToken,
-                        StatusCode = ArgusStatusCode.NotFound
-                    };
+                    SetProblem(context, ArgusStatusCode.NotFound, $"No HealthEndPoint with identifier {identifier} exists.");
                     return;
                 }
 
@@ -258,11 +245,7 @@ namespace Argus.Health.Service.Modules
             {
                 this.logger.LogError(ex, "Failed to read HealthEndPoint.");
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.InternalServerError
-                };
+                SetProblem(context, ArgusStatusCode.InternalServerError, "The HealthEndPoint could not be read.");
             }
             finally
             {
@@ -293,17 +276,18 @@ namespace Argus.Health.Service.Modules
                 {
                     this.logger.LogWarning("Update HealthEndPoint request received with empty body");
 
-                    context.Response = new ArgusResponse
-                    {
-                        CorrelationToken = request.CorrelationToken,
-                        StatusCode = ArgusStatusCode.BadRequest
-                    };
+                    SetProblem(context, ArgusStatusCode.BadRequest, "The request body is empty; a HealthEndPoint is expected.");
                     return;
                 }
 
                 var identifier = routeValues["identifier"].FromShortGuid();
                 var healthEndPoint = HealthEndPointReader.Read(bodyJson);
                 healthEndPoint.Identifier = identifier;
+
+                if (!this.TryValidate(context, healthEndPoint))
+                {
+                    return;
+                }
 
                 var result = await this.healthEndPointRepository.UpdateAsync(healthEndPoint);
 
@@ -322,21 +306,13 @@ namespace Argus.Health.Service.Modules
 
                 this.logger.LogError("Failed to update HealthEndPoint: {Errors}", string.Join("; ", result.Errors));
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.InternalServerError
-                };
+                SetFailure(context, result, "updated");
             }
             catch (JsonException ex)
             {
                 this.logger.LogError(ex, "Failed to deserialize HealthEndPoint from request body.");
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.BadRequest
-                };
+                SetProblem(context, ArgusStatusCode.BadRequest, $"The request body is not a valid HealthEndPoint: {ex.Message}");
             }
             finally
             {
@@ -379,11 +355,7 @@ namespace Argus.Health.Service.Modules
 
             this.logger.LogError("Failed to delete HealthEndPoint: {Errors}", string.Join("; ", result.Errors));
 
-            context.Response = new ArgusResponse
-            {
-                CorrelationToken = request.CorrelationToken,
-                StatusCode = ArgusStatusCode.InternalServerError
-            };
+            SetFailure(context, result, "deleted");
         }
 
         /// <summary>
@@ -423,11 +395,7 @@ namespace Argus.Health.Service.Modules
             {
                 this.logger.LogError(ex, "Failed to read check results for endpoint {Identifier}", identifier);
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.InternalServerError
-                };
+                SetProblem(context, ArgusStatusCode.InternalServerError, $"The check results of HealthEndPoint {identifier} could not be read.");
             }
         }
 
@@ -485,12 +453,121 @@ namespace Argus.Health.Service.Modules
             {
                 this.logger.LogError(ex, "Failed to read uptime summary for endpoint {Identifier}", identifier);
 
-                context.Response = new ArgusResponse
-                {
-                    CorrelationToken = request.CorrelationToken,
-                    StatusCode = ArgusStatusCode.InternalServerError
-                };
+                SetProblem(context, ArgusStatusCode.InternalServerError, $"The uptime summary of HealthEndPoint {identifier} could not be read.");
             }
+        }
+
+        /// <summary>
+        /// Answers the request with an <see cref="ArgusProblemDetails"/> response that carries the
+        /// correlation token of the request
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="ArgusContext"/> for the current request
+        /// </param>
+        /// <param name="statusCode">
+        /// The <see cref="ArgusStatusCode"/> of the problem
+        /// </param>
+        /// <param name="detail">
+        /// A human-readable explanation of the problem
+        /// </param>
+        private static void SetProblem(ArgusContext context, ArgusStatusCode statusCode, string detail)
+        {
+            var response = context.Problem(statusCode, detail);
+
+            response.CorrelationToken = context.Request.CorrelationToken;
+        }
+
+        /// <summary>
+        /// Answers the request for a failed repository operation: 404 when the <see cref="HealthEndPoint"/>
+        /// does not exist, 409 when it conflicts with an existing one, otherwise 500
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="ArgusContext"/> for the current request
+        /// </param>
+        /// <param name="result">
+        /// The failed <see cref="ResultBase"/>
+        /// </param>
+        /// <param name="action">
+        /// The past participle of the operation that failed, such as <c>created</c>
+        /// </param>
+        private static void SetFailure(ArgusContext context, ResultBase result, string action)
+        {
+            var statusCode = ArgusStatusCode.InternalServerError;
+
+            if (result.HasError<NotFoundError>())
+            {
+                statusCode = ArgusStatusCode.NotFound;
+            }
+            else if (result.HasError<ConflictError>())
+            {
+                statusCode = ArgusStatusCode.Conflict;
+            }
+
+            SetProblem(context, statusCode, $"The HealthEndPoint could not be {action}: {DescribeErrors(result)}");
+        }
+
+        /// <summary>
+        /// Validates the values of a <see cref="HealthEndPoint"/> sent by a client and answers the request
+        /// with a 422 problem details response when they are not valid
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="ArgusContext"/> for the current request
+        /// </param>
+        /// <param name="healthEndPoint">
+        /// The <see cref="HealthEndPoint"/> to validate
+        /// </param>
+        /// <returns>
+        /// <c>true</c> when the <see cref="HealthEndPoint"/> is valid; otherwise <c>false</c>
+        /// </returns>
+        private bool TryValidate(ArgusContext context, HealthEndPoint healthEndPoint)
+        {
+            string? problem = null;
+
+            if (string.IsNullOrWhiteSpace(healthEndPoint.Name))
+            {
+                problem = "The name of a HealthEndPoint must not be empty.";
+            }
+            else if (!Uri.TryCreate(healthEndPoint.Url, UriKind.Absolute, out _))
+            {
+                problem = "The url of a HealthEndPoint must be an absolute URL.";
+            }
+            else if (healthEndPoint.Frequency <= 0)
+            {
+                problem = "The frequency of a HealthEndPoint must be greater than zero.";
+            }
+            else if (healthEndPoint.Timeout <= 0)
+            {
+                problem = "The timeout of a HealthEndPoint must be greater than zero.";
+            }
+            else if (healthEndPoint.RetryCount < 0)
+            {
+                problem = "The retry count of a HealthEndPoint must not be negative.";
+            }
+
+            if (problem == null)
+            {
+                return true;
+            }
+
+            this.logger.LogWarning("HealthEndPoint request rejected: {Problem}", problem);
+
+            SetProblem(context, ArgusStatusCode.UnprocessableEntity, problem);
+
+            return false;
+        }
+
+        /// <summary>
+        /// Joins the error messages of a failed <see cref="ResultBase"/> into one text
+        /// </summary>
+        /// <param name="result">
+        /// The failed <see cref="ResultBase"/>
+        /// </param>
+        /// <returns>
+        /// The error messages, separated by a semicolon
+        /// </returns>
+        private static string DescribeErrors(ResultBase result)
+        {
+            return string.Join("; ", result.Errors.Select(error => error.Message));
         }
     }
 }
