@@ -108,7 +108,7 @@ namespace Argus.Health.Pulse.Tests.ViewModels
         [Test]
         public async Task Verify_that_CloseCommand_does_not_throw_when_no_subscribers()
         {
-            Assert.DoesNotThrowAsync(async () => await this.viewModel.CloseCommand.Execute().FirstAsync());
+            await Assert.DoesNotThrowAsync(async () => await this.viewModel.CloseCommand.Execute().FirstAsync());
         }
 
         [Test]
@@ -124,7 +124,7 @@ namespace Argus.Health.Pulse.Tests.ViewModels
                 return;
             }
 
-            Assert.DoesNotThrowAsync(async () => await this.viewModel.OpenRepositoryCommand.Execute().FirstAsync());
+            await Assert.DoesNotThrowAsync(async () => await this.viewModel.OpenRepositoryCommand.Execute().FirstAsync());
         }
     }
 }
