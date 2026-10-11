@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
   <Package Name="Argus Health"
            Manufacturer="Sam Gerené"
@@ -29,7 +30,9 @@
       <Directory Id="ArgusHealthMenuFolder" Name="Argus Health" />
     </StandardDirectory>
 
-    <!-- Service: main EXE with ServiceInstall and ServiceControl -->
+    <!-- Service: main EXE with ServiceInstall and ServiceControl.
+         The service runs as LocalService: no administrative rights on the machine and anonymous
+         credentials on the network. Its database and logs are in the profile of that account. -->
     <Component Id="ServiceExecutableComponent"
                Directory="ServiceInstallFolder"
                Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
@@ -38,14 +41,28 @@
             Source="ServiceExe\Argus.Health.Service.exe"
             KeyPath="yes" />
 
+      <!-- LocalService cannot register an event source itself; without it the warnings and errors
+           the service writes to the Application event log are dropped -->
+      <util:EventSource Log="Application"
+                        Name="Argus.Health.Service"
+                        EventMessageFile="[ServiceInstallFolder]System.Diagnostics.EventLog.Messages.dll" />
+
       <ServiceInstall Id="ArgusHealthServiceInstall"
                       Name="Argus Health Service"
                       DisplayName="Argus Health Service"
                       Description="Monitors HTTP health endpoints and reports their status."
                       Type="ownProcess"
                       Start="auto"
-                      Account="LocalSystem"
-                      ErrorControl="normal" />
+                      Account="NT AUTHORITY\LocalService"
+                      ErrorControl="normal">
+
+        <!-- Restart the service when its process ends unexpectedly; the failure count is reset after a day -->
+        <util:ServiceConfig FirstFailureActionType="restart"
+                            SecondFailureActionType="restart"
+                            ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="60"
+                            ResetPeriodInDays="1" />
+      </ServiceInstall>
 
       <ServiceControl Id="ArgusHealthServiceControl"
                       Name="Argus Health Service"

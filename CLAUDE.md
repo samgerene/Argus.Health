@@ -55,7 +55,7 @@ pwsh .\build-installer.ps1
 2. **OS-aware lifecycle registration**: `AddWindowsService(o => o.ServiceName = "Argus Health Service")` on Windows, `AddSystemd()` on Linux. Unsupported OSes exit with code 1.
 3. **DI registration**: `ArgusHealthOptions` bound from the `ArgusHealth` config section, a named `HttpClient("ArgusHealth")`, `AddArgusModules()`, `AddArgusPipeHost()` (named-pipe IPC host), `IHealthEndPointRepository` + `IHealthEndPointCheckResultRepository` as singletons, and `HealthEndPointBackgroundService` as a hosted service. `HostOptions.ServicesStartConcurrently = true`.
 4. **Database initialization**: after `builder.Build()`, `repository.InitializeDatabase()` runs synchronously before `app.RunAsync()`. It creates `ApplicationDataFolder` and the SQLite file/tables if missing.
-5. **Host runs** until SCM / systemd / `Ctrl+C` stops it.
+5. **Host runs** until SCM / systemd / `Ctrl+C` stops it. When the host stops because a `BackgroundService` failed, `Program.ExitWhenBackgroundServiceFailed` (registered on `ApplicationStopping`) ends the process with exit code 1: the host would otherwise report a clean stop, and the recovery actions the MSI configures (`util:ServiceConfig` in `Package.wxs`: restart after 60 seconds) would not run. A failure during startup sets `Environment.ExitCode = 1`.
 
 `HealthEndPointBackgroundService` (extends `BackgroundService`) loads all endpoints from the repository on startup and spawns a per-endpoint monitoring loop. It subscribes to repository events (`EndpointAdded`, `EndpointUpdated`, `EndpointRemoved`) to dynamically start/stop monitors without restart. Each monitor loop is tracked in a `ConcurrentDictionary<Guid, (Task, CancellationTokenSource)>`.
 
@@ -72,7 +72,7 @@ All persistent state is rooted under `Program.ApplicationDataFolder` (`Environme
 
 Resolved paths per platform:
 
-- **Windows (LocalSystem):** `C:\Windows\System32\config\systemprofile\AppData\Local\ArgusHealthService\`
+- **Windows (`NT AUTHORITY\LocalService`, the account the MSI installs the service with):** `C:\Windows\ServiceProfiles\LocalService\AppData\Local\ArgusHealthService\`. Version 1.0.0 ran as `LocalSystem` with its data in `C:\Windows\System32\config\systemprofile\AppData\Local\ArgusHealthService\`; the installer does not move it (see the README).
 - **Linux (root/systemd):** `/root/.local/share/ArgusHealthService/` (or `$XDG_DATA_HOME/ArgusHealthService/` for a non-root service user)
 
 Both the database folder and the logs folder are created via `Directory.CreateDirectory` on startup before any I/O is attempted. The Serilog File sink is added programmatically in `Program.cs` (not via `appsettings.json`) so the resolved absolute path can be injected.
@@ -83,7 +83,7 @@ The pipe host (from the `ArgusTransfer` NuGet package — see `Argus.Health.Serv
 
 ### Repository
 
-`IHealthEndPointRepository` defines CRUD + three events. `HealthEndPointRepository` stores `HealthEndPoint` records in a SQLite database named `ArgusHealth.sqlite` inside `Program.ApplicationDataFolder`, which resolves to `Environment.SpecialFolder.LocalApplicationData` + `"ArgusHealthService"`. When the service runs as `LocalSystem` (the default for the WiX MSI install), that's `C:\Windows\System32\config\systemprofile\AppData\Local\ArgusHealthService\ArgusHealth.sqlite`. On Linux it's the XDG equivalent (`~/.local/share/ArgusHealthService/`). The constructor has an `internal` overload accepting a custom folder path — used only in tests.
+`IHealthEndPointRepository` defines CRUD + three events. `HealthEndPointRepository` stores `HealthEndPoint` records in a SQLite database named `ArgusHealth.sqlite` inside `Program.ApplicationDataFolder`, which resolves to `Environment.SpecialFolder.LocalApplicationData` + `"ArgusHealthService"`. When the service runs as `NT AUTHORITY\LocalService` (the account of the WiX MSI install), that's `C:\Windows\ServiceProfiles\LocalService\AppData\Local\ArgusHealthService\ArgusHealth.sqlite`. On Linux it's the XDG equivalent (`~/.local/share/ArgusHealthService/`). The constructor has an `internal` overload accepting a custom folder path — used only in tests.
 
 Rolling Serilog log files live alongside the database in the same folder tree: `{ApplicationDataFolder}\logs\argus-health-service-YYYYMMDD.log`. The `logs` folder is created on startup by `Program.Main` before the Serilog logger is built.
 
