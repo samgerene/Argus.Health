@@ -97,7 +97,12 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 
 **App bootstrap**: `Program.cs` configures Serilog, registers DI services (`ArgusClient`, `HealthEndPointClient`, `IEndpointSyncService`, `IHealthCheckService`), sets `App.Services` static property. `App.axaml.cs` creates `MainWindowViewModel` and wires tray icon events.
 
-**UI framework**: Avalonia 12.0 with FluentTheme (dark), ReactiveUI.Avalonia 11.4 for MVVM, DynamicData for reactive collections.
+**UI framework**: Avalonia 12.1 with FluentTheme (dark), ReactiveUI.Avalonia 12.0 with ReactiveUI 23.2 for MVVM, DynamicData for reactive collections.
+
+**Pinned packages** — do not update these as part of a routine dependency update:
+
+- `ReactiveUI` 23.2.x, `ReactiveUI.Avalonia` 12.0.x and `ReactiveUI.SourceGenerators` 2.6.x. ReactiveUI 24 and later no longer build on System.Reactive and DynamicData: `Unit` becomes `RxVoid`, `WhenAnyValue` returns `PropertyValues` instead of tuples, `AvaloniaScheduler` is gone and `DisposeWith` and `Bind` have other signatures. Moving Pulse to it is a migration of all view models and views, not a version bump. `ReactiveUI.Avalonia` 12.1.0 and later require ReactiveUI 24 or later.
+- `WixToolset.Sdk` and `WixToolset.Util.wixext` 5.0.2, which must have the same version. WiX 6 and later refuse to build until the Open Source Maintenance Fee EULA is accepted (error WIX7015), which is a licensing decision for the owner of the repository.
 
 **ViewModels**: `MainWindowViewModel` (shell/navigation/notifications/sync state), `DashboardViewModel` (real-time endpoint status grid via `SourceCache`), `EndpointListViewModel` (CRUD list via `SourceCache`), `EndpointEditorViewModel` (create/edit form with validation), `EndpointStatusViewModel` (single dashboard row with computed `IsHealthy`/`StatusDisplay`).
 
@@ -140,6 +145,7 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 - Test class naming: `{ClassName}TestFixture`
 - Test method naming: `Verify_that_{scenario_in_snake_case}`
 - Test convention: use Nunit with `Assert.That` syntax
+- NUnit 5: `Assert.ThrowsAsync`, `Assert.DoesNotThrowAsync` and `Assert.CatchAsync` return a task. Always `await` them in an `async Task` test; a call that is not awaited asserts nothing. `Assert.That(async () => ..., Throws...)` is still evaluated without an `await`.
 - Each test copies `TestData/ArgusHealth.sqlite` → `TestDataCopy/ArgusHealth.sqlite` in `[SetUp]` to ensure test isolation. The seeded database contains exactly 2 endpoints (GUIDs `cfb2e590-...` and `fe08550c-...`).
 - The `internal` constructor of `HealthEndPointRepository` is used in tests to inject a custom database folder path.
 

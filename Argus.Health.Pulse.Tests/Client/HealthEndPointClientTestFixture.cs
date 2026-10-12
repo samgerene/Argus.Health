@@ -201,7 +201,7 @@ namespace Argus.Health.Pulse.Client.Tests
         }
 
         [Test]
-        public void Verify_that_GetAllAsync_throws_on_error_status()
+        public async Task Verify_that_GetAllAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
 
@@ -211,13 +211,13 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAllAsync());
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAllAsync());
 
             serverTask.Wait();
         }
 
         [Test]
-        public void Verify_that_GetAllAsync_includes_the_problem_detail_in_the_exception_message()
+        public async Task Verify_that_GetAllAsync_includes_the_problem_detail_in_the_exception_message()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
 
@@ -231,7 +231,7 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAllAsync());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAllAsync());
 
             serverTask.Wait();
 
@@ -390,7 +390,7 @@ namespace Argus.Health.Pulse.Client.Tests
         }
 
         [Test]
-        public void Verify_that_GetByIdAsync_throws_on_error_status()
+        public async Task Verify_that_GetByIdAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
             var identifier = Guid.NewGuid();
@@ -401,13 +401,13 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetByIdAsync(identifier));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetByIdAsync(identifier));
 
             serverTask.Wait();
         }
 
         [Test]
-        public void Verify_that_CreateAsync_throws_on_error_status()
+        public async Task Verify_that_CreateAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
 
@@ -427,13 +427,13 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.CreateAsync(ep));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.CreateAsync(ep));
 
             serverTask.Wait();
         }
 
         [Test]
-        public void Verify_that_UpdateAsync_throws_on_error_status()
+        public async Task Verify_that_UpdateAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
             var identifier = Guid.NewGuid();
@@ -454,13 +454,13 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.UpdateAsync(ep));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.UpdateAsync(ep));
 
             serverTask.Wait();
         }
 
         [Test]
-        public void Verify_that_DeleteAsync_throws_on_error_status()
+        public async Task Verify_that_DeleteAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
             var identifier = Guid.NewGuid();
@@ -471,7 +471,7 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.DeleteAsync(identifier));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.DeleteAsync(identifier));
 
             serverTask.Wait();
         }
@@ -532,7 +532,7 @@ namespace Argus.Health.Pulse.Client.Tests
         }
 
         [Test]
-        public void Verify_that_GetCheckResultsAsync_throws_on_error_status()
+        public async Task Verify_that_GetCheckResultsAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
             var endpointId = Guid.NewGuid();
@@ -543,13 +543,13 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetCheckResultsAsync(endpointId));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetCheckResultsAsync(endpointId));
 
             serverTask.Wait();
         }
 
         [Test]
-        public void Verify_that_GetUptimeSummaryAsync_throws_on_error_status()
+        public async Task Verify_that_GetUptimeSummaryAsync_throws_on_error_status()
         {
             var pipeName = $"argus-test-{Guid.NewGuid()}";
             var endpointId = Guid.NewGuid();
@@ -560,27 +560,27 @@ namespace Argus.Health.Pulse.Client.Tests
             using var argusClient = new ArgusClient(pipeName);
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetUptimeSummaryAsync(endpointId));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetUptimeSummaryAsync(endpointId));
 
             serverTask.Wait();
         }
 
         [Test]
-        public void Verify_that_CreateAsync_throws_on_null_endpoint()
+        public async Task Verify_that_CreateAsync_throws_on_null_endpoint()
         {
             using var argusClient = new ArgusClient("unused");
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<ArgumentNullException>(async () => await client.CreateAsync(null));
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await client.CreateAsync(null));
         }
 
         [Test]
-        public void Verify_that_UpdateAsync_throws_on_null_endpoint()
+        public async Task Verify_that_UpdateAsync_throws_on_null_endpoint()
         {
             using var argusClient = new ArgusClient("unused");
             var client = new HealthEndPointClient(argusClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<HealthEndPointClient>.Instance);
 
-            Assert.ThrowsAsync<ArgumentNullException>(async () => await client.UpdateAsync(null));
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await client.UpdateAsync(null));
         }
     }
 }
