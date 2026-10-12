@@ -21,14 +21,14 @@
 namespace Argus.Health.Pulse.Tests.ViewModels
 {
     using System;
-    using System.Reactive;
-    using System.Reactive.Linq;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     using Argus.Health.Pulse.ViewModels;
 
     using NUnit.Framework;
+
+    using ReactiveUI.Primitives;
 
     /// <summary>
     /// Suite of tests for the <see cref="AboutViewModel"/> class
@@ -120,7 +120,7 @@ namespace Argus.Health.Pulse.Tests.ViewModels
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                Assert.That(this.viewModel.OpenRepositoryCommand.CanExecute.FirstAsync().Wait(), Is.True);
+                Assert.That(await this.viewModel.OpenRepositoryCommand.CanExecute.FirstAsync(), Is.True);
                 return;
             }
 

@@ -22,11 +22,11 @@ namespace Argus.Health.Pulse.ViewModels
 {
     using System;
     using System.Diagnostics;
-    using System.Reactive;
     using System.Reflection;
     using System.Runtime.InteropServices;
 
     using ReactiveUI;
+    using ReactiveUI.Primitives;
 
     /// <summary>
     /// View model for the About dialog window
@@ -93,12 +93,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to open the repository in the default browser
         /// </summary>
-        public ReactiveCommand<Unit, Unit> OpenRepositoryCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> OpenRepositoryCommand { get; }
 
         /// <summary>
         /// Gets the command to close the About window
         /// </summary>
-        public ReactiveCommand<Unit, Unit> CloseCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> CloseCommand { get; }
 
         /// <summary>
         /// Raised when the About window should be closed

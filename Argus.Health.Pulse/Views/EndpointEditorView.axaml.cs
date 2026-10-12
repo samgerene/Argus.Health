@@ -20,13 +20,12 @@
 
 namespace Argus.Health.Pulse.Views
 {
-    using System.Reactive.Disposables;
-    using System.Reactive.Disposables.Fluent;
-
     using Argus.Health.Pulse.ViewModels;
 
     using ReactiveUI;
     using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
 
     /// <summary>
     /// View for the endpoint create/edit form
@@ -59,18 +58,18 @@ namespace Argus.Health.Pulse.Views
                     .DisposeWith(disposables);
 
                 this.Bind(this.ViewModel, vm => vm.Frequency, v => v.FrequencyUpDown.Value,
-                        vmToViewConverter: value => value,
-                        viewToVmConverter: value => (int)(value ?? 0))
+                        viewModelToViewConverter: value => value,
+                        viewToViewModelConverter: value => (int)(value ?? 0))
                     .DisposeWith(disposables);
 
                 this.Bind(this.ViewModel, vm => vm.Timeout, v => v.TimeoutUpDown.Value,
-                        vmToViewConverter: value => value,
-                        viewToVmConverter: value => (int)(value ?? 0))
+                        viewModelToViewConverter: value => value,
+                        viewToViewModelConverter: value => (int)(value ?? 0))
                     .DisposeWith(disposables);
 
                 this.Bind(this.ViewModel, vm => vm.RetryCount, v => v.RetryCountUpDown.Value,
-                        vmToViewConverter: value => value,
-                        viewToVmConverter: value => (int)(value ?? 0))
+                        viewModelToViewConverter: value => value,
+                        viewToViewModelConverter: value => (int)(value ?? 0))
                     .DisposeWith(disposables);
 
                 this.Bind(this.ViewModel, vm => vm.IsActive, v => v.IsActiveCheckBox.IsChecked)

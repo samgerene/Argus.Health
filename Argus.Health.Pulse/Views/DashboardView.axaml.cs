@@ -23,9 +23,6 @@ namespace Argus.Health.Pulse.Views
     using System;
     using System.ComponentModel;
     using System.Globalization;
-    using System.Reactive.Disposables;
-    using System.Reactive.Disposables.Fluent;
-    using System.Reactive.Linq;
 
     using Argus.Health.Pulse.Controls;
     using Argus.Health.Pulse.ViewModels;
@@ -35,6 +32,9 @@ namespace Argus.Health.Pulse.Views
 
     using ReactiveUI;
     using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
+    using ReactiveUI.Primitives.Signals;
 
     /// <summary>
     /// Dashboard view displaying real-time endpoint health status
@@ -132,7 +132,7 @@ namespace Argus.Health.Pulse.Views
                     .DisposeWith(disposables);
 
                 // Endpoints grid sorting: translate header clicks into VM sort state
-                Observable
+                Signal
                     .FromEventPattern<EventHandler<DataGridColumnEventArgs>, DataGridColumnEventArgs>(
                         h => this.EndpointsGrid.Sorting += h,
                         h => this.EndpointsGrid.Sorting -= h)
@@ -140,10 +140,10 @@ namespace Argus.Health.Pulse.Views
                     .DisposeWith(disposables);
 
                 // Grid visibility
-                this.OneWayBind(this.ViewModel, vm => vm.IsEndpointsView, v => v.EndpointsGrid.IsVisible)
+                this.OneWayBindUnsafe(this.ViewModel, vm => vm.IsEndpointsView, v => v.EndpointsGrid.IsVisible)
                     .DisposeWith(disposables);
 
-                this.OneWayBind(this.ViewModel, vm => vm.IsIncidentsView, v => v.IncidentsGrid.IsVisible)
+                this.OneWayBindUnsafe(this.ViewModel, vm => vm.IsIncidentsView, v => v.IncidentsGrid.IsVisible)
                     .DisposeWith(disposables);
 
                 // Detail panel visibility

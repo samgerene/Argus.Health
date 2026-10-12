@@ -22,15 +22,16 @@ namespace Argus.Health.Pulse.Services
 {
     using System;
     using System.Collections.Generic;
-    using System.Reactive.Disposables;
-    using System.Reactive.Linq;
-    using System.Reactive.Subjects;
     using System.Threading.Tasks;
 
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
 
     using Microsoft.Extensions.Logging;
+
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
+    using ReactiveUI.Primitives.Signals;
 
     /// <summary>
     /// Polls <see cref="HealthEndPointClient.GetAllAsync()"/> every 10 seconds
@@ -56,22 +57,22 @@ namespace Argus.Health.Pulse.Services
         /// <summary>
         /// Subject that publishes the latest endpoint list
         /// </summary>
-        private readonly BehaviorSubject<IList<HealthEndPoint>> endpointsSubject = new(Array.Empty<HealthEndPoint>());
+        private readonly BehaviorSignal<IList<HealthEndPoint>> endpointsSubject = new(Array.Empty<HealthEndPoint>());
 
         /// <summary>
         /// Subject that publishes connection error state
         /// </summary>
-        private readonly BehaviorSubject<bool> connectionErrorSubject = new(false);
+        private readonly BehaviorSignal<bool> connectionErrorSubject = new(false);
 
         /// <summary>
         /// Subject that publishes the running state of the sync service
         /// </summary>
-        private readonly BehaviorSubject<bool> isRunningSubject = new(false);
+        private readonly BehaviorSignal<bool> isRunningSubject = new(false);
 
         /// <summary>
         /// Disposable container for Rx subscriptions
         /// </summary>
-        private readonly CompositeDisposable disposables = new();
+        private readonly MultipleDisposable disposables = new();
 
         /// <summary>
         /// The current polling subscription, tracked separately so it can be disposed independently
@@ -109,8 +110,8 @@ namespace Argus.Health.Pulse.Services
 
             this.connectionErrorSubject.OnNext(false);
 
-            this.pollSubscription = Observable.Timer(TimeSpan.Zero, PollInterval)
-                .SelectMany(_ => Observable.FromAsync(async ct =>
+            this.pollSubscription = Signal.Timer(TimeSpan.Zero, PollInterval)
+                .SelectMany(_ => Signal.FromAsync(async ct =>
                 {
                     try
                     {

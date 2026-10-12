@@ -22,8 +22,6 @@ namespace Argus.Health.Pulse.Views
 {
     using System;
     using System.IO;
-    using System.Reactive.Disposables;
-    using System.Reactive.Disposables.Fluent;
 
     using Argus.Health.Pulse.ViewModels;
 
@@ -33,6 +31,8 @@ namespace Argus.Health.Pulse.Views
 
     using ReactiveUI;
     using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
 
     /// <summary>
     /// About dialog window displaying application details, license, and copyright

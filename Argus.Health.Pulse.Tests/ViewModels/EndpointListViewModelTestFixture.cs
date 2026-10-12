@@ -23,7 +23,6 @@ namespace Argus.Health.Pulse.Tests.ViewModels
     using System;
     using System.IO;
     using System.IO.Pipes;
-    using System.Reactive.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -34,6 +33,7 @@ namespace Argus.Health.Pulse.Tests.ViewModels
     using Argus.Health.Pulse.ViewModels;
 
     using ArgusTransfer.Client;
+    using ArgusTransfer.Extensions;
     using ArgusTransfer.Protocol;
     using ArgusTransfer.Serialization;
 
@@ -45,6 +45,7 @@ namespace Argus.Health.Pulse.Tests.ViewModels
     using NUnit.Framework;
 
     using ReactiveUI;
+    using ReactiveUI.Primitives;
 
     /// <summary>
     /// Suite of tests for the <see cref="EndpointListViewModel"/> class
@@ -135,6 +136,79 @@ namespace Argus.Health.Pulse.Tests.ViewModels
 
             Assert.That(viewModel.HasEndpoints, Is.False);
             Assert.That(viewModel.Endpoints, Has.Count.EqualTo(0));
+        }
+
+        [AvaloniaTest]
+        public async Task Verify_that_a_confirmed_delete_removes_the_endpoint_and_hides_the_confirmation()
+        {
+            var pipeName = $"argus-test-{Guid.NewGuid()}";
+
+            var ep1 = new HealthEndPoint
+            {
+                Identifier = Guid.NewGuid(),
+                Name = "ep1",
+                Url = "https://example.com/1",
+                Frequency = 30,
+                Timeout = 5,
+                RetryCount = 3
+            };
+
+            var ep2 = new HealthEndPoint
+            {
+                Identifier = Guid.NewGuid(),
+                Name = "ep2",
+                Url = "https://example.com/2",
+                Frequency = 60,
+                Timeout = 10,
+                RetryCount = 1
+            };
+
+            var responseBody = HealthEndPointWriter.Write(new[] { ep1, ep2 });
+
+            var getTask = CreateServerTask(pipeName, ArgusVerb.GET, "/healthendpoint",
+                ArgusStatusCode.Ok, responseBody);
+
+            using var argusClient = new ArgusClient(pipeName);
+
+            var client = new HealthEndPointClient(
+                argusClient,
+                NullLogger<HealthEndPointClient>.Instance);
+
+            using var viewModel = new EndpointListViewModel(
+                client,
+                _ => { },
+                NullLogger<EndpointListViewModel>.Instance,
+                NullLoggerFactory.Instance);
+
+            await getTask;
+
+            await viewModel
+                .WhenAnyValue(x => x.HasEndpoints)
+                .Where(h => h)
+                .Timeout(TimeSpan.FromSeconds(5))
+                .FirstAsync();
+
+            await viewModel.DeleteCommand.Execute(ep1).FirstAsync();
+
+            Assert.That(viewModel.IsDeleteConfirmationVisible, Is.True);
+
+            var deleteTask = CreateServerTask(pipeName, ArgusVerb.DELETE, $"/healthendpoint/{ep1.Identifier.ToShortGuid()}",
+                ArgusStatusCode.Ok, null);
+
+            viewModel.ConfirmDeleteCommand.Execute().Subscribe(_ => { }, _ => { });
+
+            await deleteTask;
+
+            await viewModel
+                .WhenAnyValue(x => x.IsDeleteConfirmationVisible)
+                .Where(visible => !visible)
+                .Timeout(TimeSpan.FromSeconds(5))
+                .FirstAsync();
+
+            Assert.That(viewModel.Endpoints, Has.Count.EqualTo(1));
+            Assert.That(viewModel.Endpoints[0].Identifier, Is.EqualTo(ep2.Identifier));
+            Assert.That(viewModel.PendingDeleteEndpoint, Is.Null);
+            Assert.That(viewModel.HasEndpoints, Is.True);
         }
 
         /// <summary>
