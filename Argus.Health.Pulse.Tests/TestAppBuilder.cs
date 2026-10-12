@@ -22,8 +22,11 @@
 
 namespace Argus.Health.Pulse.Tests
 {
+    using System;
+
     using Avalonia;
     using Avalonia.Headless;
+    using Avalonia.Markup.Xaml.Styling;
     using Avalonia.Themes.Fluent;
 
     using ReactiveUI.Avalonia;
@@ -58,6 +61,12 @@ namespace Argus.Health.Pulse.Tests
         public override void Initialize()
         {
             this.Styles.Add(new FluentTheme());
+
+            // The same DataGrid theme as App.axaml; without it a DataGrid has no template and no columns to lay out
+            this.Styles.Add(new StyleInclude(new Uri("avares://Argus.Health.Pulse.Tests"))
+            {
+                Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml")
+            });
         }
     }
 }

@@ -174,6 +174,11 @@
             </Grid>
         </Border>
 
+        <!-- The two grids share the remaining space; only one of them is visible. Docked next to each
+             other, the endpoints grid took the whole width and the incidents grid was first laid out
+             with none, which shrinks its fixed-width columns to their minimum for good -->
+        <Panel>
+
         <!-- Endpoints DataGrid -->
         <DataGrid x:Name="EndpointsGrid"
                   ItemsSource="{Binding FilteredEndpoints}"
@@ -231,6 +236,8 @@
                 <DataGridTextColumn Header="Error" Binding="{ReflectionBinding ErrorMessage}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
+
+        </Panel>
     </DockPanel>
 
 </reactiveui:ReactiveUserControl>
