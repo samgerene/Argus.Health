@@ -3,6 +3,9 @@
   <PropertyGroup>
     <OutputType>Package</OutputType>
     <InstallerPlatform>x64</InstallerPlatform>
+    <!-- ICE60 warns about a file that has a version but no language. That is true of the native
+         e_sqlite3.dll that Microsoft.Data.Sqlite ships and has no effect on the installation -->
+    <SuppressIces>ICE60</SuppressIces>
   </PropertyGroup>
 
   <ItemGroup>
