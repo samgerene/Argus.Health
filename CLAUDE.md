@@ -99,10 +99,12 @@ The database column for URLs is named `Urls` and stores semicolon-separated valu
 
 **UI framework**: Avalonia 12.1 with FluentTheme (dark), ReactiveUI.Avalonia 12.0 with ReactiveUI 23.2 for MVVM, DynamicData for reactive collections.
 
-**Pinned packages** — do not update these as part of a routine dependency update:
+**Package versions** are managed centrally in `Directory.Packages.props` at the root of the repository (NuGet Central Package Management). A project file references a package without a version (`<PackageReference Include="..." />`); a new package needs a `<PackageVersion>` entry in that file, in the group it belongs to. Packages in one group are updated together.
 
-- `ReactiveUI` 23.2.x, `ReactiveUI.Avalonia` 12.0.x and `ReactiveUI.SourceGenerators` 2.6.x. ReactiveUI 24 and later no longer build on System.Reactive and DynamicData: `Unit` becomes `RxVoid`, `WhenAnyValue` returns `PropertyValues` instead of tuples, `AvaloniaScheduler` is gone and `DisposeWith` and `Bind` have other signatures. Moving Pulse to it is a migration of all view models and views, not a version bump. `ReactiveUI.Avalonia` 12.1.0 and later require ReactiveUI 24 or later.
-- `WixToolset.Sdk` and `WixToolset.Util.wixext` 5.0.2, which must have the same version. WiX 6 and later refuse to build until the Open Source Maintenance Fee EULA is accepted (error WIX7015), which is a licensing decision for the owner of the repository.
+**Pinned packages** — do not update these as part of a routine dependency update (the same note is next to their versions in `Directory.Packages.props`):
+
+- `ReactiveUI` 23.2.x, `ReactiveUI.Avalonia` 12.0.x and `ReactiveUI.SourceGenerators` 2.6.x. ReactiveUI 24 and later no longer build on System.Reactive and DynamicData: `Unit` becomes `RxVoid`, `WhenAnyValue` returns `PropertyValues` instead of tuples, `AvaloniaScheduler` is gone and `DisposeWith` and `Bind` have other signatures. Moving Pulse to it is a migration of all view models and views, not a version bump; it is tracked in issue #27. `ReactiveUI.Avalonia` 12.1.0 and later require ReactiveUI 24 or later. ReactiveUI also ships a System.Reactive-compatible distribution (`ReactiveUI.Reactive`, `ReactiveUI.Avalonia.Reactive`) that keeps `Unit`, `IScheduler` and `Subject<T>`; it has not been tried in Pulse.
+- `WixToolset.Sdk` and `WixToolset.Util.wixext` 5.0.2, which must have the same version. The SDK version is in the `Sdk` attribute of `Argus.Health.Installer.wixproj`, the extension version in `Directory.Packages.props`. WiX 6 and later refuse to build until the Open Source Maintenance Fee EULA is accepted (error WIX7015), which is a licensing decision for the owner of the repository.
 
 **ViewModels**: `MainWindowViewModel` (shell/navigation/notifications/sync state), `DashboardViewModel` (real-time endpoint status grid via `SourceCache`), `EndpointListViewModel` (CRUD list via `SourceCache`), `EndpointEditorViewModel` (create/edit form with validation), `EndpointStatusViewModel` (single dashboard row with computed `IsHealthy`/`StatusDisplay`).
 

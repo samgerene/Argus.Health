@@ -17,26 +17,26 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Moq" Version="4.21.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-        <PackageReference Include="NUnit" Version="5.0.0" />
-        <PackageReference Include="NUnit.Console" Version="3.22.0" />
-        <PackageReference Include="NUnit3TestAdapter" Version="6.3.1">
+        <PackageReference Include="Moq" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="NUnit" />
+        <PackageReference Include="NUnit.Console" />
+        <PackageReference Include="NUnit3TestAdapter">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.collector" Version="10.1.0">
+        <PackageReference Include="coverlet.collector">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.msbuild" Version="10.1.0">
+        <PackageReference Include="coverlet.msbuild">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Avalonia.Headless" Version="12.1.4" />
-        <PackageReference Include="Avalonia.Headless.NUnit" Version="12.1.4" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+        <PackageReference Include="Avalonia.Headless" />
+        <PackageReference Include="Avalonia.Headless.NUnit" />
+        <PackageReference Include="Avalonia.Themes.Fluent" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     </ItemGroup>
 
     <ItemGroup>
