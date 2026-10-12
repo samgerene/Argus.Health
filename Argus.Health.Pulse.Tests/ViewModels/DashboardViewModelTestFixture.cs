@@ -24,8 +24,6 @@ namespace Argus.Health.Pulse.Tests.ViewModels
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Linq;
-    using System.Reactive.Linq;
-    using System.Reactive.Subjects;
     using System.Threading.Tasks;
 
     using Argus.Health.Common.Model;
@@ -44,6 +42,8 @@ namespace Argus.Health.Pulse.Tests.ViewModels
     using NUnit.Framework;
 
     using ReactiveUI;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Signals;
 
     /// <summary>
     /// Suite of tests for the sorting behaviour of <see cref="DashboardViewModel"/>
@@ -225,6 +225,112 @@ namespace Argus.Health.Pulse.Tests.ViewModels
                 "first should now be last because its ResponseTimeMs jumped to 5000");
         }
 
+        [AvaloniaTest]
+        public async Task Verify_that_an_endpoint_that_the_service_no_longer_returns_is_removed()
+        {
+            using var fixture = CreateFixture();
+
+            var kept = MakeEndpoint("kept", "https://kept.example.com");
+            var removed = MakeEndpoint("removed", "https://removed.example.com");
+
+            fixture.PublishEndpoints(kept, removed);
+
+            await fixture.WaitForCount(2);
+
+            var keptRow = fixture.ViewModel.FilteredEndpoints.Single(e => e.Name == "kept");
+
+            fixture.PublishEndpoints(kept);
+
+            await fixture.WaitForCount(1);
+
+            Assert.That(fixture.ViewModel.Endpoints.Select(e => e.Name).ToList(), Is.EqualTo(new[] { "kept" }));
+            Assert.That(fixture.ViewModel.FilteredEndpoints.Single(), Is.SameAs(keptRow), "a row that stays must keep its instance");
+            Assert.That(fixture.ViewModel.TotalEndpoints, Is.EqualTo(1));
+        }
+
+        [AvaloniaTest]
+        public async Task Verify_that_the_summary_values_follow_the_check_results()
+        {
+            using var fixture = CreateFixture();
+
+            var healthy = MakeEndpoint("healthy", "https://healthy.example.com");
+            var failing = MakeEndpoint("failing", "https://failing.example.com");
+
+            fixture.PublishEndpoints(healthy, failing);
+
+            await fixture.WaitForCount(2);
+
+            fixture.PublishResult(healthy.Identifier, statusCode: 200, responseTimeMs: 100);
+            fixture.PublishResult(failing.Identifier, statusCode: 500, responseTimeMs: 300);
+
+            await Task.Delay(100);
+
+            Assert.That(fixture.ViewModel.TotalEndpoints, Is.EqualTo(2));
+            Assert.That(fixture.ViewModel.EndpointsDown, Is.EqualTo(1));
+            Assert.That(fixture.ViewModel.AverageResponseTimeMs, Is.EqualTo(200));
+            Assert.That(fixture.ViewModel.OverallUptimePercent, Is.EqualTo(50));
+            Assert.That(fixture.ViewModel.IncidentsLast24Hours, Is.EqualTo(1));
+        }
+
+        [AvaloniaTest]
+        public async Task Verify_that_the_down_only_view_follows_the_status_of_an_endpoint()
+        {
+            using var fixture = CreateFixture();
+
+            var endpoint = MakeEndpoint("flaky", "https://flaky.example.com");
+            var other = MakeEndpoint("steady", "https://steady.example.com");
+
+            fixture.PublishEndpoints(endpoint, other);
+
+            await fixture.WaitForCount(2);
+
+            fixture.ViewModel.ActiveViewMode = DashboardViewMode.DownOnly;
+            fixture.PublishResult(other.Identifier, statusCode: 200, responseTimeMs: 10);
+            fixture.PublishResult(endpoint.Identifier, statusCode: 503, responseTimeMs: 10);
+
+            await Task.Delay(100);
+
+            Assert.That(fixture.ViewModel.FilteredEndpoints.Select(e => e.Name).ToList(), Is.EqualTo(new[] { "flaky" }));
+
+            fixture.PublishResult(endpoint.Identifier, statusCode: 200, responseTimeMs: 10);
+
+            await Task.Delay(100);
+
+            Assert.That(fixture.ViewModel.FilteredEndpoints, Is.Empty);
+        }
+
+        [AvaloniaTest]
+        public async Task Verify_that_changing_the_sort_order_keeps_the_selected_row()
+        {
+            using var fixture = CreateFixture();
+
+            fixture.PublishEndpoints(
+                MakeEndpoint("alpha", "https://a.example.com"),
+                MakeEndpoint("mike", "https://m.example.com"),
+                MakeEndpoint("zebra", "https://z.example.com"));
+
+            await fixture.WaitForCount(3);
+
+            var selected = fixture.ViewModel.FilteredEndpoints.Single(e => e.Name == "mike");
+            var resets = 0;
+
+            ((System.Collections.Specialized.INotifyCollectionChanged)fixture.ViewModel.FilteredEndpoints).CollectionChanged += (_, e) =>
+            {
+                if (e.Action != System.Collections.Specialized.NotifyCollectionChangedAction.Move)
+                {
+                    resets++;
+                }
+            };
+
+            fixture.ViewModel.SortDirection = ListSortDirection.Descending;
+
+            await Task.Delay(50);
+
+            Assert.That(fixture.ViewModel.FilteredEndpoints.First().Name, Is.EqualTo("zebra"));
+            Assert.That(fixture.ViewModel.FilteredEndpoints, Does.Contain(selected));
+            Assert.That(resets, Is.Zero, "re-sorting must only move rows, so the grid keeps its selection");
+        }
+
         /// <summary>
         /// Builds a <see cref="HealthEndPoint"/> with sensible defaults
         /// </summary>
@@ -253,17 +359,17 @@ namespace Argus.Health.Pulse.Tests.ViewModels
         /// <returns>A disposable <see cref="Fixture"/> wrapping the view model and its emit subjects</returns>
         private static Fixture CreateFixture()
         {
-            var endpointsSubject = new Subject<IList<HealthEndPoint>>();
-            var resultsSubject = new Subject<HealthEndPointCheckResult>();
+            var endpointsSubject = new Signal<IList<HealthEndPoint>>();
+            var resultsSubject = new Signal<HealthEndPointCheckResult>();
 
             var syncService = new Mock<IEndpointSyncService>();
             syncService.SetupGet(s => s.EndpointsObservable).Returns(endpointsSubject);
-            syncService.SetupGet(s => s.ConnectionErrorObservable).Returns(Observable.Never<bool>());
-            syncService.SetupGet(s => s.IsRunningObservable).Returns(Observable.Never<bool>());
+            syncService.SetupGet(s => s.ConnectionErrorObservable).Returns(Signal.Never<bool>());
+            syncService.SetupGet(s => s.IsRunningObservable).Returns(Signal.Never<bool>());
 
             var healthCheckService = new Mock<IHealthCheckService>();
             healthCheckService.SetupGet(h => h.ResultsObservable).Returns(resultsSubject);
-            healthCheckService.SetupGet(h => h.FailureObservable).Returns(Observable.Never<HealthEndPointCheckResult>());
+            healthCheckService.SetupGet(h => h.FailureObservable).Returns(Signal.Never<HealthEndPointCheckResult>());
 
             var argusClient = new ArgusClient($"argus-test-dead-{Guid.NewGuid()}");
 
@@ -289,12 +395,12 @@ namespace Argus.Health.Pulse.Tests.ViewModels
             /// <summary>
             /// The endpoints emit subject standing in for <see cref="IEndpointSyncService.EndpointsObservable"/>
             /// </summary>
-            private readonly Subject<IList<HealthEndPoint>> endpointsSubject;
+            private readonly Signal<IList<HealthEndPoint>> endpointsSubject;
 
             /// <summary>
             /// The results emit subject standing in for <see cref="IHealthCheckService.ResultsObservable"/>
             /// </summary>
-            private readonly Subject<HealthEndPointCheckResult> resultsSubject;
+            private readonly Signal<HealthEndPointCheckResult> resultsSubject;
 
             /// <summary>
             /// The unconnected <see cref="ArgusClient"/> kept alive for the lifetime of the fixture
@@ -310,8 +416,8 @@ namespace Argus.Health.Pulse.Tests.ViewModels
             /// <param name="argusClient">The Argus client to keep alive and dispose with the fixture</param>
             public Fixture(
                 DashboardViewModel viewModel,
-                Subject<IList<HealthEndPoint>> endpointsSubject,
-                Subject<HealthEndPointCheckResult> resultsSubject,
+                Signal<IList<HealthEndPoint>> endpointsSubject,
+                Signal<HealthEndPointCheckResult> resultsSubject,
                 ArgusClient argusClient)
             {
                 this.ViewModel = viewModel;

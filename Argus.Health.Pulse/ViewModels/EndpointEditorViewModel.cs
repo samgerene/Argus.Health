@@ -21,8 +21,6 @@
 namespace Argus.Health.Pulse.ViewModels
 {
     using System;
-    using System.Reactive;
-    using System.Reactive.Linq;
     using System.Threading.Tasks;
 
     using Argus.Health.Pulse.Client;
@@ -30,9 +28,10 @@ namespace Argus.Health.Pulse.ViewModels
 
     using Microsoft.Extensions.Logging;
 
-    using ReactiveUI.Avalonia;
-
     using ReactiveUI;
+    using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Concurrency;
     using ReactiveUI.SourceGenerators;
 
     /// <summary>
@@ -113,7 +112,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.CancelCommand = ReactiveCommand.Create(OnCancel);
 
             this.SaveCommand.ThrownExceptions
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(ex =>
                 {
                     this.logger.LogError(ex, "SaveCommand failed");
@@ -176,12 +175,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to save the endpoint
         /// </summary>
-        public ReactiveCommand<Unit, Unit> SaveCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> SaveCommand { get; }
 
         /// <summary>
         /// Gets the command to cancel and navigate back
         /// </summary>
-        public ReactiveCommand<Unit, Unit> CancelCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> CancelCommand { get; }
 
         /// <summary>
         /// Validates and persists the endpoint, then navigates back

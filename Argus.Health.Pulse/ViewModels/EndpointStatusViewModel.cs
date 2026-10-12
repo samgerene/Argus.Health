@@ -23,11 +23,11 @@ namespace Argus.Health.Pulse.ViewModels
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reactive.Linq;
 
     using Argus.Health.Common.Model;
 
     using ReactiveUI;
+    using ReactiveUI.Primitives;
     using ReactiveUI.SourceGenerators;
 
     /// <summary>
@@ -94,12 +94,12 @@ namespace Argus.Health.Pulse.ViewModels
             this.statusDisplayHelper = this.WhenAnyValue(x => x.StatusCode, x => x.ErrorMessage)
                 .Select(t =>
                 {
-                    if (t.Item1 == 0 && t.Item2 != null)
+                    if (t.Property1 == 0 && t.Property2 != null)
                     {
-                        return t.Item2;
+                        return t.Property2;
                     }
 
-                    return t.Item1 == 0 ? "Pending" : t.Item1.ToString();
+                    return t.Property1 == 0 ? "Pending" : t.Property1.ToString();
                 })
                 .ToProperty(this, x => x.StatusDisplay);
 

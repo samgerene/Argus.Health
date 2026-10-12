@@ -21,23 +21,21 @@
 namespace Argus.Health.Pulse.ViewModels
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
-    using System.Reactive;
-    using System.Reactive.Disposables;
-    using System.Reactive.Linq;
     using System.Threading.Tasks;
 
     using Argus.Health.Pulse.Client;
     using Argus.Health.Common.Model;
 
-    using DynamicData;
-
     using Microsoft.Extensions.Logging;
 
-    using ReactiveUI.Avalonia;
-
     using ReactiveUI;
+    using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Concurrency;
+    using ReactiveUI.Primitives.Disposables;
     using ReactiveUI.SourceGenerators;
 
     /// <summary>
@@ -66,14 +64,14 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly Action<ViewModelBase> navigate;
 
         /// <summary>
-        /// The <see cref="SourceCache{TObject,TKey}"/> backing the endpoint collection
+        /// The collection backing <see cref="Endpoints"/>; it is only changed on the UI thread
         /// </summary>
-        private readonly SourceCache<HealthEndPoint, Guid> endpointCache = new(e => e.Identifier);
+        private readonly ObservableCollection<HealthEndPoint> endpoints = new();
 
         /// <summary>
         /// Disposable container for Rx subscriptions
         /// </summary>
-        private readonly CompositeDisposable disposables = new();
+        private readonly MultipleDisposable disposables = new();
 
         /// <summary>
         /// The <see cref="ObservableAsPropertyHelper{T}"/> backing <see cref="HasEndpoints"/>
@@ -102,32 +100,33 @@ namespace Argus.Health.Pulse.ViewModels
             this.logger = logger;
             this.loggerFactory = loggerFactory;
 
-            var bindSubscription = this.endpointCache
-                .Connect()
-                .ObserveOn(AvaloniaScheduler.Instance)
-                .Bind(out var endpoints)
-                .Subscribe();
+            this.Endpoints = new ReadOnlyObservableCollection<HealthEndPoint>(this.endpoints);
 
-            this.disposables.Add(bindSubscription);
-            this.Endpoints = endpoints;
-
-            this.hasEndpointsHelper = this.endpointCache
-                .CountChanged
-                .Select(c => c > 0)
-                .ObserveOn(AvaloniaScheduler.Instance)
+            this.hasEndpointsHelper = this.endpoints
+                .ToReactiveChangeSet()
+                .WhenCountChanged()
+                .Select(_ => this.endpoints.Count > 0)
                 .ToProperty(this, x => x.HasEndpoints);
 
             this.disposables.Add(this.hasEndpointsHelper);
 
-            this.RefreshCommand = ReactiveCommand.CreateFromTask(this.RefreshAsync);
+            this.RefreshCommand = ReactiveCommand.CreateFromTask(this.RefreshAsync, outputScheduler: UiSequencer.Current);
             this.AddCommand = ReactiveCommand.Create(this.OnAdd);
             this.EditCommand = ReactiveCommand.Create<HealthEndPoint>(this.OnEdit);
             this.DeleteCommand = ReactiveCommand.Create<HealthEndPoint>(this.OnRequestDelete);
-            this.ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(this.OnConfirmDeleteAsync);
+            this.ConfirmDeleteCommand = ReactiveCommand.CreateFromTask(this.OnConfirmDeleteAsync, outputScheduler: UiSequencer.Current);
             this.CancelDeleteCommand = ReactiveCommand.Create(this.OnCancelDelete);
 
+            // The commands fetch and delete in the background; they deliver their results on the UI thread,
+            // where the collection is changed
+            var refreshSubscription = this.RefreshCommand.Subscribe(this.OnRefreshed);
+            var deleteSubscription = this.ConfirmDeleteCommand.Subscribe(this.OnDeleted);
+
+            this.disposables.Add(refreshSubscription);
+            this.disposables.Add(deleteSubscription);
+
             this.RefreshCommand.ThrownExceptions
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(ex =>
                 {
                     this.logger.LogError(ex, "RefreshCommand failed");
@@ -135,7 +134,7 @@ namespace Argus.Health.Pulse.ViewModels
                 });
 
             this.ConfirmDeleteCommand.ThrownExceptions
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(ex =>
                 {
                     this.logger.LogError(ex, "ConfirmDeleteCommand failed");
@@ -186,49 +185,64 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to refresh the endpoint list
         /// </summary>
-        public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+        public ReactiveCommand<RxVoid, IList<HealthEndPoint>> RefreshCommand { get; }
 
         /// <summary>
         /// Gets the command to add a new endpoint
         /// </summary>
-        public ReactiveCommand<Unit, Unit> AddCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> AddCommand { get; }
 
         /// <summary>
         /// Gets the command to edit the selected endpoint
         /// </summary>
-        public ReactiveCommand<HealthEndPoint, Unit> EditCommand { get; }
+        public ReactiveCommand<HealthEndPoint, RxVoid> EditCommand { get; }
 
         /// <summary>
         /// Gets the command to request deletion of the selected endpoint (shows confirmation)
         /// </summary>
-        public ReactiveCommand<HealthEndPoint, Unit> DeleteCommand { get; }
+        public ReactiveCommand<HealthEndPoint, RxVoid> DeleteCommand { get; }
 
         /// <summary>
         /// Gets the command to confirm deletion of the pending endpoint
         /// </summary>
-        public ReactiveCommand<Unit, Unit> ConfirmDeleteCommand { get; }
+        public ReactiveCommand<RxVoid, HealthEndPoint?> ConfirmDeleteCommand { get; }
 
         /// <summary>
         /// Gets the command to cancel the pending deletion
         /// </summary>
-        public ReactiveCommand<Unit, Unit> CancelDeleteCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> CancelDeleteCommand { get; }
 
         /// <summary>
-        /// Fetches the latest endpoint list from the service and updates the collection
+        /// Fetches the latest endpoint list from the service
         /// </summary>
-        private async Task RefreshAsync()
+        /// <returns>
+        /// The endpoints of the service
+        /// </returns>
+        private async Task<IList<HealthEndPoint>> RefreshAsync()
         {
             this.logger.LogDebug("RefreshAsync starting");
             this.ErrorMessage = null;
-            var endpoints = await this.client.GetAllAsync();
+            var fetched = await this.client.GetAllAsync();
 
-            this.endpointCache.Edit(updater =>
+            this.logger.LogDebug("RefreshAsync completed with {EndpointCount} endpoint(s)", fetched.Count);
+
+            return fetched;
+        }
+
+        /// <summary>
+        /// Replaces the items of the collection with the endpoints that were fetched. Called on the UI thread
+        /// </summary>
+        /// <param name="fetched">
+        /// The endpoints of the service
+        /// </param>
+        private void OnRefreshed(IList<HealthEndPoint> fetched)
+        {
+            this.endpoints.Clear();
+
+            foreach (var endpoint in fetched)
             {
-                updater.Clear();
-                updater.AddOrUpdate(endpoints);
-            });
-
-            this.logger.LogDebug("RefreshAsync completed with {EndpointCount} endpoint(s)", endpoints.Count);
+                this.endpoints.Add(endpoint);
+            }
         }
 
         /// <summary>
@@ -265,19 +279,45 @@ namespace Argus.Health.Pulse.ViewModels
         }
 
         /// <summary>
-        /// Confirms deletion of the pending endpoint and removes it from the collection
+        /// Deletes the pending endpoint from the service
         /// </summary>
-        private async Task OnConfirmDeleteAsync()
+        /// <returns>
+        /// The <see cref="HealthEndPoint"/> that was deleted, or null when no deletion was pending
+        /// </returns>
+        private async Task<HealthEndPoint?> OnConfirmDeleteAsync()
         {
-            if (this.PendingDeleteEndpoint is null)
+            var endpoint = this.PendingDeleteEndpoint;
+
+            if (endpoint is null)
+            {
+                return null;
+            }
+
+            await this.client.DeleteAsync(endpoint.Identifier);
+
+            return endpoint;
+        }
+
+        /// <summary>
+        /// Removes a deleted endpoint from the collection and hides the confirmation overlay. Called on
+        /// the UI thread
+        /// </summary>
+        /// <param name="deleted">
+        /// The <see cref="HealthEndPoint"/> that was deleted, or null when no deletion was pending
+        /// </param>
+        private void OnDeleted(HealthEndPoint? deleted)
+        {
+            if (deleted is null)
             {
                 return;
             }
 
-            var endpoint = this.PendingDeleteEndpoint;
+            var existing = this.endpoints.FirstOrDefault(e => e.Identifier == deleted.Identifier);
 
-            await this.client.DeleteAsync(endpoint.Identifier);
-            this.endpointCache.RemoveKey(endpoint.Identifier);
+            if (existing != null)
+            {
+                this.endpoints.Remove(existing);
+            }
 
             this.PendingDeleteEndpoint = null;
             this.IsDeleteConfirmationVisible = false;
@@ -298,7 +338,6 @@ namespace Argus.Health.Pulse.ViewModels
         public void Dispose()
         {
             this.disposables.Dispose();
-            this.endpointCache.Dispose();
         }
     }
 }

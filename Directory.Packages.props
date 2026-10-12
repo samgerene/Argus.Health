@@ -41,15 +41,13 @@
   </ItemGroup>
 
   <!--
-    ReactiveUI: PINNED, do not update as part of a routine dependency update.
-    ReactiveUI 24 and later are built on ReactiveUI.Primitives and no longer bring System.Reactive and
-    DynamicData, which Pulse uses; ReactiveUI.Avalonia 12.1.0 and later require ReactiveUI 24 or later.
-    The migration is issue 27.
+    ReactiveUI: update together. The default distribution is used, which is built on ReactiveUI.Primitives
+    and has no dependency on System.Reactive or DynamicData. Do not add either of those two packages.
   -->
   <ItemGroup>
-    <PackageVersion Include="ReactiveUI" Version="23.2.28" />
-    <PackageVersion Include="ReactiveUI.Avalonia" Version="12.0.3" />
-    <PackageVersion Include="ReactiveUI.SourceGenerators" Version="2.6.30" />
+    <PackageVersion Include="ReactiveUI" Version="26.0.1" />
+    <PackageVersion Include="ReactiveUI.Avalonia" Version="12.1.6" />
+    <PackageVersion Include="ReactiveUI.SourceGenerators" Version="4.2.0" />
   </ItemGroup>
 
   <!-- Serilog -->

@@ -25,21 +25,21 @@ namespace Argus.Health.Pulse.ViewModels
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Linq;
-    using System.Reactive;
-    using System.Reactive.Disposables;
-    using System.Reactive.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using Argus.Health.Common.Model;
     using Argus.Health.Pulse.Client;
+    using Argus.Health.Pulse.Collections;
     using Argus.Health.Pulse.Services;
-
-    using DynamicData;
 
     using Microsoft.Extensions.Logging;
 
     using ReactiveUI;
-    using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Concurrency;
+    using ReactiveUI.Primitives.Disposables;
+    using ReactiveUI.Primitives.Signals;
     using ReactiveUI.SourceGenerators;
 
     /// <summary>
@@ -63,39 +63,49 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly HashSet<Guid> bootstrappedEndpoints = new();
 
         /// <summary>
-        /// The <see cref="SourceCache{TObject,TKey}"/> backing the endpoint status collection
+        /// The names of the <see cref="EndpointStatusViewModel"/> properties that the filter, the sort order
+        /// or a summary value depends on
         /// </summary>
-        private readonly SourceCache<EndpointStatusViewModel, Guid> endpointCache = new(e => e.Identifier);
+        private static readonly HashSet<string> RefreshingProperties = new()
+        {
+            nameof(EndpointStatusViewModel.StatusCode),
+            nameof(EndpointStatusViewModel.IsActive),
+            nameof(EndpointStatusViewModel.Name),
+            nameof(EndpointStatusViewModel.Url),
+            nameof(EndpointStatusViewModel.ResponseTimeMs),
+            nameof(EndpointStatusViewModel.LastChecked),
+            nameof(EndpointStatusViewModel.ErrorMessage)
+        };
+
+        /// <summary>
+        /// The endpoint status rows by identifier. Like the collections below it is only used on the UI thread
+        /// </summary>
+        private readonly Dictionary<Guid, EndpointStatusViewModel> endpointRows = new();
+
+        /// <summary>
+        /// The endpoint status rows in the order in which they were added, backing <see cref="Endpoints"/>
+        /// </summary>
+        private readonly ObservableCollection<EndpointStatusViewModel> endpoints = new();
+
+        /// <summary>
+        /// The filtered and sorted endpoint status rows, backing <see cref="FilteredEndpoints"/>
+        /// </summary>
+        private readonly ObservableCollection<EndpointStatusViewModel> filteredEndpoints = new();
+
+        /// <summary>
+        /// Publishes a value when the filtered rows and the summary values have to be computed again
+        /// </summary>
+        private readonly Signal<RxVoid> refreshRequests = new();
 
         /// <summary>
         /// Disposable container for Rx subscriptions
         /// </summary>
-        private readonly CompositeDisposable disposables = new();
+        private readonly MultipleDisposable disposables = new();
 
         /// <summary>
-        /// Helper for <see cref="TotalEndpoints"/>
+        /// 1 while a refresh was requested that has not started yet, otherwise 0
         /// </summary>
-        private readonly ObservableAsPropertyHelper<int> totalEndpointsHelper;
-
-        /// <summary>
-        /// Helper for <see cref="EndpointsDown"/>
-        /// </summary>
-        private readonly ObservableAsPropertyHelper<int> endpointsDownHelper;
-
-        /// <summary>
-        /// Helper for <see cref="AverageResponseTimeMs"/>
-        /// </summary>
-        private readonly ObservableAsPropertyHelper<double> averageResponseTimeMsHelper;
-
-        /// <summary>
-        /// Helper for <see cref="OverallUptimePercent"/>
-        /// </summary>
-        private readonly ObservableAsPropertyHelper<double> overallUptimePercentHelper;
-
-        /// <summary>
-        /// Helper for <see cref="IncidentsLast24Hours"/>
-        /// </summary>
-        private readonly ObservableAsPropertyHelper<int> incidentsLast24HoursHelper;
+        private int refreshPending;
 
         /// <summary>
         /// Helper for <see cref="IsEndpointsView"/>
@@ -108,9 +118,9 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly ObservableAsPropertyHelper<bool> isIncidentsViewHelper;
 
         /// <summary>
-        /// The <see cref="SourceList{T}"/> backing the incidents collection
+        /// The incidents of the last 24 hours, backing <see cref="IncidentResults"/>
         /// </summary>
-        private readonly SourceList<IncidentItem> incidentSource = new();
+        private readonly ObservableCollection<IncidentItem> incidents = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DashboardViewModel"/> class
@@ -132,72 +142,30 @@ namespace Argus.Health.Pulse.ViewModels
             this.logger = logger;
             this.client = client;
 
-            var bindSubscription = this.endpointCache
-                .Connect()
-                .ObserveOn(AvaloniaScheduler.Instance)
-                .Bind(out var endpoints)
-                .Subscribe();
+            this.Endpoints = new ReadOnlyObservableCollection<EndpointStatusViewModel>(this.endpoints);
+            this.FilteredEndpoints = new ReadOnlyObservableCollection<EndpointStatusViewModel>(this.filteredEndpoints);
+            this.IncidentResults = new ReadOnlyObservableCollection<IncidentItem>(this.incidents);
 
-            this.disposables.Add(bindSubscription);
+            // A row requests a refresh when one of its properties changes, for as long as it is in the collection
+            var rowSubscription = this.endpoints.ActOnEveryObject(
+                row => row.PropertyChanged += this.OnRowPropertyChanged,
+                row => row.PropertyChanged -= this.OnRowPropertyChanged);
 
-            this.Endpoints = endpoints;
+            this.disposables.Add(rowSubscription);
 
             var endpointSubscription = syncService.EndpointsObservable
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(
-                    incomingEndpoints =>
-                    {
-                        this.logger.LogDebug("EndpointsObservable received {Count} endpoint(s)", incomingEndpoints.Count);
-
-                        this.endpointCache.Edit(updater =>
-                        {
-                            var incomingIds = incomingEndpoints.Select(e => e.Identifier).ToHashSet();
-                            var staleKeys = updater.Keys.Where(k => !incomingIds.Contains(k)).ToList();
-
-                            updater.RemoveKeys(staleKeys);
-
-                            var added = 0;
-
-                            var toBootstrap = new List<EndpointStatusViewModel>();
-
-                            foreach (var ep in incomingEndpoints)
-                            {
-                                var existing = updater.Lookup(ep.Identifier);
-
-                                if (existing.HasValue)
-                                {
-                                    existing.Value.Name = ep.Name;
-                                    existing.Value.Url = ep.Url;
-                                    existing.Value.IsActive = ep.IsActive;
-                                }
-                                else
-                                {
-                                    var row = new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url, ep.IsActive);
-                                    updater.AddOrUpdate(row);
-                                    toBootstrap.Add(row);
-                                    added++;
-                                }
-                            }
-
-                            this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", added, staleKeys.Count, updater.Count);
-
-                            if (toBootstrap.Count > 0)
-                            {
-                                _ = this.BootstrapHistoryAsync(toBootstrap);
-                            }
-                        });
-                    },
+                    this.SyncEndpoints,
                     ex => this.logger.LogError(ex, "EndpointsObservable subscription error"));
 
             var resultsSubscription = healthCheckService.ResultsObservable
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(
                     result =>
                     {
-                        var lookup = this.endpointCache.Lookup(result.HealthEndPoint);
-
-                        if (lookup.HasValue)
+                        if (this.endpointRows.TryGetValue(result.HealthEndPoint, out var row))
                         {
-                            var row = lookup.Value;
                             row.AddCheckResult(result);
                             this.logger.LogDebug("Health check result for {EndpointName}: HTTP {StatusCode} in {ResponseTimeMs}ms", row.Name, result.StatusCode, result.ResponseTimeMs);
                         }
@@ -207,75 +175,17 @@ namespace Argus.Health.Pulse.ViewModels
             this.disposables.Add(endpointSubscription);
             this.disposables.Add(resultsSubscription);
 
-            // Summary card computations
-            var summaryRefresh = this.endpointCache
-                .Connect()
-                .AutoRefresh(x => x.StatusCode)
-                .AutoRefresh(x => x.ResponseTimeMs)
-                .ObserveOn(AvaloniaScheduler.Instance);
-
-            this.totalEndpointsHelper = summaryRefresh
-                .QueryWhenChanged(q => q.Count)
-                .ToProperty(this, x => x.TotalEndpoints);
-
-            this.endpointsDownHelper = summaryRefresh
-                .QueryWhenChanged(q => q.Items.Count(e => !e.IsHealthy && e.StatusCode != 0))
-                .ToProperty(this, x => x.EndpointsDown);
-
-            this.averageResponseTimeMsHelper = summaryRefresh
-                .QueryWhenChanged(q =>
+            // Filtered rows and summary cards: computed again on the UI thread when a row, the filter or
+            // the sort order changes. Requests that arrive before a refresh has started are merged into it
+            var refreshSubscription = this.refreshRequests
+                .ObserveOn(UiSequencer.Current)
+                .Subscribe(_ =>
                 {
-                    var withResults = q.Items.Where(e => e.ResponseTimeMs > 0).ToList();
-                    return withResults.Count > 0 ? Math.Round(withResults.Average(e => e.ResponseTimeMs), 1) : 0;
-                })
-                .ToProperty(this, x => x.AverageResponseTimeMs);
+                    Interlocked.Exchange(ref this.refreshPending, 0);
+                    this.Refresh();
+                });
 
-            this.overallUptimePercentHelper = summaryRefresh
-                .QueryWhenChanged(q =>
-                {
-                    var withHistory = q.Items.Where(e => e.History.Count > 0).ToList();
-
-                    if (withHistory.Count == 0)
-                    {
-                        return 0.0;
-                    }
-
-                    var cutoff = DateTime.UtcNow.AddHours(-24);
-                    var totalChecks = 0;
-                    var healthyChecks = 0;
-
-                    foreach (var ep in withHistory)
-                    {
-                        foreach (var r in ep.History.Where(r => r.Timestamp >= cutoff))
-                        {
-                            totalChecks++;
-
-                            if (r.IsHealthy())
-                            {
-                                healthyChecks++;
-                            }
-                        }
-                    }
-
-                    return totalChecks > 0 ? Math.Round(100.0 * healthyChecks / totalChecks, 2) : 0.0;
-                })
-                .ToProperty(this, x => x.OverallUptimePercent);
-
-            this.incidentsLast24HoursHelper = summaryRefresh
-                .QueryWhenChanged(q =>
-                {
-                    var cutoff = DateTime.UtcNow.AddHours(-24);
-
-                    return q.Items.Sum(e =>
-                        e.History.Count(r => r.Timestamp >= cutoff && !r.IsHealthy()));
-                })
-                .ToProperty(this, x => x.IncidentsLast24Hours);
-
-            this.disposables.Add(this.totalEndpointsHelper);
-            this.disposables.Add(this.endpointsDownHelper);
-            this.disposables.Add(this.averageResponseTimeMsHelper);
-            this.disposables.Add(this.overallUptimePercentHelper);
-            this.disposables.Add(this.incidentsLast24HoursHelper);
+            this.disposables.Add(refreshSubscription);
 
             // Detail panel: create/dispose EndpointDetailViewModel when selection changes
             var selectionSubscription = this.WhenAnyValue(x => x.SelectedEndpoint)
@@ -303,61 +213,12 @@ namespace Argus.Health.Pulse.ViewModels
 
             this.disposables.Add(selectionSubscription);
 
-            // Filtered endpoints: re-filter when ActiveViewMode or ActiveActivityFilter changes
-            var filterPredicate = this.WhenAnyValue(x => x.ActiveViewMode, x => x.ActiveActivityFilter)
-                .Select<(DashboardViewMode mode, EndpointActivityFilter activity), Func<EndpointStatusViewModel, bool>>(t =>
-                {
-                    return e =>
-                    {
-                        var passesActivity = t.activity switch
-                        {
-                            EndpointActivityFilter.ActiveOnly => e.IsActive,
-                            EndpointActivityFilter.InactiveOnly => !e.IsActive,
-                            _ => true
-                        };
+            // Filtered endpoints: filter and sort again when the view mode, the activity filter, the sort
+            // column or the sort direction changes
+            var filterSubscription = this.WhenAnyValue(x => x.ActiveViewMode, x => x.ActiveActivityFilter, x => x.SortColumn, x => x.SortDirection)
+                .Subscribe(_ => this.RequestRefresh());
 
-                        if (!passesActivity)
-                        {
-                            return false;
-                        }
-
-                        return t.mode switch
-                        {
-                            DashboardViewMode.DownOnly => !e.IsHealthy && e.StatusCode != 0,
-                            _ => true
-                        };
-                    };
-                });
-
-            var comparerObservable = this.WhenAnyValue(x => x.SortColumn, x => x.SortDirection)
-                .Select(t => BuildComparer(t.Item1, t.Item2));
-
-            var filteredSubscription = this.endpointCache
-                .Connect()
-                .AutoRefresh(x => x.StatusCode)
-                .AutoRefresh(x => x.IsActive)
-                .AutoRefresh(x => x.Name)
-                .AutoRefresh(x => x.Url)
-                .AutoRefresh(x => x.ResponseTimeMs)
-                .AutoRefresh(x => x.LastChecked)
-                .AutoRefresh(x => x.ErrorMessage)
-                .Filter(filterPredicate)
-                .ObserveOn(AvaloniaScheduler.Instance)
-                .SortAndBind(out var filteredEndpoints, comparerObservable)
-                .Subscribe();
-
-            this.disposables.Add(filteredSubscription);
-            this.FilteredEndpoints = filteredEndpoints;
-
-            // Incidents list
-            var incidentBindSubscription = this.incidentSource
-                .Connect()
-                .ObserveOn(AvaloniaScheduler.Instance)
-                .Bind(out var incidentResults)
-                .Subscribe();
-
-            this.disposables.Add(incidentBindSubscription);
-            this.IncidentResults = incidentResults;
+            this.disposables.Add(filterSubscription);
 
             // Refresh incidents when switching to incidents view or when new results arrive
             var incidentRefreshSubscription = this.WhenAnyValue(x => x.ActiveViewMode)
@@ -408,27 +269,32 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the total number of monitored endpoints
         /// </summary>
-        public int TotalEndpoints => this.totalEndpointsHelper.Value;
+        [Reactive]
+        public partial int TotalEndpoints { get; private set; }
 
         /// <summary>
         /// Gets the number of endpoints currently reporting unhealthy status
         /// </summary>
-        public int EndpointsDown => this.endpointsDownHelper.Value;
+        [Reactive]
+        public partial int EndpointsDown { get; private set; }
 
         /// <summary>
         /// Gets the average response time across all endpoints in milliseconds
         /// </summary>
-        public double AverageResponseTimeMs => this.averageResponseTimeMsHelper.Value;
+        [Reactive]
+        public partial double AverageResponseTimeMs { get; private set; }
 
         /// <summary>
         /// Gets the overall uptime percentage across all endpoints in the last 24 hours
         /// </summary>
-        public double OverallUptimePercent => this.overallUptimePercentHelper.Value;
+        [Reactive]
+        public partial double OverallUptimePercent { get; private set; }
 
         /// <summary>
         /// Gets the number of non-healthy check results in the last 24 hours
         /// </summary>
-        public int IncidentsLast24Hours => this.incidentsLast24HoursHelper.Value;
+        [Reactive]
+        public partial int IncidentsLast24Hours { get; private set; }
 
         /// <summary>
         /// Gets or sets the active view mode (all endpoints, down only, or incidents)
@@ -457,12 +323,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the filtered endpoint collection based on the active view mode
         /// </summary>
-        public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; private set; }
+        public ReadOnlyObservableCollection<EndpointStatusViewModel> FilteredEndpoints { get; }
 
         /// <summary>
         /// Gets the collection of failed check results in the last 24 hours
         /// </summary>
-        public ReadOnlyObservableCollection<IncidentItem> IncidentResults { get; private set; }
+        public ReadOnlyObservableCollection<IncidentItem> IncidentResults { get; }
 
         /// <summary>
         /// Gets a value indicating whether the endpoints grid is visible
@@ -477,32 +343,32 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to show all endpoints
         /// </summary>
-        public ReactiveCommand<Unit, DashboardViewMode> ShowAllEndpointsCommand { get; private set; }
+        public ReactiveCommand<RxVoid, DashboardViewMode> ShowAllEndpointsCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to filter to down endpoints only
         /// </summary>
-        public ReactiveCommand<Unit, DashboardViewMode> ShowDownEndpointsCommand { get; private set; }
+        public ReactiveCommand<RxVoid, DashboardViewMode> ShowDownEndpointsCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to switch to the incidents view
         /// </summary>
-        public ReactiveCommand<Unit, DashboardViewMode> ShowIncidentsCommand { get; private set; }
+        public ReactiveCommand<RxVoid, DashboardViewMode> ShowIncidentsCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to filter to active endpoints only
         /// </summary>
-        public ReactiveCommand<Unit, EndpointActivityFilter> ShowActiveCommand { get; private set; }
+        public ReactiveCommand<RxVoid, EndpointActivityFilter> ShowActiveCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to filter to inactive endpoints only
         /// </summary>
-        public ReactiveCommand<Unit, EndpointActivityFilter> ShowInactiveCommand { get; private set; }
+        public ReactiveCommand<RxVoid, EndpointActivityFilter> ShowInactiveCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to show all endpoints regardless of activity status
         /// </summary>
-        public ReactiveCommand<Unit, EndpointActivityFilter> ShowAllActivityCommand { get; private set; }
+        public ReactiveCommand<RxVoid, EndpointActivityFilter> ShowAllActivityCommand { get; private set; }
 
         /// <summary>
         /// Disposes managed resources
@@ -511,8 +377,44 @@ namespace Argus.Health.Pulse.ViewModels
         {
             this.SelectedDetail?.Dispose();
             this.disposables.Dispose();
-            this.endpointCache.Dispose();
-            this.incidentSource.Dispose();
+            this.refreshRequests.Dispose();
+        }
+
+        /// <summary>
+        /// Builds the predicate that decides whether an endpoint is shown, given the view mode and the
+        /// activity filter
+        /// </summary>
+        /// <param name="mode">
+        /// The <see cref="DashboardViewMode"/>
+        /// </param>
+        /// <param name="activity">
+        /// The <see cref="EndpointActivityFilter"/>
+        /// </param>
+        /// <returns>
+        /// The predicate over <see cref="EndpointStatusViewModel"/>
+        /// </returns>
+        private static Func<EndpointStatusViewModel, bool> BuildFilter(DashboardViewMode mode, EndpointActivityFilter activity)
+        {
+            return e =>
+            {
+                var passesActivity = activity switch
+                {
+                    EndpointActivityFilter.ActiveOnly => e.IsActive,
+                    EndpointActivityFilter.InactiveOnly => !e.IsActive,
+                    _ => true
+                };
+
+                if (!passesActivity)
+                {
+                    return false;
+                }
+
+                return mode switch
+                {
+                    DashboardViewMode.DownOnly => !e.IsHealthy && e.StatusCode != 0,
+                    _ => true
+                };
+            };
         }
 
         /// <summary>
@@ -531,57 +433,47 @@ namespace Argus.Health.Pulse.ViewModels
         /// </returns>
         private static IComparer<EndpointStatusViewModel> BuildComparer(EndpointSortColumn column, ListSortDirection direction)
         {
-            var sign = direction == ListSortDirection.Ascending ? 1 : -1;
+            var ascending = direction == ListSortDirection.Ascending;
+            var ignoreCase = StringComparer.OrdinalIgnoreCase;
 
             return column switch
             {
-                EndpointSortColumn.Url => Comparer<EndpointStatusViewModel>.Create((a, b) =>
-                    sign * string.Compare(a.Url, b.Url, StringComparison.OrdinalIgnoreCase)),
-                EndpointSortColumn.Status => Comparer<EndpointStatusViewModel>.Create((a, b) =>
-                    sign * a.StatusCode.CompareTo(b.StatusCode)),
-                EndpointSortColumn.ResponseTime => Comparer<EndpointStatusViewModel>.Create((a, b) =>
-                    sign * a.ResponseTimeMs.CompareTo(b.ResponseTimeMs)),
-                EndpointSortColumn.LastChecked => Comparer<EndpointStatusViewModel>.Create((a, b) =>
-                {
-                    if (a.LastChecked == null && b.LastChecked == null)
-                    {
-                        return 0;
-                    }
-
-                    if (a.LastChecked == null)
-                    {
-                        return 1;
-                    }
-
-                    if (b.LastChecked == null)
-                    {
-                        return -1;
-                    }
-
-                    return sign * a.LastChecked.Value.CompareTo(b.LastChecked.Value);
-                }),
-                EndpointSortColumn.ErrorMessage => Comparer<EndpointStatusViewModel>.Create((a, b) =>
-                {
-                    if (string.IsNullOrEmpty(a.ErrorMessage) && string.IsNullOrEmpty(b.ErrorMessage))
-                    {
-                        return 0;
-                    }
-
-                    if (string.IsNullOrEmpty(a.ErrorMessage))
-                    {
-                        return 1;
-                    }
-
-                    if (string.IsNullOrEmpty(b.ErrorMessage))
-                    {
-                        return -1;
-                    }
-
-                    return sign * string.Compare(a.ErrorMessage, b.ErrorMessage, StringComparison.OrdinalIgnoreCase);
-                }),
-                _ => Comparer<EndpointStatusViewModel>.Create((a, b) =>
-                    sign * string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase)),
+                EndpointSortColumn.Url => OrderRowsBy(e => e.Url, ignoreCase, ascending),
+                EndpointSortColumn.Status => OrderRowsBy(e => e.StatusCode, Comparer<int>.Default, ascending),
+                EndpointSortColumn.ResponseTime => OrderRowsBy(e => e.ResponseTimeMs, Comparer<long>.Default, ascending),
+                EndpointSortColumn.LastChecked => ascending
+                    ? OrderedComparer<EndpointStatusViewModel>.OrderBy(e => e.LastChecked == null).ThenBy(e => e.LastChecked)
+                    : OrderedComparer<EndpointStatusViewModel>.OrderBy(e => e.LastChecked == null).ThenByDescending(e => e.LastChecked),
+                EndpointSortColumn.ErrorMessage => ascending
+                    ? OrderedComparer<EndpointStatusViewModel>.OrderBy(e => string.IsNullOrEmpty(e.ErrorMessage)).ThenBy(e => e.ErrorMessage ?? string.Empty, ignoreCase)
+                    : OrderedComparer<EndpointStatusViewModel>.OrderBy(e => string.IsNullOrEmpty(e.ErrorMessage)).ThenByDescending(e => e.ErrorMessage ?? string.Empty, ignoreCase),
+                _ => OrderRowsBy(e => e.Name, ignoreCase, ascending),
             };
+        }
+
+        /// <summary>
+        /// Builds an <see cref="IComparer{T}"/> that orders the endpoint rows by one value
+        /// </summary>
+        /// <typeparam name="TValue">
+        /// The type of the value
+        /// </typeparam>
+        /// <param name="selector">
+        /// Selects the value of a row
+        /// </param>
+        /// <param name="comparer">
+        /// The <see cref="IComparer{T}"/> that compares two values
+        /// </param>
+        /// <param name="ascending">
+        /// true to order from low to high, false to order from high to low
+        /// </param>
+        /// <returns>
+        /// An <see cref="IComparer{T}"/> over <see cref="EndpointStatusViewModel"/>
+        /// </returns>
+        private static IComparer<EndpointStatusViewModel> OrderRowsBy<TValue>(Func<EndpointStatusViewModel, TValue> selector, IComparer<TValue> comparer, bool ascending)
+        {
+            return ascending
+                ? OrderedComparer<EndpointStatusViewModel>.OrderBy(selector, comparer)
+                : OrderedComparer<EndpointStatusViewModel>.OrderByDescending(selector, comparer);
         }
 
         /// <summary>
@@ -591,7 +483,7 @@ namespace Argus.Health.Pulse.ViewModels
         {
             var cutoff = DateTime.UtcNow.AddHours(-24);
 
-            var incidents = this.endpointCache.Items
+            var recentIncidents = this.endpoints
                 .SelectMany(e => e.History
                     .Where(r => r.Timestamp >= cutoff && !r.IsHealthy())
                     .Select(r => new IncidentItem
@@ -605,11 +497,132 @@ namespace Argus.Health.Pulse.ViewModels
                 .OrderByDescending(i => i.Timestamp)
                 .ToList();
 
-            this.incidentSource.Edit(updater =>
+            this.incidents.Clear();
+
+            foreach (var incident in recentIncidents)
             {
-                updater.Clear();
-                updater.AddRange(incidents);
-            });
+                this.incidents.Add(incident);
+            }
+        }
+
+        /// <summary>
+        /// Brings the endpoint status rows in line with the endpoints of the service: removes the rows of
+        /// endpoints that no longer exist, updates the rows of existing endpoints and adds rows for new ones.
+        /// Called on the UI thread
+        /// </summary>
+        /// <param name="incomingEndpoints">
+        /// The endpoints as returned by the service
+        /// </param>
+        private void SyncEndpoints(IList<HealthEndPoint> incomingEndpoints)
+        {
+            this.logger.LogDebug("EndpointsObservable received {Count} endpoint(s)", incomingEndpoints.Count);
+
+            var incomingIds = incomingEndpoints.Select(e => e.Identifier).ToHashSet();
+            var staleRows = this.endpoints.Where(row => !incomingIds.Contains(row.Identifier)).ToList();
+
+            foreach (var row in staleRows)
+            {
+                this.endpointRows.Remove(row.Identifier);
+                this.endpoints.Remove(row);
+            }
+
+            var toBootstrap = new List<EndpointStatusViewModel>();
+
+            foreach (var ep in incomingEndpoints)
+            {
+                if (this.endpointRows.TryGetValue(ep.Identifier, out var existing))
+                {
+                    existing.Name = ep.Name;
+                    existing.Url = ep.Url;
+                    existing.IsActive = ep.IsActive;
+                }
+                else
+                {
+                    var row = new EndpointStatusViewModel(ep.Identifier, ep.Name, ep.Url, ep.IsActive);
+                    this.endpointRows.Add(row.Identifier, row);
+                    this.endpoints.Add(row);
+                    toBootstrap.Add(row);
+                }
+            }
+
+            this.logger.LogDebug("Endpoints synced: {AddedCount} added, {RemovedCount} removed, {TotalCount} total", toBootstrap.Count, staleRows.Count, this.endpoints.Count);
+
+            this.Refresh();
+
+            if (toBootstrap.Count > 0)
+            {
+                _ = this.BootstrapHistoryAsync(toBootstrap);
+            }
+        }
+
+        /// <summary>
+        /// Requests a refresh when a property of an endpoint status row changes that the filter, the sort
+        /// order or a summary value depends on
+        /// </summary>
+        /// <param name="sender">
+        /// The <see cref="EndpointStatusViewModel"/> that changed
+        /// </param>
+        /// <param name="e">
+        /// The <see cref="PropertyChangedEventArgs"/> with the name of the property
+        /// </param>
+        private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != null && RefreshingProperties.Contains(e.PropertyName))
+            {
+                this.RequestRefresh();
+            }
+        }
+
+        /// <summary>
+        /// Requests that <see cref="Refresh"/> runs on the UI thread. A request that is made while an
+        /// earlier one has not started yet is merged into that one. Can be called from any thread
+        /// </summary>
+        private void RequestRefresh()
+        {
+            if (Interlocked.Exchange(ref this.refreshPending, 1) == 0)
+            {
+                this.refreshRequests.OnNext(RxVoid.Default);
+            }
+        }
+
+        /// <summary>
+        /// Computes the filtered and sorted endpoint rows and the values of the summary cards from the
+        /// current rows. Called on the UI thread
+        /// </summary>
+        private void Refresh()
+        {
+            var filter = BuildFilter(this.ActiveViewMode, this.ActiveActivityFilter);
+            var comparer = BuildComparer(this.SortColumn, this.SortDirection);
+
+            var visibleRows = this.endpoints
+                .Where(filter)
+                .OrderBy(row => row, comparer)
+                .ToList();
+
+            this.filteredEndpoints.SyncWith(visibleRows);
+
+            this.TotalEndpoints = this.endpoints.Count;
+            this.EndpointsDown = this.endpoints.Count(e => !e.IsHealthy && e.StatusCode != 0);
+
+            var withResults = this.endpoints.Where(e => e.ResponseTimeMs > 0).ToList();
+            this.AverageResponseTimeMs = withResults.Count > 0 ? Math.Round(withResults.Average(e => e.ResponseTimeMs), 1) : 0;
+
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var totalChecks = 0;
+            var healthyChecks = 0;
+
+            foreach (var result in this.endpoints.SelectMany(e => e.History).Where(r => r.Timestamp >= cutoff))
+            {
+                totalChecks++;
+
+                if (result.IsHealthy())
+                {
+                    healthyChecks++;
+                }
+            }
+
+            this.OverallUptimePercent = totalChecks > 0 ? Math.Round(100.0 * healthyChecks / totalChecks, 2) : 0.0;
+            this.IncidentsLast24Hours = totalChecks - healthyChecks;
         }
 
         /// <summary>
@@ -623,22 +636,30 @@ namespace Argus.Health.Pulse.ViewModels
         {
             foreach (var row in endpoints)
             {
-                if (this.bootstrappedEndpoints.Contains(row.Identifier))
-                {
-                    continue;
-                }
-
                 try
                 {
-                    var results = await this.client.GetCheckResultsAsync(row.Identifier);
+                    var alreadyBootstrapped = false;
 
-                    if (results.Count > 0)
+                    await UiSequencer.RunAsync(() => alreadyBootstrapped = this.bootstrappedEndpoints.Contains(row.Identifier));
+
+                    if (alreadyBootstrapped)
                     {
-                        row.AddCheckResults(results);
-                        this.logger.LogDebug("Bootstrapped {Count} historical result(s) for {EndpointName}", results.Count, row.Name);
+                        continue;
                     }
 
-                    this.bootstrappedEndpoints.Add(row.Identifier);
+                    var results = await this.client.GetCheckResultsAsync(row.Identifier);
+
+                    // The row and the set of bootstrapped endpoints are only touched on the UI thread
+                    await UiSequencer.RunAsync(() =>
+                    {
+                        if (results.Count > 0)
+                        {
+                            row.AddCheckResults(results);
+                            this.logger.LogDebug("Bootstrapped {Count} historical result(s) for {EndpointName}", results.Count, row.Name);
+                        }
+
+                        this.bootstrappedEndpoints.Add(row.Identifier);
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -667,8 +688,12 @@ namespace Argus.Health.Pulse.ViewModels
 
                 await Task.WhenAll(hourlyTask, dailyTask);
 
-                detail.HourlySummaries = hourlyTask.Result as IReadOnlyList<UptimeSummary> ?? hourlyTask.Result.ToList();
-                detail.DailySummaries = dailyTask.Result as IReadOnlyList<UptimeSummary> ?? dailyTask.Result.ToList();
+                // The detail view model is only touched on the UI thread
+                await UiSequencer.RunAsync(() =>
+                {
+                    detail.HourlySummaries = hourlyTask.Result as IReadOnlyList<UptimeSummary> ?? hourlyTask.Result.ToList();
+                    detail.DailySummaries = dailyTask.Result as IReadOnlyList<UptimeSummary> ?? dailyTask.Result.ToList();
+                });
 
                 this.logger.LogDebug("Loaded {HourlyCount} hourly and {DailyCount} daily uptime summaries for {EndpointName}",
                     hourlyTask.Result.Count, dailyTask.Result.Count, detail.Endpoint.Name);

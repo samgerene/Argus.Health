@@ -23,13 +23,12 @@ namespace Argus.Health.Pulse.ViewModels
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reactive;
-    using System.Reactive.Disposables;
-    using System.Reactive.Linq;
 
     using Argus.Health.Common.Model;
 
     using ReactiveUI;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
     using ReactiveUI.SourceGenerators;
 
     /// <summary>
@@ -40,12 +39,12 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Disposable container for Rx subscriptions
         /// </summary>
-        private readonly CompositeDisposable disposables = new();
+        private readonly MultipleDisposable disposables = new();
 
         /// <summary>
         /// Gets the disposable container for adding external subscriptions tied to this detail's lifetime
         /// </summary>
-        internal CompositeDisposable Disposables => this.disposables;
+        internal MultipleDisposable Disposables => this.disposables;
 
         /// <summary>
         /// Helper for <see cref="FilteredResults"/>
@@ -230,57 +229,57 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to select the last hour time range
         /// </summary>
-        public ReactiveCommand<Unit, TimeRange> SelectLastHourCommand { get; }
+        public ReactiveCommand<RxVoid, TimeRange> SelectLastHourCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 6 hours time range
         /// </summary>
-        public ReactiveCommand<Unit, TimeRange> SelectLast6HoursCommand { get; }
+        public ReactiveCommand<RxVoid, TimeRange> SelectLast6HoursCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 24 hours time range
         /// </summary>
-        public ReactiveCommand<Unit, TimeRange> SelectLast24HoursCommand { get; }
+        public ReactiveCommand<RxVoid, TimeRange> SelectLast24HoursCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 7 days time range
         /// </summary>
-        public ReactiveCommand<Unit, TimeRange> SelectLast7DaysCommand { get; }
+        public ReactiveCommand<RxVoid, TimeRange> SelectLast7DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 30 days time range
         /// </summary>
-        public ReactiveCommand<Unit, TimeRange> SelectLast30DaysCommand { get; }
+        public ReactiveCommand<RxVoid, TimeRange> SelectLast30DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 7 days uptime range
         /// </summary>
-        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime7DaysCommand { get; }
+        public ReactiveCommand<RxVoid, UptimeDaysRange> SelectUptime7DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 30 days uptime range
         /// </summary>
-        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime30DaysCommand { get; }
+        public ReactiveCommand<RxVoid, UptimeDaysRange> SelectUptime30DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 60 days uptime range
         /// </summary>
-        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime60DaysCommand { get; }
+        public ReactiveCommand<RxVoid, UptimeDaysRange> SelectUptime60DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the last 90 days uptime range
         /// </summary>
-        public ReactiveCommand<Unit, UptimeDaysRange> SelectUptime90DaysCommand { get; }
+        public ReactiveCommand<RxVoid, UptimeDaysRange> SelectUptime90DaysCommand { get; }
 
         /// <summary>
         /// Gets the command to select the status bar uptime view
         /// </summary>
-        public ReactiveCommand<Unit, UptimeViewMode> SelectStatusBarCommand { get; }
+        public ReactiveCommand<RxVoid, UptimeViewMode> SelectStatusBarCommand { get; }
 
         /// <summary>
         /// Gets the command to select the heatmap uptime view
         /// </summary>
-        public ReactiveCommand<Unit, UptimeViewMode> SelectHeatmapCommand { get; }
+        public ReactiveCommand<RxVoid, UptimeViewMode> SelectHeatmapCommand { get; }
 
         /// <summary>
         /// Gets or sets the selected uptime days range for the uptime visualization

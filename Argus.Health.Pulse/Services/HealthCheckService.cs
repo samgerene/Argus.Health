@@ -23,14 +23,15 @@ namespace Argus.Health.Pulse.Services
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reactive.Linq;
-    using System.Reactive.Subjects;
     using System.Threading.Tasks;
 
     using Argus.Health.Common.Model;
     using Argus.Health.Pulse.Client;
 
     using Microsoft.Extensions.Logging;
+
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Signals;
 
     /// <summary>
     /// Polls the Argus Health service via IPC for recent health check results per endpoint
@@ -55,7 +56,7 @@ namespace Argus.Health.Pulse.Services
         /// <summary>
         /// Subject that publishes health check results
         /// </summary>
-        private readonly Subject<HealthEndPointCheckResult> resultsSubject = new();
+        private readonly Signal<HealthEndPointCheckResult> resultsSubject = new();
 
         /// <summary>
         /// Tracks the newest known result timestamp per endpoint to only emit new results
@@ -110,8 +111,12 @@ namespace Argus.Health.Pulse.Services
         {
             this.Stop();
 
-            this.pollSubscription = Observable.Timer(TimeSpan.FromSeconds(1), PollInterval)
-                .SelectMany(_ => Observable.FromAsync(this.PollAsync))
+            this.pollSubscription = Signal.Timer(TimeSpan.FromSeconds(1), PollInterval)
+                .SelectMany(_ => Signal.FromAsync(async () =>
+                {
+                    await this.PollAsync();
+                    return RxVoid.Default;
+                }))
                 .Subscribe();
 
             this.logger.LogInformation("Health check result polling started");

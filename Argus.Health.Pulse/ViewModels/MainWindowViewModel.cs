@@ -23,22 +23,20 @@ namespace Argus.Health.Pulse.ViewModels
     using System;
     using System.Collections.ObjectModel;
     using System.Linq;
-    using System.Reactive;
-    using System.Reactive.Disposables;
-    using System.Reactive.Linq;
     using System.Windows.Input;
 
     using Argus.Health.Common.Model;
     using Argus.Health.Pulse.Client;
     using Argus.Health.Pulse.Services;
 
-    using DynamicData;
-
     using Microsoft.Extensions.Logging;
 
-    using ReactiveUI.Avalonia;
-
     using ReactiveUI;
+    using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Concurrency;
+    using ReactiveUI.Primitives.Disposables;
+    using ReactiveUI.Primitives.Signals;
     using ReactiveUI.SourceGenerators;
 
     /// <summary>
@@ -77,14 +75,14 @@ namespace Argus.Health.Pulse.ViewModels
         private readonly ILogger<MainWindowViewModel> logger;
 
         /// <summary>
-        /// The <see cref="SourceList{T}"/> backing the notification collection
+        /// The collection backing <see cref="Notifications"/>; it is only changed on the UI thread
         /// </summary>
-        private readonly SourceList<NotificationItem> notificationSource = new();
+        private readonly ObservableCollection<NotificationItem> notifications = new();
 
         /// <summary>
         /// Disposable container for Rx subscriptions
         /// </summary>
-        private readonly CompositeDisposable disposables = new();
+        private readonly MultipleDisposable disposables = new();
 
         /// <summary>
         /// Tracks the number of consecutive connection failures
@@ -149,15 +147,7 @@ namespace Argus.Health.Pulse.ViewModels
             this.ShowAboutCommand = ReactiveCommand.Create(() => { this.ShowAboutRequested?.Invoke(this, EventArgs.Empty); });
             this.ToggleAutoStartCommand = ReactiveCommand.Create(this.ToggleAutoStart);
 
-            var notificationBindSubscription = this.notificationSource
-                .Connect()
-                .ObserveOn(AvaloniaScheduler.Instance)
-                .Bind(out var notifications)
-                .Subscribe();
-
-            this.disposables.Add(notificationBindSubscription);
-
-            this.Notifications = notifications;
+            this.Notifications = new ReadOnlyObservableCollection<NotificationItem>(this.notifications);
 
             this.ToggleSyncCommand = ReactiveCommand.Create(() =>
             {
@@ -181,7 +171,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             // subscribe to failures for toast notifications
             var failureSubscription = this.healthCheckService.FailureObservable
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(result =>
                 {
                     var notification = new NotificationItem
@@ -203,19 +193,19 @@ namespace Argus.Health.Pulse.ViewModels
                         }
                     }
 
-                    this.notificationSource.Add(notification);
+                    this.notifications.Add(notification);
 
                     // auto-remove after 5 seconds
-                    Observable.Timer(TimeSpan.FromSeconds(5))
-                        .ObserveOn(AvaloniaScheduler.Instance)
-                        .Subscribe(_ => this.notificationSource.Remove(notification));
+                    Signal.Timer(TimeSpan.FromSeconds(5))
+                        .ObserveOn(UiSequencer.Current)
+                        .Subscribe(_ => this.notifications.Remove(notification));
                 });
 
             this.disposables.Add(failureSubscription);
 
             // subscribe to connection errors for status indicator
             var connectionSubscription = this.syncService.ConnectionErrorObservable
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(hasError =>
                 {
                     if (!hasError)
@@ -250,7 +240,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             // subscribe to running state
             var runningSubscription = this.syncService.IsRunningObservable
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(isRunning =>
                 {
                     this.IsSyncRunning = isRunning;
@@ -266,8 +256,8 @@ namespace Argus.Health.Pulse.ViewModels
             this.disposables.Add(runningSubscription);
 
             // countdown timer: 100 ticks over the poll interval
-            var countdownSubscription = Observable.Interval(TimeSpan.FromMilliseconds(100))
-                .ObserveOn(AvaloniaScheduler.Instance)
+            var countdownSubscription = Signal.Interval(TimeSpan.FromMilliseconds(100))
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(_ =>
                 {
                     if (this.IsSyncRunning && this.SyncProgress > 0)
@@ -279,7 +269,7 @@ namespace Argus.Health.Pulse.ViewModels
 
             // reset progress bar on every poll result
             var resetSubscription = this.syncService.EndpointsObservable
-                .ObserveOn(AvaloniaScheduler.Instance)
+                .ObserveOn(UiSequencer.Current)
                 .Subscribe(_ =>
                 {
                     if (!this.IsConnectionError)
@@ -357,22 +347,22 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to navigate to the dashboard view
         /// </summary>
-        public ReactiveCommand<Unit, Unit> GoToDashboardCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> GoToDashboardCommand { get; }
 
         /// <summary>
         /// Gets the command to navigate to the endpoints list view
         /// </summary>
-        public ReactiveCommand<Unit, Unit> GoToEndpointsCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> GoToEndpointsCommand { get; }
 
         /// <summary>
         /// Gets the command to toggle sync polling on or off
         /// </summary>
-        public ReactiveCommand<Unit, Unit> ToggleSyncCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> ToggleSyncCommand { get; }
 
         /// <summary>
         /// Gets the command to dismiss a notification
         /// </summary>
-        public ReactiveCommand<NotificationItem, Unit> DismissNotificationCommand { get; }
+        public ReactiveCommand<NotificationItem, RxVoid> DismissNotificationCommand { get; }
 
         /// <summary>
         /// Gets the command to exit the application
@@ -397,7 +387,7 @@ namespace Argus.Health.Pulse.ViewModels
         /// <summary>
         /// Gets the command to toggle automatic startup with Windows
         /// </summary>
-        public ReactiveCommand<Unit, Unit> ToggleAutoStartCommand { get; }
+        public ReactiveCommand<RxVoid, RxVoid> ToggleAutoStartCommand { get; }
 
         /// <summary>
         /// Raised when the About dialog should be shown
@@ -471,7 +461,7 @@ namespace Argus.Health.Pulse.ViewModels
         private void DismissNotification(NotificationItem item)
         {
             this.logger.LogDebug("Dismissing notification {NotificationId}", item.Id);
-            this.notificationSource.Remove(item);
+            this.notifications.Remove(item);
         }
 
         /// <summary>
@@ -512,7 +502,6 @@ namespace Argus.Health.Pulse.ViewModels
         public void Dispose()
         {
             this.disposables.Dispose();
-            this.notificationSource.Dispose();
             this.dashboardViewModel?.Dispose();
             this.endpointListViewModel?.Dispose();
         }

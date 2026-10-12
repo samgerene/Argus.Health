@@ -21,7 +21,6 @@
 namespace Argus.Health.Pulse
 {
     using System;
-    using System.Reactive.Linq;
 
     using Avalonia;
     using Avalonia.Controls;
@@ -38,6 +37,8 @@ namespace Argus.Health.Pulse
     using Microsoft.Extensions.Logging;
 
     using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Concurrency;
 
     using Serilog;
 
@@ -171,7 +172,7 @@ namespace Argus.Health.Pulse
 
                 // show OS toast notifications for failures when window is hidden
                 this.healthCheckService.FailureObservable
-                    .ObserveOn(AvaloniaScheduler.Instance)
+                    .ObserveOn(UiSequencer.Current)
                     .Subscribe(result =>
                     {
                         if (!mainWindow.IsVisible)

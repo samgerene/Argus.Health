@@ -21,13 +21,13 @@
 namespace Argus.Health.Pulse.Views
 {
     using System;
-    using System.Reactive.Disposables;
-    using System.Reactive.Disposables.Fluent;
 
     using Argus.Health.Pulse.ViewModels;
 
     using ReactiveUI;
     using ReactiveUI.Avalonia;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
 
     /// <summary>
     /// View for the endpoint CRUD list
@@ -60,13 +60,13 @@ namespace Argus.Health.Pulse.Views
                         has => !has)
                     .DisposeWith(disposables);
 
-                this.OneWayBind(this.ViewModel, vm => vm.Endpoints, v => v.EndpointsGrid.ItemsSource)
+                this.OneWayBindUnsafe(this.ViewModel, vm => vm.Endpoints, v => v.EndpointsGrid.ItemsSource)
                     .DisposeWith(disposables);
 
-                this.Bind(this.ViewModel, vm => vm.SelectedEndpoint, v => v.EndpointsGrid.SelectedItem)
+                this.BindUnsafe(this.ViewModel, vm => vm.SelectedEndpoint, v => v.EndpointsGrid.SelectedItem)
                     .DisposeWith(disposables);
 
-                this.OneWayBind(this.ViewModel, vm => vm.HasEndpoints, v => v.EndpointsGrid.IsVisible)
+                this.OneWayBindUnsafe(this.ViewModel, vm => vm.HasEndpoints, v => v.EndpointsGrid.IsVisible)
                     .DisposeWith(disposables);
 
                 this.OneWayBind(this.ViewModel, vm => vm.IsDeleteConfirmationVisible, v => v.DeleteOverlay.IsVisible)
